@@ -1,0 +1,222 @@
+[
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Ac_Ac-N007.jpg",
+    "predicted_class": "Ac",
+    "confidence": 0.7073047757148743,
+    "top3": [
+      [
+        "Ac",
+        0.7073047757148743
+      ],
+      [
+        "As",
+        0.19349804520606995
+      ],
+      [
+        "Ns",
+        0.08498107641935349
+      ]
+    ],
+    "inference_time_ms": 222.2769260406494
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_As_As-N002.jpg",
+    "predicted_class": "As",
+    "confidence": 0.9590177536010742,
+    "top3": [
+      [
+        "As",
+        0.9590177536010742
+      ],
+      [
+        "Ci",
+        0.03714626282453537
+      ],
+      [
+        "Cs",
+        0.0009902403689920902
+      ]
+    ],
+    "inference_time_ms": 10.431766510009766
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Cb_Cb-N003.jpg",
+    "predicted_class": "Cb",
+    "confidence": 0.8444806337356567,
+    "top3": [
+      [
+        "Cb",
+        0.8444806337356567
+      ],
+      [
+        "Cu",
+        0.12165489047765732
+      ],
+      [
+        "Sc",
+        0.018382253125309944
+      ]
+    ],
+    "inference_time_ms": 10.025978088378906
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Cc_Cc-N004.jpg",
+    "predicted_class": "Cc",
+    "confidence": 0.9501564502716064,
+    "top3": [
+      [
+        "Cc",
+        0.9501564502716064
+      ],
+      [
+        "Ac",
+        0.024086713790893555
+      ],
+      [
+        "Cs",
+        0.019856084138154984
+      ]
+    ],
+    "inference_time_ms": 7.009983062744141
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Ci_Ci-N008.jpg",
+    "predicted_class": "Ci",
+    "confidence": 0.7648467421531677,
+    "top3": [
+      [
+        "Ci",
+        0.7648467421531677
+      ],
+      [
+        "Ac",
+        0.1070220023393631
+      ],
+      [
+        "Cs",
+        0.09095000475645065
+      ]
+    ],
+    "inference_time_ms": 3.2439231872558594
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Cs_Cs-N008.jpg",
+    "predicted_class": "As",
+    "confidence": 0.6130937337875366,
+    "top3": [
+      [
+        "As",
+        0.6130937337875366
+      ],
+      [
+        "Cs",
+        0.2756255865097046
+      ],
+      [
+        "Ci",
+        0.0836666077375412
+      ]
+    ],
+    "inference_time_ms": 0.0
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Ct_Ct-N009.jpg",
+    "predicted_class": "Ct",
+    "confidence": 0.9780949950218201,
+    "top3": [
+      [
+        "Ct",
+        0.9780949950218201
+      ],
+      [
+        "Ci",
+        0.013643135316669941
+      ],
+      [
+        "Cc",
+        0.007556520868092775
+      ]
+    ],
+    "inference_time_ms": 10.065793991088867
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Cu_Cu-N002.jpg",
+    "predicted_class": "St",
+    "confidence": 0.35997095704078674,
+    "top3": [
+      [
+        "St",
+        0.35997095704078674
+      ],
+      [
+        "Cu",
+        0.35935166478157043
+      ],
+      [
+        "As",
+        0.1260688453912735
+      ]
+    ],
+    "inference_time_ms": 10.288238525390625
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Ns_Ns-N014.jpg",
+    "predicted_class": "Sc",
+    "confidence": 0.5067182779312134,
+    "top3": [
+      [
+        "Sc",
+        0.5067182779312134
+      ],
+      [
+        "Ns",
+        0.17633050680160522
+      ],
+      [
+        "As",
+        0.12312468141317368
+      ]
+    ],
+    "inference_time_ms": 10.04791259765625
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_Sc_Sc-N019.jpg",
+    "predicted_class": "Sc",
+    "confidence": 0.5363587737083435,
+    "top3": [
+      [
+        "Sc",
+        0.5363587737083435
+      ],
+      [
+        "St",
+        0.18394944071769714
+      ],
+      [
+        "Ns",
+        0.1563834697008133
+      ]
+    ],
+    "inference_time_ms": 6.686925888061523
+  },
+  {
+    "image": "C:\\Users\\Luikz\\Downloads\\CloudScope\\data\\external_test\\test_St_St-N005.jpg",
+    "predicted_class": "As",
+    "confidence": 0.6107891201972961,
+    "top3": [
+      [
+        "As",
+        0.6107891201972961
+      ],
+      [
+        "St",
+        0.16598032414913177
+      ],
+      [
+        "Cu",
+        0.08416622132062912
+      ]
+    ],
+    "inference_time_ms": 10.089397430419922
+  }
+]

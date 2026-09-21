@@ -1,0 +1,11 @@
+torch==2.2.2+cu118
+torchvision==0.17.2+cu118
+torchaudio==2.2.2+cu118
+numpy==1.26.4
+Pillow==10.2.0
+matplotlib==3.8.3
+scikit-learn==1.4.1
+requests==2.31.0
+huggingface-hub==0.21.4
+transformers==4.38.2
+tqdm==4.66.2

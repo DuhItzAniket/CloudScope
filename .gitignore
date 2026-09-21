@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Data
+data/raw/
+data/processed/
+data/external_test/
+
+# Models (large files)
+models/*.pth
+models/*.pt
+models/*.bin
+
+# Logs
+logs/*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# External repos (cloned)
+lenghusky8/
+
+# Checkpoints
+*.checkpoint

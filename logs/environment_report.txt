@@ -1,0 +1,23 @@
+CloudScope Environment Report
+==============================
+Date: 2026-09-21
+
+Hardware:
+- OS: Windows 11
+- CPU: (not detected)
+- RAM: 16.9 GB (16873545728 bytes)
+- GPU: NVIDIA GeForce RTX 4050 Laptop GPU
+- VRAM: 6.4 GB
+- Disk Space (C:): 361 GB free / 1023 GB total
+
+Software:
+- Python: 3.11.9
+- PyTorch: 2.2.2+cu118
+- CUDA Available: True
+- CUDA Version (PyTorch): 11.8
+- CUDA Version (Driver): 12.7
+- NVIDIA Driver: 566.24
+
+Training Device: CUDA (GPU 0)
+Device Name: NVIDIA GeForce RTX 4050 Laptop GPU
+VRAM Available: ~5.6 GB (after system usage ~499 MiB used)
