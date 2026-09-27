@@ -34,3 +34,5 @@ lenghusky8/
 
 # Checkpoints
 *.checkpoint
+data/seg/
+
