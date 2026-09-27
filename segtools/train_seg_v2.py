@@ -1,71 +1,20 @@
-"""Tiny U-Net (ResNet18 encoder, ImageNet) for sky/cloud/contamination.
+"""Seg v2: stronger color augmentation vs vivid-blue OOD (CCSN/B0268).
 
-Data: data/seg/{images,masks} + split.json. ignore_index=255.
-Usage: python segtools/train_seg.py  (writes models/cloudscope_seg_best.pth)
+Same U-Net + data + metric as train_seg.py; only augmentation changes:
+saturation 0.2->0.6, hue added (0.15), brightness/contrast 0.3->0.4.
+Writes models/cloudscope_seg_v2_best.pth + logs/training_seg_v2_log.json.
 """
 import os, json, time, random
 import numpy as np
 import torch, torch.nn as nn, torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, models
+from torch.utils.data import DataLoader
+from torchvision import transforms
 from PIL import Image
 
-ROOT = 'data/seg'
-CKPT = 'models/cloudscope_seg_best.pth'
-LOG = 'logs/training_seg_log.json'
+from train_seg import UNet, SegDS, CLS
+
+ROOT, CKPT, LOG = 'data/seg', 'models/cloudscope_seg_v2_best.pth', 'logs/training_seg_v2_log.json'
 SIZE, BATCH, EPOCHS, PATIENCE, SEED = 256, 16, 60, 12, 42
-CLS = ['sky', 'cloud', 'contamination']
-
-
-class SegDS(Dataset):
-    def __init__(self, ids, tf_img, tf_msk):
-        self.ids, self.tf_img, self.tf_msk = ids, tf_img, tf_msk
-
-    def __len__(self):
-        return len(self.ids)
-
-    def __getitem__(self, i):
-        sid = self.ids[i]
-        img = Image.open('%s/images/%s.jpg' % (ROOT, sid)).convert('RGB')
-        msk = Image.open('%s/masks/%s.png' % (ROOT, sid))
-        return self.tf_img(img), torch.from_numpy(np.array(self.tf_msk(msk))).long()
-
-
-class Block(nn.Module):
-    def __init__(self, ci, co):
-        super().__init__()
-        self.c = nn.Sequential(nn.Conv2d(ci, co, 3, padding=1, bias=False),
-                               nn.BatchNorm2d(co), nn.ReLU(True),
-                               nn.Conv2d(co, co, 3, padding=1, bias=False),
-                               nn.BatchNorm2d(co), nn.ReLU(True))
-
-    def forward(self, x):
-        return self.c(x)
-
-
-class UNet(nn.Module):
-    def __init__(self, n=3):
-        super().__init__()
-        e = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-        self.e0 = nn.Sequential(e.conv1, e.bn1, e.relu, e.maxpool)
-        self.e1, self.e2, self.e3, self.e4 = e.layer1, e.layer2, e.layer3, e.layer4
-        self.u4 = Block(512 + 256, 256)
-        self.u3 = Block(256 + 128, 128)
-        self.u2 = Block(128 + 64, 64)
-        self.u1 = Block(64 + 64, 64)
-        self.out = nn.Conv2d(64, n, 1)
-
-    def forward(self, x):
-        x0 = self.e0(x)
-        x1 = self.e1(x0)
-        x2 = self.e2(x1)
-        x3 = self.e3(x2)
-        x4 = self.e4(x3)
-        d = self.u4(torch.cat([F.interpolate(x4, size=x3.shape[2:], mode='nearest'), x3], 1))
-        d = self.u3(torch.cat([F.interpolate(d, size=x2.shape[2:], mode='nearest'), x2], 1))
-        d = self.u2(torch.cat([F.interpolate(d, size=x1.shape[2:], mode='nearest'), x1], 1))
-        d = self.u1(torch.cat([d, x0], 1))
-        return self.out(F.interpolate(d, size=x.shape[2:], mode='bilinear', align_corners=False))
 
 
 def main():
@@ -73,11 +22,11 @@ def main():
     np.random.seed(SEED)
     torch.manual_seed(SEED)
     dev = torch.device('cuda')
-    print('seg train on', torch.cuda.get_device_name(0))
+    print('seg v2 train on', torch.cuda.get_device_name(0))
     tf_img = transforms.Compose([
         transforms.RandomResizedCrop(SIZE, scale=(0.7, 1.0)),
         transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2),
+        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.6, hue=0.15),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     tf_msk = transforms.Compose([
@@ -125,7 +74,7 @@ def main():
                     union[c] += (p | r).sum()
         iou = inter / np.maximum(union, 1)
         mi = float(np.nanmean(iou))
-        print('ep %d loss=%.4f miou=%.4f sky=%.3f cloud=%.3f contam=%.3f t=%.0fs' % (
+        print('v2 ep %d loss=%.4f miou=%.4f sky=%.3f cloud=%.3f contam=%.3f t=%.0fs' % (
             ep + 1, tl / len(tr), mi, iou[0], iou[1], iou[2], time.time() - t0))
         hist.append({'ep': ep + 1, 'loss': round(tl / len(tr), 4), 'miou': round(mi, 4),
                      'iou': [round(float(x), 4) for x in iou]})
@@ -140,7 +89,7 @@ def main():
             print('early stop at', ep + 1)
             break
     json.dump(hist, open(LOG, 'w'), indent=1)
-    print('SEG done best_miou=%.4f' % best)
+    print('SEG v2 done best_miou=%.4f' % best)
 
 
 if __name__ == '__main__':
