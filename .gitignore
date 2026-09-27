@@ -36,3 +36,4 @@ lenghusky8/
 *.checkpoint
 data/seg/
 
+build/
