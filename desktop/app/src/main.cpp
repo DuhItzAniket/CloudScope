@@ -7,6 +7,7 @@
 #include <QQmlEngine>
 #include <QTimer>
 
+#include <QElapsedTimer>
 #include <iostream>
 
 #include <opencv2/imgcodecs.hpp>
@@ -68,9 +69,12 @@ int runInferTest(const QString& image, const QString& clsModel,
         return 2;
     }
     std::cout << "backend=" << infer.backend() << "\n";
+    QElapsedTimer tm;
     std::string label = "cloud";
     if (infer.hasClassifier()) {
-        auto r = infer.classify(frame);
+        infer.classify(frame); { cv::Mat _m = infer.segment(frame); (void)_m; } tm.start(); auto r = infer.classify(frame);
+        std::cout << "t_cls_ms=" << tm.elapsed() << "\n";
+        tm.start();
         label = r.label;
         std::cout << "class=" << r.label << " conf=" << r.confidence << " top3=";
         for (const auto& t : r.top3)
@@ -79,6 +83,7 @@ int runInferTest(const QString& image, const QString& clsModel,
     }
     if (infer.hasSegmenter()) {
         cv::Mat mask = infer.segment(frame);
+        std::cout << "t_seg_ms=" << tm.elapsed() << "\n";
         if (!mask.empty()) {
             cv::Mat cloudOnly = (mask == 1);
             auto objs = CloudVision::extract(cloudOnly);
