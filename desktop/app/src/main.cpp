@@ -1,4 +1,4 @@
-// CloudScope Desktop — CLI harness + headless inference test.
+// CloudScope Desktop — CLI harness + headless inference/overlay test.
 // Full QML GUI wires up in Ph28.
 #include <QCoreApplication>
 #include <QCommandLineParser>
@@ -6,7 +6,10 @@
 #include <iostream>
 
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "CameraSource.h"
+#include "CloudVision.h"
 #include "OnnxInfer.h"
 
 namespace {
@@ -35,8 +38,18 @@ int runCamTest()
     return 0;
 }
 
+const char* modeName(OverlayMode m)
+{
+    switch (m) {
+        case OverlayMode::Rect: return "rect";
+        case OverlayMode::Polygon: return "polygon";
+        case OverlayMode::Symmetry: return "symmetry";
+    }
+    return "?";
+}
+
 int runInferTest(const QString& image, const QString& clsModel,
-                 const QString& segModel)
+                 const QString& segModel, const QString& outPrefix)
 {
     cv::Mat frame = cv::imread(image.toStdString(), cv::IMREAD_COLOR);
     if (frame.empty()) {
@@ -49,8 +62,10 @@ int runInferTest(const QString& image, const QString& clsModel,
         return 2;
     }
     std::cout << "backend=" << infer.backend() << "\n";
+    std::string label = "cloud";
     if (infer.hasClassifier()) {
         auto r = infer.classify(frame);
+        label = r.label;
         std::cout << "class=" << r.label << " conf=" << r.confidence << " top3=";
         for (const auto& t : r.top3)
             std::cout << t.first << ":" << t.second << " ";
@@ -59,11 +74,31 @@ int runInferTest(const QString& image, const QString& clsModel,
     if (infer.hasSegmenter()) {
         cv::Mat mask = infer.segment(frame);
         if (!mask.empty()) {
-            int cloud = cv::countNonZero(mask == 1);
-            int sky = cv::countNonZero(mask == 0);
-            std::cout << "mask=" << mask.cols << "x" << mask.rows
-                      << " cloud_frac=" << (double)cloud / mask.total()
-                      << " sky_frac=" << (double)sky / mask.total() << "\n";
+            cv::Mat cloudOnly = (mask == 1);
+            auto objs = CloudVision::extract(cloudOnly);
+            bool ok = CloudVision::sane(objs, frame.cols, frame.rows);
+            std::cout << "objects=" << objs.size() << " sane=" << (ok ? 1 : 0) << "\n";
+            if (!outPrefix.isEmpty()) {
+                if (!ok) {
+                    cv::putText(frame, label + " (mask uncertain)",
+                                cv::Point(20, 40), cv::FONT_HERSHEY_SIMPLEX, 1.2,
+                                cv::Scalar(255, 255, 255), 2);
+                    cv::imwrite(outPrefix.toStdString() + "_labelonly.jpg", frame);
+                    std::cout << "saved label-only fallback\n";
+                } else {
+                    const OverlayMode modes[3] = {OverlayMode::Rect,
+                                                  OverlayMode::Polygon,
+                                                  OverlayMode::Symmetry};
+                    for (auto m : modes) {
+                        cv::Mat ann = frame.clone();
+                        CloudVision::render(ann, objs, label, m);
+                        cv::imwrite(outPrefix.toStdString() + "_" +
+                                        modeName(m) + ".jpg",
+                                    ann);
+                    }
+                    std::cout << "saved rect+polygon+symmetry\n";
+                }
+            }
         }
     }
     return 0;
@@ -74,7 +109,7 @@ int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
     app.setApplicationName("CloudScope");
-    app.setApplicationVersion("0.2.0-ph26");
+    app.setApplicationVersion("0.3.0-ph27");
 
     QCommandLineParser cli;
     cli.setApplicationDescription("CloudScope Desktop (camera probe + inference test)");
@@ -86,14 +121,16 @@ int main(int argc, char** argv)
                    "cls-model", "models/cloudscope_b0268_expa3.onnx"});
     cli.addOption({"seg-model", "Segmenter ONNX path.",
                    "seg-model", "models/cloudscope_seg_v2.onnx"});
+    cli.addOption({"out", "Annotated output prefix (writes rect/polygon/symmetry).",
+                   "out"});
     cli.process(app);
 
     if (cli.isSet("camtest"))
         return runCamTest();
     if (cli.isSet("infertest"))
         return runInferTest(cli.value("infertest"), cli.value("cls-model"),
-                            cli.value("seg-model"));
+                            cli.value("seg-model"), cli.value("out"));
 
-    std::cout << "CloudScope 0.2.0-ph26: use --camtest or --infertest <img>. GUI in Ph28.\n";
+    std::cout << "CloudScope 0.3.0-ph27: use --camtest or --infertest <img> [--out p]. GUI in Ph28.\n";
     return 0;
 }
