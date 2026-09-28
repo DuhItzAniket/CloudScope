@@ -6,6 +6,8 @@
 #include <QQmlError>
 #include <QQmlEngine>
 #include <QTimer>
+#include <QDir>
+#include <QEventLoop>
 
 #include <QElapsedTimer>
 #include <iostream>
@@ -114,6 +116,51 @@ int runInferTest(const QString& image, const QString& clsModel,
     }
     return 0;
 }
+int runAutoTest(const QString& spec, int wantFrames, const QString& outDir,
+                const QString& clsModel, const QString& segModel)
+{
+    OnnxInfer infer;
+    if (!infer.load(clsModel.toStdString(), segModel.toStdString())) {
+        std::cerr << "no models loaded\n";
+        return 2;
+    }
+    QDir().mkpath(outDir);
+    auto* frames = new FrameProvider();
+    AppController ctl(&infer, frames);
+    int got = 0;
+    QString lastLabel;
+    double lastConf = 0, lastFps = 0;
+    int lastObjs = 0;
+    bool lastMaskOk = true;
+    QEventLoop loop;
+    QObject::connect(&ctl, &AppController::frameStats, [&](void) {
+        ++got;
+        lastLabel = ctl.label();
+        lastConf = ctl.confidence();
+        lastFps = ctl.fps();
+        lastObjs = ctl.objectCount();
+        lastMaskOk = ctl.maskOk();
+        if (got >= wantFrames)
+            loop.quit();
+    });
+    QTimer watchdog;
+    watchdog.setSingleShot(true);
+    QObject::connect(&watchdog, &QTimer::timeout, &loop, &QEventLoop::quit);
+    watchdog.start(90000);
+    ctl.startSource(spec);
+    loop.exec();
+    watchdog.stop();
+    bool shot = false;
+    if (got > 0)
+        shot = ctl.snapshot(outDir + "/autotest_live.jpg");
+    ctl.stop();
+    std::cout << "frames=" << got << " last_label=" << lastLabel.toStdString()
+              << " last_conf=" << lastConf << " last_fps=" << lastFps
+              << " objects=" << lastObjs << " mask_ok=" << (lastMaskOk ? 1 : 0)
+              << " snapshot=" << (shot ? 1 : 0) << "\n";
+    return (got >= wantFrames && shot) ? 0 : 1;
+}
+
 }  // namespace
 
 int main(int argc, char** argv)
@@ -134,6 +181,9 @@ int main(int argc, char** argv)
                    "seg-model", "models/cloudscope_seg_v2.onnx"});
     cli.addOption({"out", "Annotated output prefix.", "out"});
     cli.addOption({"qmltest", "Load QML UI offscreen and exit (UI smoke test)."});
+    cli.addOption({"autotest", "Run live pipeline headless (source, N frames).", "source"});
+    cli.addOption({"frames", "Frames for autotest.", "frames", "10"});
+    cli.addOption({"shotdir", "Snapshot dir for autotest.", "shotdir", "build"});
     cli.process(app);
 
     if (cli.isSet("camtest"))
@@ -141,6 +191,8 @@ int main(int argc, char** argv)
     if (cli.isSet("infertest"))
         return runInferTest(cli.value("infertest"), cli.value("cls-model"),
                             cli.value("seg-model"), cli.value("out"));
+    if (cli.isSet("autotest"))
+        return runAutoTest(cli.value("autotest"), cli.value("frames").toInt(), cli.value("shotdir"), cli.value("cls-model"), cli.value("seg-model"));
 
     OnnxInfer infer;
     const bool haveModels =
