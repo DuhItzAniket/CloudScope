@@ -1,15 +1,21 @@
-// CloudScope Desktop — CLI harness + headless inference/overlay test.
-// Full QML GUI wires up in Ph28.
-#include <QCoreApplication>
+// CloudScope Desktop — live QML GUI + headless CLI tests.
 #include <QCommandLineParser>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQmlError>
+#include <QQmlEngine>
+#include <QTimer>
 
 #include <iostream>
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include "AppController.h"
 #include "CameraSource.h"
 #include "CloudVision.h"
+#include "FrameProvider.h"
 #include "OnnxInfer.h"
 
 namespace {
@@ -107,22 +113,22 @@ int runInferTest(const QString& image, const QString& clsModel,
 
 int main(int argc, char** argv)
 {
-    QCoreApplication app(argc, argv);
+    QGuiApplication app(argc, argv);
     app.setApplicationName("CloudScope");
-    app.setApplicationVersion("0.3.0-ph27");
+    app.setApplicationVersion("1.0.0");
 
     QCommandLineParser cli;
-    cli.setApplicationDescription("CloudScope Desktop (camera probe + inference test)");
+    cli.setApplicationDescription("CloudScope Desktop — live cloud analysis");
     cli.addHelpOption();
     cli.addVersionOption();
     cli.addOption({{"c", "camtest"}, "Probe local cameras 0..4 and grab frames."});
-    cli.addOption({"infertest", "Classify+segment one image.", "image"});
+    cli.addOption({"infertest", "Classify+segment one image (headless).", "image"});
     cli.addOption({"cls-model", "Classifier ONNX path.",
                    "cls-model", "models/cloudscope_b0268_expa3.onnx"});
     cli.addOption({"seg-model", "Segmenter ONNX path.",
                    "seg-model", "models/cloudscope_seg_v2.onnx"});
-    cli.addOption({"out", "Annotated output prefix (writes rect/polygon/symmetry).",
-                   "out"});
+    cli.addOption({"out", "Annotated output prefix.", "out"});
+    cli.addOption({"qmltest", "Load QML UI offscreen and exit (UI smoke test)."});
     cli.process(app);
 
     if (cli.isSet("camtest"))
@@ -131,6 +137,33 @@ int main(int argc, char** argv)
         return runInferTest(cli.value("infertest"), cli.value("cls-model"),
                             cli.value("seg-model"), cli.value("out"));
 
-    std::cout << "CloudScope 0.3.0-ph27: use --camtest or --infertest <img> [--out p]. GUI in Ph28.\n";
-    return 0;
+    OnnxInfer infer;
+    const bool haveModels =
+        infer.load(cli.value("cls-model").toStdString(),
+                   cli.value("seg-model").toStdString());
+    if (!haveModels)
+        std::cerr << "warning: no ONNX models loaded; live mode disabled\n";
+
+    auto* frames = new FrameProvider();
+    auto* controller = new AppController(&infer, frames);
+    QQmlApplicationEngine engine;
+    engine.addImageProvider(QStringLiteral("frames"), frames);
+    engine.rootContext()->setContextProperty(QStringLiteral("controller"), controller);
+    engine.rootContext()->setContextProperty(QStringLiteral("inferBackend"),
+                                             QString::fromStdString(infer.backend()));
+    QObject::connect(&engine, &QQmlEngine::warnings,
+                       [](const QList<QQmlError>& ws) {
+                           for (const auto& e : ws)
+                               std::cerr << "QML: " << e.toString().toStdString() << std::endl;
+                       });
+    engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
+    if (engine.rootObjects().isEmpty()) {
+        std::cerr << "QML load failed\n";
+        return 3;
+    }
+    if (cli.isSet("qmltest")) {
+        std::cout << "qmltest: UI loaded OK\n";
+        QTimer::singleShot(1500, &app, &QCoreApplication::quit);
+    }
+    return app.exec();
 }
