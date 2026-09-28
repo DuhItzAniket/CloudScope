@@ -23,6 +23,8 @@ public:
     void close();
     bool isOpened() const { return cap_.isOpened(); }
     bool read(cv::Mat& frame);
+    bool setProp(int propId, double value);
+    double getProp(int propId) const;
 
     int width() const { return static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_WIDTH)); }
     int height() const { return static_cast<int>(cap_.get(cv::CAP_PROP_FRAME_HEIGHT)); }

@@ -9,6 +9,36 @@
 #include "CameraSource.h"
 #include "FrameProvider.h"
 
+namespace {
+// OpenCV prop ids (videoio) — applied live by the worker thread.
+constexpr int kPropExposure = cv::CAP_PROP_EXPOSURE;
+constexpr int kPropGain = cv::CAP_PROP_GAIN;
+constexpr int kPropAutoExposure = cv::CAP_PROP_AUTO_EXPOSURE;
+
+QVariantList lumaHist64(const cv::Mat& bgr)
+{
+    QVariantList out;
+    out.reserve(64);
+    if (bgr.empty()) {
+        for (int i = 0; i < 64; ++i)
+            out << 0.0;
+        return out;
+    }
+    cv::Mat gray, small;
+    cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
+    cv::resize(gray, small, cv::Size(160, 120), 0, 0, cv::INTER_AREA);
+    int histSize = 64;
+    float range[] = {0, 256};
+    const float* ranges[] = {range};
+    cv::Mat hist;
+    cv::calcHist(&small, 1, nullptr, cv::Mat(), hist, 1, &histSize, ranges);
+    double total = small.total();
+    for (int i = 0; i < 64; ++i)
+        out << (hist.at<float>(i) / total);
+    return out;
+}
+}  // namespace
+
 PipelineWorker::PipelineWorker(OnnxInfer* infer, FrameProvider* frames)
     : infer_(infer), frames_(frames)
 {
@@ -20,6 +50,13 @@ void PipelineWorker::configure(const std::string& source, OverlayMode mode,
     source_ = source;
     mode_ = mode;
     minConf_ = minConf;
+}
+
+void PipelineWorker::requestCameraSettings(const CameraSettings& s)
+{
+    QMutexLocker lock(&settingsMutex_);
+    pending_ = s;
+    pending_.dirty = true;
 }
 
 void PipelineWorker::requestStop() { stop_.store(true); }
@@ -36,13 +73,31 @@ void PipelineWorker::run()
     QElapsedTimer fpsT;
     fpsT.start();
     int frames = 0;
+    long long frameNo = 0;
     double fps = 0.0;
     cv::Mat frame;
     while (!stop_.load()) {
+        {
+            QMutexLocker lock(&settingsMutex_);
+            if (pending_.dirty) {
+                if (pending_.hasAutoExposure)
+                    src.setProp(kPropAutoExposure, pending_.autoExposure);
+                if (pending_.hasExposure)
+                    src.setProp(kPropExposure, pending_.exposure);
+                if (pending_.hasGain)
+                    src.setProp(kPropGain, pending_.gain);
+                if (pending_.hasResolution) {
+                    src.setProp(cv::CAP_PROP_FRAME_WIDTH, pending_.width);
+                    src.setProp(cv::CAP_PROP_FRAME_HEIGHT, pending_.height);
+                }
+                pending_.dirty = false;
+            }
+        }
         if (!src.read(frame)) {
             emit logLine(QStringLiteral("frame grab failed; stopping"));
             break;
         }
+        ++frameNo;
         std::string label = "cloud";
         double conf = 0.0;
         std::vector<CloudObject> objs;
@@ -81,8 +136,12 @@ void PipelineWorker::run()
             frames = 0;
             fpsT.restart();
         }
+        QVariantList hist;
+        if (frameNo % 5 == 0)
+            hist = lumaHist64(frame);
         emit frameStats(QString::fromStdString(label), conf,
-                        static_cast<int>(objs.size()), maskOk, fps);
+                        static_cast<int>(objs.size()), maskOk, fps, frame.cols,
+                        frame.rows, frameNo, hist);
     }
     emit finished();
 }
@@ -91,6 +150,9 @@ AppController::AppController(OnnxInfer* infer, FrameProvider* frames,
                              QObject* parent)
     : QObject(parent), infer_(infer), frames_(frames)
 {
+    histogram_.reserve(64);
+    for (int i = 0; i < 64; ++i)
+        histogram_ << 0.0;
 }
 
 AppController::~AppController() { stop(); }
@@ -139,6 +201,13 @@ void AppController::startSource(const QString& spec)
     worker_ = new PipelineWorker(infer_, frames_);
     worker_->configure(spec.toStdString(),
                        static_cast<OverlayMode>(overlayMode_), minConf_);
+    {
+        QMutexLocker lock(&stagedMutex_);
+        if (staged_.dirty) {
+            worker_->requestCameraSettings(staged_);
+            staged_.dirty = false;
+        }
+    }
     worker_->moveToThread(thread_);
     connect(thread_, &QThread::started, worker_, &PipelineWorker::run);
     connect(worker_, &PipelineWorker::finished, thread_, &QThread::quit);
@@ -184,6 +253,56 @@ void AppController::setMinConf(double v)
     emit overlayChanged();
 }
 
+void AppController::setExposure(double v)
+{
+    QMutexLocker lock(&stagedMutex_);
+    staged_.hasExposure = true;
+    staged_.exposure = v;
+    staged_.dirty = true;
+    lock.unlock();
+    if (worker_)
+        worker_->requestCameraSettings(staged_);
+    pushLog(QStringLiteral("exposure=%1").arg(v));
+}
+
+void AppController::setGain(double v)
+{
+    QMutexLocker lock(&stagedMutex_);
+    staged_.hasGain = true;
+    staged_.gain = v;
+    staged_.dirty = true;
+    lock.unlock();
+    if (worker_)
+        worker_->requestCameraSettings(staged_);
+    pushLog(QStringLiteral("gain=%1").arg(v));
+}
+
+void AppController::setAutoExposure(bool on)
+{
+    QMutexLocker lock(&stagedMutex_);
+    staged_.hasAutoExposure = true;
+    staged_.autoExposure = on ? 1.0 : 0.0;
+    staged_.dirty = true;
+    lock.unlock();
+    if (worker_)
+        worker_->requestCameraSettings(staged_);
+    pushLog(QStringLiteral("auto-exposure %1").arg(on ? "on" : "off"));
+}
+
+void AppController::setResolution(int w, int h)
+{
+    {
+        QMutexLocker lock(&stagedMutex_);
+        staged_.hasResolution = true;
+        staged_.width = w;
+        staged_.height = h;
+        staged_.dirty = true;
+    }
+    if (worker_)
+        worker_->requestCameraSettings(staged_);
+    pushLog(QStringLiteral("resolution=%1x%2").arg(w).arg(h));
+}
+
 bool AppController::snapshot(const QString& path)
 {
     if (!worker_)
@@ -201,13 +320,21 @@ bool AppController::snapshot(const QString& path)
 }
 
 void AppController::onFrameStats(const QString& label, double conf, int objects,
-                                 bool maskOk, double fps)
+                                 bool maskOk, double fps, int fw, int fh,
+                                 long long frameNo, const QVariantList& hist)
 {
     label_ = label;
     confidence_ = conf;
     objectCount_ = objects;
     maskOk_ = maskOk;
     fps_ = fps;
+    frameW_ = fw;
+    frameH_ = fh;
+    frameNo_ = frameNo;
+    if (!hist.isEmpty()) {
+        histogram_ = hist;
+        emit histogramReady();
+    }
     if (infer_)
         device_ = QString::fromStdString(infer_->backend());
     emit frameStats();

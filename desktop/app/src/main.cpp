@@ -1,6 +1,8 @@
 // CloudScope Desktop — live QML GUI + headless CLI tests.
 #include <QCommandLineParser>
 #include <QGuiApplication>
+#include <QPalette>
+#include <QQuickStyle>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQmlError>
@@ -166,6 +168,18 @@ int runAutoTest(const QString& spec, int wantFrames, const QString& outDir,
 int main(int argc, char** argv)
 {
     QGuiApplication app(argc, argv);
+    QQuickStyle::setStyle(QStringLiteral("Fusion"));
+    QPalette pal;
+    pal.setColor(QPalette::Window, QColor(20, 23, 28));
+    pal.setColor(QPalette::WindowText, QColor(232, 236, 241));
+    pal.setColor(QPalette::Base, QColor(11, 13, 16));
+    pal.setColor(QPalette::AlternateBase, QColor(26, 30, 37));
+    pal.setColor(QPalette::Text, QColor(232, 236, 241));
+    pal.setColor(QPalette::Button, QColor(26, 30, 37));
+    pal.setColor(QPalette::ButtonText, QColor(232, 236, 241));
+    pal.setColor(QPalette::Highlight, QColor(0, 160, 220));
+    pal.setColor(QPalette::HighlightedText, QColor(255, 255, 255));
+    app.setPalette(pal);
     app.setApplicationName("CloudScope");
     app.setApplicationVersion("1.0.0");
 

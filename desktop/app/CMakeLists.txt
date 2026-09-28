@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Quick Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Widgets)
 find_package(OpenCV REQUIRED)
 if(NOT DEFINED ORT_ROOT)
   if(DEFINED ENV{ORT_ROOT})
@@ -35,6 +35,6 @@ add_executable(cloudscope_app ${SOURCES} ${HEADERS} qml/qml.qrc)
 target_include_directories(cloudscope_app PRIVATE src "${ORT_ROOT}/include")
 target_link_directories(cloudscope_app PRIVATE "${ORT_ROOT}/lib")
 target_link_libraries(cloudscope_app PRIVATE
-  Qt6::Core Qt6::Quick Qt6::Widgets ${OpenCV_LIBS} onnxruntime)
+  Qt6::Core Qt6::Quick Qt6::QuickControls2 Qt6::Widgets ${OpenCV_LIBS} onnxruntime)
 target_compile_definitions(cloudscope_app PRIVATE
   $<$<CONFIG:Debug>:QT_QML_DEBUG>)

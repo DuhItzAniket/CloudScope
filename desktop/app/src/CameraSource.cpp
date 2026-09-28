@@ -36,6 +36,20 @@ void CameraSource::close()
         cap_.release();
 }
 
+bool CameraSource::setProp(int propId, double value)
+{
+    if (!cap_.isOpened())
+        return false;
+    return cap_.set(propId, value);
+}
+
+double CameraSource::getProp(int propId) const
+{
+    if (!cap_.isOpened())
+        return -1.0;
+    return cap_.get(propId);
+}
+
 bool CameraSource::read(cv::Mat& frame)
 {
     if (!cap_.isOpened())
