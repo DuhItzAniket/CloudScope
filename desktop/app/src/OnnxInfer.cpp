@@ -39,12 +39,32 @@ std::wstring toWide(const std::string& s)
     return w;
 }
 
+// True when the CUDA EP provider DLL sits next to onnxruntime.dll.
+// Avoids noisy (but harmless) ORT load errors on CPU-only installs.
+bool cudaProviderPresent()
+{
+    wchar_t self[MAX_PATH] = {0};
+    HMODULE h = GetModuleHandleW(L"onnxruntime.dll");
+    if (h && GetModuleFileNameW(h, self, MAX_PATH)) {
+        std::wstring dir(self);
+        size_t p = dir.find_last_of(L"\\");
+        if (p != std::wstring::npos) {
+            std::wstring cand =
+                dir.substr(0, p + 1) + L"onnxruntime_providers_cuda.dll";
+            return GetFileAttributesW(cand.c_str()) != INVALID_FILE_ATTRIBUTES;
+        }
+    }
+    return false;
+}
+
 Ort::Session makeSession(Ort::Env& env, const std::string& path, bool& usedCuda)
 {
     const std::wstring wpath = toWide(path);
     Ort::SessionOptions opt;
     opt.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
     usedCuda = false;
+    if (!cudaProviderPresent())
+        return Ort::Session(env, wpath.c_str(), opt);
     try {
         OrtCUDAProviderOptions co;
         opt.AppendExecutionProvider_CUDA(co);

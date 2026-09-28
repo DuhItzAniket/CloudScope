@@ -7,4 +7,6 @@ if not exist "%SRC%\nvidia" (
   exit /b 1
 )
 for /R "%SRC%" %%f in (*.dll) do copy /Y "%%f" "%DST%\" >NUL
+copy /Y "C:\tools\onnxruntime\onnxruntime-win-x64-gpu-1.22.0\lib\onnxruntime_providers_cuda.dll" "%DST%\" >NUL
+copy /Y "C:\tools\onnxruntime\onnxruntime-win-x64-gpu-1.22.0\lib\onnxruntime_providers_tensorrt.dll" "%DST%\" >NUL
 echo GPU DLLs staged. Run cloudscope_app.exe and check backend=cuda.
