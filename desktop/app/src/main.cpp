@@ -181,6 +181,7 @@ int main(int argc, char** argv)
                    "seg-model", "models/cloudscope_seg_v2.onnx"});
     cli.addOption({"out", "Annotated output prefix.", "out"});
     cli.addOption({"qmltest", "Load QML UI offscreen and exit (UI smoke test)."});
+    cli.addOption({"autostart", "Start source immediately in GUI (demo/verify).", "source"});
     cli.addOption({"autotest", "Run live pipeline headless (source, N frames).", "source"});
     cli.addOption({"frames", "Frames for autotest.", "frames", "10"});
     cli.addOption({"shotdir", "Snapshot dir for autotest.", "shotdir", "build"});
@@ -218,6 +219,8 @@ int main(int argc, char** argv)
         std::cerr << "QML load failed\n";
         return 3;
     }
+    if (cli.isSet("autostart"))
+        controller->startSource(cli.value("autostart"));
     if (cli.isSet("qmltest")) {
         std::cout << "qmltest: UI loaded OK\n";
         QTimer::singleShot(1500, &app, &QCoreApplication::quit);

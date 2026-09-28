@@ -7,6 +7,8 @@ ApplicationWindow {
     visible: true
     width: 1400
     height: 860
+    minimumWidth: 1000
+    minimumHeight: 600
     title: "CloudScope — Live Cloud Analysis"
     color: "#14171c"
 
@@ -17,48 +19,62 @@ ApplicationWindow {
         function onFrameReady() { root.frameTick += 1 }
     }
 
-    RowLayout {
-        anchors.fill: parent
-        anchors.margins: 10
-        spacing: 10
-
-        // ---- Live view ----
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: "#0b0d10"
-            radius: 8
-            border.color: "#2a2f38"
-            Image {
-                id: live
-                anchors.fill: parent
-                anchors.margins: 4
-                fillMode: Image.PreserveAspectFit
-                cache: false
-                source: controller.status.indexOf("running") === 0
-                        ? "image://frames/live?tick=" + root.frameTick
-                        : ""
-            }
-            Label {
-                anchors.centerIn: parent
-                visible: live.source == ""
-                text: "Idle — pick a source and press Start"
-                color: "#8b93a1"
-                font.pixelSize: 18
-            }
+    // ---- Live view (left, anchored) ----
+    Rectangle {
+        id: viewBox
+        anchors {
+            left: parent.left
+            top: parent.top
+            bottom: parent.bottom
+            leftMargin: 10
+            topMargin: 10
+            bottomMargin: 10
+            rightMargin: 10
         }
+        width: parent.width - panel.width - 30
+        color: "#0b0d10"
+        radius: 8
+        border.color: "#2a2f38"
+        Image {
+            id: live
+            anchors.fill: parent
+            anchors.margins: 4
+            fillMode: Image.PreserveAspectFit
+            cache: false
+            source: controller.status.indexOf("running") === 0
+                    ? "image://frames/live?tick=" + root.frameTick
+                    : ""
+        }
+        Label {
+            anchors.centerIn: parent
+            visible: live.source == ""
+            text: "Idle — pick a source and press Start"
+            color: "#8b93a1"
+            font.pixelSize: 18
+        }
+    }
 
-        // ---- Control panel ----
+    // ---- Control panel (right, fixed width) ----
+    ScrollView {
+        id: panel
+        anchors {
+            right: parent.right
+            top: parent.top
+            bottom: parent.bottom
+            rightMargin: 10
+            topMargin: 10
+            bottomMargin: 10
+        }
+        width: 330
+        clip: true
         ColumnLayout {
-            Layout.preferredWidth: 320
-            Layout.fillHeight: true
+            width: panel.width - 4
             spacing: 8
 
             GroupBox {
                 title: "Source"
                 Layout.fillWidth: true
                 ColumnLayout {
-                    anchors.fill: parent
                     RowLayout {
                         TextField {
                             id: srcField
@@ -81,12 +97,12 @@ ApplicationWindow {
                             text: "Start"
                             highlighted: true
                             onClicked: {
-                                            var t = srcField.text
-                                            if (t.indexOf("://") >= 0 || t.indexOf("/") >= 0)
-                                                controller.startSource(t)
-                                            else
-                                                controller.startSource(String(camList.currentIndex))
-                                        }
+                                var t = srcField.text
+                                if (t.indexOf("://") >= 0 || t.indexOf("/") >= 0)
+                                    controller.startSource(t)
+                                else
+                                    controller.startSource(String(camList.currentIndex))
+                            }
                         }
                         Button {
                             text: "Stop"
@@ -101,7 +117,6 @@ ApplicationWindow {
                 title: "Overlay"
                 Layout.fillWidth: true
                 ColumnLayout {
-                    anchors.fill: parent
                     ButtonGroup { id: modeGroup }
                     RadioButton { text: "Rectangle"; checked: true; ButtonGroup.group: modeGroup; onClicked: controller.setOverlayMode(0) }
                     RadioButton { text: "Polygon"; ButtonGroup.group: modeGroup; onClicked: controller.setOverlayMode(1) }
@@ -119,7 +134,6 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 GridLayout {
                     columns: 2
-                    anchors.fill: parent
                     Label { text: "Type:"; color: "#8b93a1" }
                     Label { text: controller.label; font.bold: true; font.pixelSize: 20; color: "#e8ecf1" }
                     Label { text: "Confidence:"; color: "#8b93a1" }
@@ -134,7 +148,7 @@ ApplicationWindow {
             GroupBox {
                 title: "Log"
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.preferredHeight: 220
                 ListView {
                     anchors.fill: parent
                     clip: true

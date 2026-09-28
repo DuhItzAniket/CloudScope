@@ -60,7 +60,7 @@ public:
                            QObject* parent = nullptr);
     ~AppController() override;
 
-    QString version() const { return QStringLiteral("0.4.0-ph28"); }
+    QString version() const { return QStringLiteral("1.0.0"); }
     QString status() const { return status_; }
     QString label() const { return label_; }
     double confidence() const { return confidence_; }
