@@ -1,0 +1,23 @@
+# systemd unit for the CloudScope interim sky logger on Raspberry Pi OS.
+# Edit User, WorkingDirectory, --out, --camera and the site options before installing.
+[Unit]
+Description=CloudScope interim sky logger
+After=local-fs.target time-sync.target
+Wants=time-sync.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/CloudScope/tools/sky_logger
+ExecStart=/usr/bin/python3 -m sky_logger run \
+    --camera 0 --backend v4l2 --fourcc MJPG --width 4656 --height 3496 \
+    --out /mnt/skydata --site BLR01 --interval 30 \
+    --lat 12.97 --lon 77.59 --alt 920 --min-sun-elevation -6 \
+    --pointing "zenith, fixed mount" --pointing-el 90
+# Exit 3 (disk guard) is deliberate: do not restart into a full disk.
+Restart=on-failure
+RestartPreventExitStatus=3 4
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

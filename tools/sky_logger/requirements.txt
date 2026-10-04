@@ -1,0 +1,3 @@
+# Runtime (laptop). On Raspberry Pi OS prefer `sudo apt install python3-opencv python3-numpy`.
+opencv-python>=4.8,<5
+numpy>=1.24

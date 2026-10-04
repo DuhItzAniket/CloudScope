@@ -4,6 +4,11 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P003 — Interim Sky Logger (2026-10-04, PARTIAL)
+- Added `tools/sky_logger`: fixed-interval sky capture with UTC timestamps, per-frame JSON sidecars (settings read-back, image statistics, Sun position), drift-free scheduling, atomic writes, disk guard, night pause, camera reconnect, systemd unit for Raspberry Pi.
+- 28 unit tests; solar position within 0.02 deg of NREL SPA.
+- Fixed four defects found on real hardware (MJPG with no frames, DirectShow grab/retrieve quirk, misleading exposure test, camera settings left in manual mode).
+
 ### P002 — Docs & phase protocol (2026-10-04)
 - Added `docs/PLAN.md` (100-phase plan), phase and ADR templates, `CONTRIBUTING.md`, `PROJECT_STATE.md`, this changelog.
 - Added Apache-2.0 `LICENSE` (default; to be confirmed in ADR-010, P008).

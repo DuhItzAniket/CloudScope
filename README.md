@@ -24,7 +24,7 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `docs/PLAN.md` | The 100-phase implementation plan (SDLC) |
 | `docs/phases/` | One document per completed phase (`P###-<slug>.md`) |
 | `docs/adr/` | Architecture decision records |
-| `tools/` | Utilities, starting with the interim sky logger (P003) |
+| `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |
 | `legacy/` | Frozen v0.1 AI-Day prototype (Python training scripts, Qt/QML desktop app, ONNX models, reports) |
 
 More folders (`core/`, `daemon/`, `apps/desktop/`, `web/`, `firmware/`, `protocol/`, `hardware/`) arrive in their phases.

@@ -1,0 +1,3 @@
+-r requirements.txt
+pytest>=8
+pvlib>=0.11   # reference solar position (NREL SPA) for tests only
