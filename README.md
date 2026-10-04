@@ -25,6 +25,8 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `docs/phases/` | One document per completed phase (`P###-<slug>.md`) |
 | `docs/adr/` | Architecture decision records |
 | `docs/requirements/` | Personas, use cases, requirements (SRS) |
+| `docs/arch/` | System architecture |
+| `docs/research/` | Research behind decisions (competitive analysis, hardware facts) |
 | `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |
 | `legacy/` | Frozen v0.1 AI-Day prototype (Python training scripts, Qt/QML desktop app, ONNX models, reports) |
 
