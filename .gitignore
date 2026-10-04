@@ -1,40 +1,68 @@
-# Python
+# ---------- Build outputs (C++ / CMake / Qt) ----------
+build/
+out/
+cmake-build-*/
+CMakeUserPresets.json
+*.user
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.a
+*.so
+*.dll
+*.exe
+!packaging/**/*.exe.manifest
+vcpkg_installed/
+.vs/
+
+# ---------- Firmware (PlatformIO) ----------
+.pio/
+firmware/**/.pio/
+
+# ---------- Python (tools/, legacy/) ----------
 __pycache__/
 *.py[cod]
-*$py.class
 .venv/
 venv/
 env/
+.pytest_cache/
 
-# Data
-data/raw/
-data/processed/
-data/external_test/
+# ---------- Runtime data (never commit captures or weights) ----------
+captures/
+sessions/
+*.fits
+*.ser
+*.pth
+*.pt
+*.bin
+*.ckpt
+# ONNX models are released via GitHub Releases, except the two frozen legacy deliverables
+*.onnx
+!legacy/models/cloudscope_b0268_expa3.onnx
+!legacy/models/cloudscope_seg_v2.onnx
 
-# Models (large files)
-models/*.pth
-models/*.pt
-models/*.bin
+# ---------- Legacy (v0.1-aiday) generated data ----------
+legacy/data/raw/
+legacy/data/processed/
+legacy/data/external_test/
+legacy/data/seg/
+legacy/package/
+legacy/lenghusky8/
+legacy/logs/*.log
 
-# Logs
-logs/*.log
+# ---------- Secrets ----------
+.env
+*.pem
+*.key
+secrets*.toml
 
-# IDE
+# ---------- IDE / OS ----------
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
-
-# External repos (cloned)
-lenghusky8/
-
-# Checkpoints
-*.checkpoint
-data/seg/
-
-build/
-package/
