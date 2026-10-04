@@ -2,7 +2,7 @@
 
 **CloudScope is an open sky-observation system**: a professional camera application, a hardware control system for a pan-tilt sky camera, manual and autonomous operating modes, remote access, and on-device AI powered by the [STRATIA](https://github.com/DuhItzAniket/STRATIA) cloud-understanding model.
 
-> **Status: Stage A (requirements and architecture) complete; Stage B (engineering foundation) next.** See [`PROJECT_STATE.md`](PROJECT_STATE.md).
+> **Status: Stage B (engineering foundation) in progress.** The build system and the first part of the core library exist; the camera application starts in Stage C. See [`PROJECT_STATE.md`](PROJECT_STATE.md).
 > The original AI-Day prototype is preserved, unchanged, in [`legacy/`](legacy/) and tagged [`v0.1-aiday`](https://github.com/DuhItzAniket/CloudScope/releases/tag/v0.1-aiday).
 
 ## What CloudScope does (target v1.0)
@@ -29,10 +29,27 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `docs/research/` | Research behind decisions (competitive analysis, hardware facts) |
 | `docs/hardware/` | Hardware reference designs (bills of materials, wiring, power, thermal) |
 | `docs/reviews/` | Stage gate reviews |
+| `core/` | `libcloudscope-core`: all domain logic (C++20, Qt Core) |
+| `apps/info/` | `cloudscope-info`: build information and installation self-test |
+| `tests/` | Unit tests (Catch2) and command-line tests |
+| `cmake/`, `CMakePresets.json`, `vcpkg.json` | Build system ([how to build](docs/dev/building.md)) |
+| `docs/dev/` | Developer guides: building, C++ conventions |
+| `tools/build/` | Build scripts for Windows, Debian/Raspberry Pi OS and Docker |
 | `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |
 | `legacy/` | Frozen v0.1 AI-Day prototype (Python training scripts, Qt/QML desktop app, ONNX models, reports) |
 
-More folders (`core/`, `daemon/`, `apps/desktop/`, `web/`, `firmware/`, `protocol/`, `hardware/`) arrive in their phases.
+More folders (`daemon/`, `apps/desktop/`, `web/`, `firmware/`, `protocol/`, `hardware/`) arrive in their phases.
+
+## Building
+
+One command per platform; details and troubleshooting in [`docs/dev/building.md`](docs/dev/building.md).
+
+| Platform | Command |
+|---|---|
+| Windows x64 (MSVC 2022, Qt ≥ 6.8) | `tools\build\build.bat` |
+| Debian 13, Ubuntu 26.04, Raspberry Pi OS (64-bit) | `sh tools/build/install-deps-debian.sh` once, then `sh tools/build/build.sh` |
+
+Afterwards `cloudscope-info --self-test` (in `build/<preset>/bin/<Config>/`) reports the build and checks every bundled library.
 
 ## Development process
 

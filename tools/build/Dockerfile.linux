@@ -1,0 +1,14 @@
+# Linux build image for CloudScope. The default base, Debian 13, is the distribution Raspberry Pi OS is based on
+# (Qt 6.8.2), so it is the reference Linux environment.
+#
+#   docker build -f tools/build/Dockerfile.linux -t cloudscope-dev:trixie tools/build
+#   docker build --platform linux/arm64 -f tools/build/Dockerfile.linux -t cloudscope-dev:trixie-arm64 tools/build
+#   docker build --build-arg BASE=ubuntu:26.04 -f tools/build/Dockerfile.linux -t cloudscope-dev:ubuntu26.04 tools/build
+ARG BASE=debian:trixie
+FROM ${BASE}
+
+COPY install-deps-debian.sh /tmp/install-deps-debian.sh
+RUN sh /tmp/install-deps-debian.sh \
+    && rm -rf /var/lib/apt/lists/* /tmp/install-deps-debian.sh
+
+WORKDIR /src

@@ -113,7 +113,7 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | ID | Phase | Work | Exit criteria | |
 |---|---|---|---|---|
 | P011 | Build system | CMake presets (windows-msvc, linux-x64, linux-aarch64), vcpkg manifest (OpenCV, spdlog, fmt, toml++, nlohmann-json, cfitsio, libjpeg-turbo, Catch2), Qt via aqtinstall (Windows) / system or built Qt (Pi) | Hello-core builds on Windows + Linux | |
-| P012 | CI | GitHub Actions: Windows, Ubuntu x64, ubuntu-24.04-arm (Pi-like aarch64); build + tests + artifacts | Green on all three | |
+| P012 | CI | GitHub Actions: Windows (MSVC, vcpkg, Qt 6.8 via aqtinstall); Debian 13 containers on x64 and on the arm64 runner (Pi-like aarch64); Ubuntu 26.04 container (newest Qt and GCC); build + tests + artifacts | Green on all four | |
 | P013 | Core utilities | Logging, `expected<T,E>` errors, config + schema + migration, strong unit types (deg/rad, ms), UTC/monotonic clocks | Unit tests | |
 | P014 | Test infrastructure | Catch2, Qt Test, recorded-frame fixtures, coverage report | Coverage in CI | |
 | P015 | Static analysis | clang-format, clang-tidy, ASan/UBSan on Linux CI, gitleaks | Zero warnings policy on new code | |

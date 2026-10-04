@@ -1,8 +1,8 @@
 # CloudScope — Software Requirements Specification (SRS)
 
-Version 1.3 · Phases P005, P006, P008, P009 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`, `docs/research/P006_competitive_analysis.md`
+Version 1.4 · Phases P005, P006, P008, P009, P011 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`, `docs/research/P006_competitive_analysis.md`
 
-**Revision history:** v1.0 (P005) initial, 138 requirements. v1.1 (P006) adds 10 requirements and tightens FR-REC-02 after the competitive analysis (FR-CAM-12, FR-DSP-11, FR-REC-10/11/12, FR-SEQ-06, FR-CTL-12/13, FR-REM-09/10). v1.2 (P008) changes FR-PLT-01 to Raspberry Pi OS on Debian 13 "Trixie" with Qt ≥ 6.8 (ADR-001): Bookworm ships Qt 6.4, below the minimum. v1.3 (P009) updates FR-FW-02 for current parts (MPU-6050 reported obsolete; Uno R4 Minima as reference) and adds hardware constraints C6/C7.
+**Revision history:** v1.0 (P005) initial, 138 requirements. v1.1 (P006) adds 10 requirements and tightens FR-REC-02 after the competitive analysis (FR-CAM-12, FR-DSP-11, FR-REC-10/11/12, FR-SEQ-06, FR-CTL-12/13, FR-REM-09/10). v1.2 (P008) changes FR-PLT-01 to Raspberry Pi OS on Debian 13 "Trixie" with Qt ≥ 6.8 (ADR-001): Bookworm ships Qt 6.4, below the minimum. v1.3 (P009) updates FR-FW-02 for current parts (MPU-6050 reported obsolete; Uno R4 Minima as reference) and adds hardware constraints C6/C7. v1.4 (P011) changes the Linux x64 platform in FR-PLT-01 from Ubuntu 24.04 to Debian 13 or Ubuntu 26.04 LTS: Ubuntu 24.04 ships Qt 6.4.2, below the Qt 6.8 minimum of ADR-001; the build was verified on Debian 13 (Qt 6.8.2) and Ubuntu 26.04 (Qt 6.10.2).
 
 ## 1. Introduction
 
@@ -212,7 +212,7 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 ### 2.15 Platform and packaging (FR-PLT) — UC-17
 | ID | Requirement | Pri | Ver | Phase |
 |---|---|---|---|---|
-| FR-PLT-01 | The system shall run on Windows 10/11 x64, Ubuntu 24.04 x64 and Raspberry Pi OS based on Debian 13 "Trixie" (64-bit) on a Raspberry Pi 5, with Qt 6.8 or newer. | M | T | P012, P098 |
+| FR-PLT-01 | The system shall run on Windows 10/11 x64, on Debian 13 and Ubuntu 26.04 LTS x64, and on Raspberry Pi OS based on Debian 13 "Trixie" (64-bit) on a Raspberry Pi 5, with Qt 6.8 or newer. | M | T | P012, P098 |
 | FR-PLT-02 | The system shall provide a Windows installer, Debian packages (amd64, arm64) with a systemd unit, and released firmware binaries. | M | D | P098 |
 | FR-PLT-03 | Configuration shall be stored in human-readable files, validated against a schema, and migrated automatically between versions. | M | T | P013 |
 

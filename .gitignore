@@ -1,7 +1,7 @@
 # ---------- Build outputs (C++ / CMake / Qt) ----------
-build/
-out/
-cmake-build-*/
+/build/
+/out/
+/cmake-build-*/
 CMakeUserPresets.json
 *.user
 *.obj

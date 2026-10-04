@@ -36,4 +36,6 @@ UTF-8 everywhere. Line endings are normalised by [`.gitattributes`](.gitattribut
 
 ## Coding standards
 
-Defined per language when the corresponding code first appears (C++ in P011/P015, firmware in P050, Python tools in P003).
+- **C++:** [`docs/dev/cpp_style.md`](docs/dev/cpp_style.md); build instructions in [`docs/dev/building.md`](docs/dev/building.md). Formatting and lint tooling follow in P015.
+- **Python tools:** as in `tools/sky_logger/` (P003).
+- **Firmware:** defined in P050.

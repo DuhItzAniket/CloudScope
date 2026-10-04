@@ -4,6 +4,13 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P011 — Build system (2026-10-04)
+- Added the build system: CMake presets `windows-msvc`, `linux-x64`, `linux-aarch64` (Ninja Multi-Config), vcpkg manifest pinned to release 2026.07.29 for Windows, Debian package list for Linux and Raspberry Pi OS, build scripts and a Docker build image (`tools/build/`).
+- Added the first core module (`build_info`, `self_test`) and the `cloudscope-info` executable: version, git revision, compiler, library versions and licences, plus a self-test in which every bundled library does real work.
+- Added unit and command-line tests (Catch2): 15 on Windows, 14 on Linux; verified with warnings as errors on Windows (MSVC 19.44, Qt 6.9.3), Debian 13 x64 and arm64 (GCC 14, Qt 6.8.2) and Ubuntu 26.04 (GCC 15, Qt 6.10.2).
+- Fixed a hang found during verification: Qt's `QCommandLineParser::process()` opens a message box on Windows when there is no console; executables now parse arguments themselves, with a regression test.
+- Added developer guides `docs/dev/building.md` and `docs/dev/cpp_style.md`. SRS v1.4: FR-PLT-01 names Debian 13 and Ubuntu 26.04 instead of Ubuntu 24.04 (Qt 6.4 is too old). `.gitignore` build patterns anchored to the repository root.
+
 ### P010 — Gate R — requirements and architecture review (2026-10-04)
 - Added the Gate R review record (`docs/reviews/gate_R.md`): 11-item checklist, automated consistency checks, three findings fixed (stale Qt HttpServer in the architecture, missing requirement-group traceability, resolved open questions), owner decisions, system risk register.
 - Verdict: GO for Stage B with conditions. Stage A tagged `stage-A-complete`.
