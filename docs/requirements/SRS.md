@@ -295,9 +295,9 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | # | Question | Resolved in |
 |---|---|---|
 | Q1 | Default keep-out half-angle for a ~105° lens that always sees much of the sky | P060 (with measurements of glare and sensor behaviour) |
-| Q2 | Servo vs stepper pan-tilt for the target pointing accuracy | P009, P057 |
+| Q2 | Servo vs stepper pan-tilt for the target pointing accuracy | Resolved in P009: two tiers, 270° digital servos (≈0.5–1°) or NEMA steppers + TMC2209 + belt reduction (≈0.1°); confirmed on hardware in P057 |
 | Q3 | INDI or ASCOM Alpaca compatibility | Resolved in P006 / ADR-011: Alpaca client and server (should), INDI client on Linux (could) |
-| Q4 | Which accelerator (if any) for Raspberry Pi inference | P066, after STRATIA P095 |
+| Q4 | Which accelerator (if any) for Raspberry Pi inference | Narrowed in P009: CPU by default; Raspberry Pi AI HAT+ (box-mounted, HEF compile) as the option; decided in P066 after STRATIA P095 |
 
 ## 6. Summary and traceability
 

@@ -4,6 +4,10 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P010 — Gate R — requirements and architecture review (2026-10-04)
+- Added the Gate R review record (`docs/reviews/gate_R.md`): 11-item checklist, automated consistency checks, three findings fixed (stale Qt HttpServer in the architecture, missing requirement-group traceability, resolved open questions), owner decisions, system risk register.
+- Verdict: GO for Stage B with conditions. Stage A tagged `stage-A-complete`.
+
 ### P009 — Hardware reference designs (2026-10-04)
 - Added verified component facts (`docs/research/P009_hardware_component_facts.md`, 66 sources) and hardware reference designs (`docs/hardware/reference_designs.md`): split sky-head/electronics-box layout, servo and stepper pan-tilt designs, Pi 5 box and native GPIO tier, Uno R4/R3 lite tier, power distribution, thermal plan for Bengaluru.
 - Design changes from verified facts: MG996R excluded (159° travel, 55 °C), AI Kit replaced by AI HAT+ (box only), BNO085 and ESP32-S3 as references, PPS moved to GPIO17; SRS v1.3.

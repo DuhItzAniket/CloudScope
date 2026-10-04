@@ -64,12 +64,14 @@ flowchart TB
 | Container | Technology | Responsibility | Runs on |
 |---|---|---|---|
 | `libcloudscope-core` | C++20, Qt 6 Core (no GUI), OpenCV, ONNX Runtime, SQLite | All domain logic. No UI code, no network server code. | Laptop, Pi 5 |
-| `cloudscoped` | C++20, Qt HttpServer/WebSockets | Owns devices; exposes the Session API over the network; streams video; runs as a service | Laptop, Pi 5 |
+| `cloudscoped` | C++20, Drogon for HTTP/WebSocket (ADR-006) | Owns devices; exposes the Session API over the network; streams video; runs as a service | Laptop, Pi 5 |
 | CloudScope Desktop | C++20, Qt Widgets, Qt Advanced Docking System | Workbench UI; works in-process (local mode) or as a client of a daemon (remote mode) | Laptop, Pi 5 with display |
 | Web dashboard | Static HTML/JS bundle | Monitoring and control from any browser, phone included | Served by the daemon |
 | Firmware | C/C++ (PlatformIO; Arduino-ESP32 + FreeRTOS; Arduino AVR) | Real-time actuation, sensor reading, local safety enforcement | ESP32, Arduino Uno |
 | Catalogue and files | SQLite + filesystem | Frames, sidecars, sessions, telemetry, AI results | Host disk / external drive |
 | `tools/` | Python 3 | Utilities that are not part of the runtime (sky logger, calibration scripts) | Laptop, Pi 5 |
+
+Requirement groups by container: core library — FR-CAM, FR-REC, FR-SEQ, FR-CAL, FR-CTL, FR-SAF (host side), FR-MOD, FR-MIS, FR-AI, FR-DAT; daemon — FR-REM, FR-SEC; desktop application — FR-DSP; web dashboard — FR-REM-06; firmware — FR-FW, FR-SAF (controller side); packaging — FR-PLT.
 
 ### 2.1 One Session API, two transports
 

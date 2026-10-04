@@ -2,7 +2,7 @@
 
 **CloudScope is an open sky-observation system**: a professional camera application, a hardware control system for a pan-tilt sky camera, manual and autonomous operating modes, remote access, and on-device AI powered by the [STRATIA](https://github.com/DuhItzAniket/STRATIA) cloud-understanding model.
 
-> **Status: system reboot in progress (Stage A — re-foundation).**
+> **Status: Stage A (requirements and architecture) complete; Stage B (engineering foundation) next.** See [`PROJECT_STATE.md`](PROJECT_STATE.md).
 > The original AI-Day prototype is preserved, unchanged, in [`legacy/`](legacy/) and tagged [`v0.1-aiday`](https://github.com/DuhItzAniket/CloudScope/releases/tag/v0.1-aiday).
 
 ## What CloudScope does (target v1.0)
@@ -28,6 +28,7 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `docs/arch/` | System architecture |
 | `docs/research/` | Research behind decisions (competitive analysis, hardware facts) |
 | `docs/hardware/` | Hardware reference designs (bills of materials, wiring, power, thermal) |
+| `docs/reviews/` | Stage gate reviews |
 | `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |
 | `legacy/` | Frozen v0.1 AI-Day prototype (Python training scripts, Qt/QML desktop app, ONNX models, reports) |
 
