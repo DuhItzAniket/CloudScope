@@ -1,5 +1,7 @@
 #include "cloudscope/common/self_test.hpp"
 
+#include "cloudscope/common/scope_exit.hpp"
+
 #include <QtCore/QDateTime>
 #include <QtCore/QString>
 #include <fitsio.h>
@@ -19,6 +21,7 @@
 #include <cstdlib>
 #include <exception>
 #include <memory>
+#include <numbers>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -138,19 +141,15 @@ std::string check_cfitsio()
     int status = 0;
     fits_create_file(&file, "mem://cloudscope-self-test", &status);
     require(status == 0 && file != nullptr, "in-memory FITS file not created");
-    struct Closer {
-        fitsfile* file;
-        ~Closer()
-        {
-            int ignored = 0;
-            fits_close_file(file, &ignored);
-        }
-    } const closer{file};
+    const ScopeExit close_file([file] {
+        int ignored = 0;
+        fits_close_file(file, &ignored);
+    });
 
     std::array<long, 2> axes = {kWidth, kHeight};
     fits_create_img(file, USHORT_IMG, 2, axes.data(), &status);
-    char date_obs[] = "2026-10-04T12:34:56.789";
-    fits_update_key(file, TSTRING, "DATE-OBS", date_obs, "UTC start of exposure", &status);
+    std::string date_obs = "2026-10-04T12:34:56.789";  // CFITSIO takes a non-const pointer
+    fits_update_key(file, TSTRING, "DATE-OBS", date_obs.data(), "UTC start of exposure", &status);
     fits_write_img(file, TUSHORT, 1, pixel_count, image.data, &status);
     require(status == 0, fmt::format("write failed, CFITSIO status {}", status));
 
@@ -158,11 +157,12 @@ std::string check_cfitsio()
     fits_read_key(file, TSTRING, "DATE-OBS", value.data(), nullptr, &status);
     require(status == 0 && std::string_view(value.data()) == date_obs, "DATE-OBS keyword not read back");
 
-    cv::Mat decoded(kHeight, kWidth, CV_16UC1);
+    std::vector<std::uint16_t> decoded(static_cast<std::size_t>(pixel_count));
     int any_null = 0;
-    fits_read_img(file, TUSHORT, 1, pixel_count, nullptr, decoded.data, &any_null, &status);
+    fits_read_img(file, TUSHORT, 1, pixel_count, nullptr, decoded.data(), &any_null, &status);
     require(status == 0, fmt::format("read failed, CFITSIO status {}", status));
-    require(cv::norm(image, decoded, cv::NORM_INF) == 0.0, "pixel data changed");
+    const cv::Mat decoded_image(kHeight, kWidth, CV_16UC1, decoded.data());
+    require(cv::norm(image, decoded_image, cv::NORM_INF) == 0.0, "pixel data changed");
     return "16-bit FITS image and DATE-OBS keyword written and read back";
 }
 
@@ -195,18 +195,18 @@ std::string check_spdlog()
         line.pop_back();
     }
     require(line == "info frame 7 exposure 12.5 ms", fmt::format("unexpected log line '{}'", line));
-    require(fmt::format("{:>6.2f}", 3.14159) == "  3.14", "number formatting wrong");
+    require(fmt::format("{:>6.2f}", std::numbers::pi) == "  3.14", "number formatting wrong");
     return "log record formatted and delivered to a sink";
 }
 
 SelfTestResult run_check(const char* name, std::string (*check)())
 {
     try {
-        return {name, true, check()};
+        return {.name = name, .passed = true, .detail = check()};
     } catch (const std::exception& error) {
-        return {name, false, error.what()};
+        return {.name = name, .passed = false, .detail = error.what()};
     } catch (...) {
-        return {name, false, "unknown exception"};
+        return {.name = name, .passed = false, .detail = "unknown exception"};
     }
 }
 
@@ -227,7 +227,7 @@ std::vector<SelfTestResult> run_self_test()
 
 bool all_passed(const std::vector<SelfTestResult>& results)
 {
-    return std::all_of(results.begin(), results.end(), [](const SelfTestResult& result) { return result.passed; });
+    return std::ranges::all_of(results, &SelfTestResult::passed);
 }
 
 }  // namespace cloudscope

@@ -11,10 +11,10 @@
 #include <vector>
 
 using namespace cloudscope;
+using Catch::Matchers::WithinAbs;
 using cloudscope::sim::make_synthetic_sky;
 using cloudscope::sim::SyntheticSky;
 using cloudscope::sim::SyntheticSkySpec;
-using Catch::Matchers::WithinAbs;
 
 namespace {
 
@@ -114,7 +114,7 @@ TEST_CASE("the Sun is a saturated disc at the stated position and nothing else s
     spec.sun_x = 0.25;
     spec.sun_y = 0.6;
     spec.sun_radius_px = 20.0;
-    spec.cloud_fraction = 0.8;   // bright clouds everywhere: still no saturation outside the disc
+    spec.cloud_fraction = 0.8;  // bright clouds everywhere: still no saturation outside the disc
     spec.noise_sigma = 6.0;
     const SyntheticSky sky = make(spec);
 
@@ -126,7 +126,8 @@ TEST_CASE("the Sun is a saturated disc at the stated position and nothing else s
     const cv::Mat saturated_mask = saturated(sky.image);
     CHECK(cv::countNonZero(saturated_mask) == sky.saturated_pixels);
     // A rasterised disc of radius 20 has close to pi * r^2 pixels.
-    CHECK_THAT(static_cast<double>(sky.saturated_pixels), WithinAbs(std::numbers::pi * 400.0, 0.03 * std::numbers::pi * 400.0));
+    CHECK_THAT(static_cast<double>(sky.saturated_pixels),
+               WithinAbs(std::numbers::pi * 400.0, 0.03 * std::numbers::pi * 400.0));
 
     // Every saturated pixel is inside the disc; the centroid is the Sun centre.
     std::vector<cv::Point> points;
@@ -163,10 +164,10 @@ TEST_CASE("the glow around the Sun brightens the sky near the disc", "[sim][synt
     const int cy = static_cast<int>(std::lround(with_sun.sun_centre.y));
     const int cx = static_cast<int>(std::lround(with_sun.sun_centre.x));
     const auto red = [](const SyntheticSky& sky, int y, int x) { return sky.image.at<cv::Vec3b>(y, x)[2]; };
-    CHECK(red(with_sun, cy, cx + 13) > red(without_sun, cy, cx + 13) + 60);    // close to the disc: strong glow
-    CHECK(red(with_sun, cy, cx + 40) > red(without_sun, cy, cx + 40));         // further out: weaker
+    CHECK(red(with_sun, cy, cx + 13) > red(without_sun, cy, cx + 13) + 60);  // close to the disc: strong glow
+    CHECK(red(with_sun, cy, cx + 40) > red(without_sun, cy, cx + 40));       // further out: weaker
     CHECK(red(with_sun, cy, cx + 13) > red(with_sun, cy, cx + 40));
-    CHECK(red(with_sun, cy, cx + 100) == red(without_sun, cy, cx + 100));      // beyond six radii: none
+    CHECK(red(with_sun, cy, cx + 100) == red(without_sun, cy, cx + 100));  // beyond six radii: none
 }
 
 TEST_CASE("without the Sun no pixel is saturated", "[sim][synthetic_sky]")
@@ -187,7 +188,7 @@ TEST_CASE("a Sun partly or fully outside the frame is handled", "[sim][synthetic
 {
     SyntheticSkySpec spec;
     spec.sun_radius_px = 30.0;
-    spec.sun_x = 0.0;   // centre on the left edge: about half the disc is visible
+    spec.sun_x = 0.0;  // centre on the left edge: about half the disc is visible
     spec.sun_y = 0.5;
     const SyntheticSky half = make(spec);
     const double full_disc = std::numbers::pi * 900.0;
@@ -196,7 +197,7 @@ TEST_CASE("a Sun partly or fully outside the frame is handled", "[sim][synthetic
 
     spec.sun_x = -1.0;  // far outside
     const SyntheticSky outside = make(spec);
-    CHECK(outside.sun_visible);            // it exists, it is just not in the picture
+    CHECK(outside.sun_visible);  // it exists, it is just not in the picture
     CHECK(outside.saturated_pixels == 0);
 }
 

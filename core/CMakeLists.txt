@@ -22,6 +22,7 @@ add_library(cloudscope_core STATIC
   include/cloudscope/common/error.hpp
   include/cloudscope/common/json_schema.hpp
   include/cloudscope/common/log.hpp
+  include/cloudscope/common/scope_exit.hpp
   include/cloudscope/common/self_test.hpp
   include/cloudscope/common/units.hpp
   include/cloudscope/sim/synthetic_sky.hpp

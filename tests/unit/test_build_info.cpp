@@ -42,8 +42,7 @@ TEST_CASE("every bundled library is listed with a version and a licence", "[comm
     for (const char* name :
          {"Qt", "OpenCV", "spdlog", "fmt", "toml++", "nlohmann-json", "tl-expected", "CFITSIO", "libjpeg-turbo"}) {
         INFO("library: " << name);
-        const auto found = std::find_if(info.dependencies.begin(), info.dependencies.end(),
-                                        [name](const DependencyInfo& dep) { return dep.name == name; });
+        const auto found = std::ranges::find(info.dependencies, name, &DependencyInfo::name);
         REQUIRE(found != info.dependencies.end());
         CHECK(std::regex_search(found->compiled_version, version));
         CHECK_FALSE(found->licence.empty());
@@ -54,8 +53,7 @@ TEST_CASE("every bundled library is listed with a version and a licence", "[comm
 TEST_CASE("Qt is at least the version Raspberry Pi OS ships", "[common][build_info]")
 {
     const BuildInfo& info = cloudscope::build_info();
-    const auto qt = std::find_if(info.dependencies.begin(), info.dependencies.end(),
-                                 [](const DependencyInfo& dep) { return dep.name == "Qt"; });
+    const auto qt = std::ranges::find(info.dependencies, "Qt", &DependencyInfo::name);
     REQUIRE(qt != info.dependencies.end());
 
     std::smatch match;

@@ -16,19 +16,27 @@ constexpr int kMaxSize = 8192;
 // Nothing but the Sun disc reaches 255: clouds, glow and noise are capped below it.
 constexpr double kBrightestNonSun = 250.0;
 
+// False for NaN as well: every comparison with NaN is false.
+bool in_range(double value, double low, double high)
+{
+    return value >= low && value <= high;
+}
+
 Expected<void> check(const SyntheticSkySpec& spec)
 {
-    const auto bad = [](const char* what) { return fail(ErrorCode::InvalidArgument, fmt::format("synthetic sky: {}", what)); };
+    const auto bad = [](const char* what) {
+        return fail(ErrorCode::InvalidArgument, fmt::format("synthetic sky: {}", what));
+    };
     if (spec.width < kMinSize || spec.width > kMaxSize || spec.height < kMinSize || spec.height > kMaxSize) {
         return bad("width and height must be between 16 and 8192");
     }
-    if (!(spec.cloud_fraction >= 0.0 && spec.cloud_fraction <= 1.0)) {
+    if (!in_range(spec.cloud_fraction, 0.0, 1.0)) {
         return bad("cloud_fraction must be between 0 and 1");
     }
-    if (!(spec.sun_radius_px >= 1.0 && spec.sun_radius_px <= 2000.0)) {
+    if (!in_range(spec.sun_radius_px, 1.0, 2000.0)) {
         return bad("sun_radius_px must be between 1 and 2000");
     }
-    if (!(spec.noise_sigma >= 0.0 && spec.noise_sigma <= 20.0)) {
+    if (!in_range(spec.noise_sigma, 0.0, 20.0)) {
         return bad("noise_sigma must be between 0 and 20");
     }
     if (!std::isfinite(spec.sun_x) || !std::isfinite(spec.sun_y)) {
@@ -61,11 +69,12 @@ float cloud_threshold(const cv::Mat& field, double cloud_fraction)
 {
     std::vector<float> values(field.begin<float>(), field.end<float>());
     if (cloud_fraction <= 0.0) {
-        return *std::max_element(values.begin(), values.end()) + 1.0F;
+        return *std::ranges::max_element(values) + 1.0F;
     }
-    const auto clear_count = static_cast<std::size_t>(std::llround((1.0 - cloud_fraction) * static_cast<double>(values.size())));
+    const auto clear_count =
+        static_cast<std::size_t>(std::llround((1.0 - cloud_fraction) * static_cast<double>(values.size())));
     if (clear_count == 0) {
-        return *std::min_element(values.begin(), values.end()) - 1.0F;
+        return *std::ranges::min_element(values) - 1.0F;
     }
     const std::size_t index = std::min(clear_count, values.size() - 1);
     std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(index), values.end());
@@ -94,7 +103,7 @@ Expected<SyntheticSky> make_synthetic_sky(const SyntheticSkySpec& spec)
         // Clear sky: deep blue at the top, paler towards the bottom (BGR).
         const float down = static_cast<float>(y) / static_cast<float>(size.height - 1);
         const cv::Vec3f clear(190.0F + 45.0F * down, 110.0F + 80.0F * down, 40.0F + 100.0F * down);
-        const float* field_row = field.ptr<float>(y);
+        const auto* field_row = field.ptr<float>(y);
         auto* image_row = image.ptr<cv::Vec3f>(y);
         auto* mask_row = sky.cloud_mask.ptr<std::uint8_t>(y);
         for (int x = 0; x < size.width; ++x) {

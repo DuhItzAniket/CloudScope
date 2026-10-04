@@ -21,7 +21,7 @@ using UtcTime = std::chrono::time_point<std::chrono::system_clock, std::chrono::
 using MonotonicTime = std::chrono::steady_clock::time_point;
 
 // What disciplines the wall clock.
-enum class TimeSource {
+enum class TimeSource : std::uint8_t {
     Host,    // the computer's clock; whether it is synchronised is not known
     Ntp,     // the operating system reports the clock as synchronised (NTP or similar)
     GpsPps,  // GPS time with pulse-per-second (set by the GPS driver)
@@ -45,7 +45,10 @@ public:
     [[nodiscard]] virtual TimeSource time_source() const = 0;
 
     // Wall-clock and monotonic time read together.
-    [[nodiscard]] Timestamp now() const { return {now_utc(), now_monotonic(), time_source()}; }
+    [[nodiscard]] Timestamp now() const
+    {
+        return {.utc = now_utc(), .monotonic = now_monotonic(), .source = time_source()};
+    }
 };
 
 // The operating system's clocks. Thread-safe.
@@ -97,6 +100,6 @@ private:
 [[nodiscard]] Expected<UtcTime> parse_iso8601(std::string_view text);
 
 [[nodiscard]] std::int64_t to_unix_ms(UtcTime time);
-[[nodiscard]] UtcTime from_unix_ms(std::int64_t milliseconds);
+[[nodiscard]] UtcTime from_unix_ms(std::int64_t unix_ms);
 
 }  // namespace cloudscope

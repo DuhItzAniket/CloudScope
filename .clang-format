@@ -1,0 +1,50 @@
+# Formatting of all C++ in core/, apps/ and tests/. Checked in CI with clang-format 19 (Debian 13);
+# Visual Studio 2022 ships the same major version. Format with: tools/dev/format.py
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++20
+ColumnLimit: 120
+IndentWidth: 4
+ContinuationIndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+BreakBeforeBraces: WebKit            # opening brace on its own line for functions only
+NamespaceIndentation: None
+IndentCaseLabels: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+BreakTemplateDeclarations: Yes
+SpaceAfterTemplateKeyword: true
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: NextLine
+BinPackArguments: true
+BinPackParameters: true
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+SpacesBeforeTrailingComments: 2
+Cpp11BracedListStyle: true
+FixNamespaceComments: true
+InsertNewlineAtEOF: true
+KeepEmptyLines:
+  AtStartOfBlock: false
+  AtStartOfFile: false
+  AtEndOfFile: false
+MaxEmptyLinesToKeep: 1
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve              # groups are written by hand: own header, CloudScope, third party, standard
+SortUsingDeclarations: LexicographicNumeric
+QualifierAlignment: Leave
+ReflowComments: false                # comments are wrapped by hand; tables and examples in comments stay intact
+...

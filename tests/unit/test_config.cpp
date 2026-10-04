@@ -11,10 +11,10 @@
 #include <string>
 
 using namespace cloudscope;
+using Catch::Matchers::ContainsSubstring;
 using cloudscope::test::read_file;
 using cloudscope::test::TempWorkspace;
 using nlohmann::json;
-using Catch::Matchers::ContainsSubstring;
 
 namespace {
 
@@ -35,8 +35,9 @@ ConfigFormat mount_format()
     const json defaults = json::parse(
         R"({"schema_version": 3, "site": "BLR01", "mount": {"speed_deg_s": 30.0, "axes": ["pan", "tilt"]}})");
     std::vector<ConfigMigration> migrations = {
-        {2, "mount.speed_percent became mount.speed_deg_s",
-         [](json& document) -> Expected<void> {
+        {.from_version = 2,
+         .description = "mount.speed_percent became mount.speed_deg_s",
+         .apply = [](json& document) -> Expected<void> {
              if (document.contains("mount") && document["mount"].contains("speed_percent")) {
                  const json percent = document["mount"]["speed_percent"];
                  if (!percent.is_number()) {
@@ -47,8 +48,9 @@ ConfigFormat mount_format()
              }
              return {};
          }},
-        {1, "mount.speed was renamed to mount.speed_percent",
-         [](json& document) -> Expected<void> {
+        {.from_version = 1,
+         .description = "mount.speed was renamed to mount.speed_percent",
+         .apply = [](json& document) -> Expected<void> {
              if (document.contains("mount") && document["mount"].contains("speed")) {
                  document["mount"]["speed_percent"] = document["mount"]["speed"];
                  document["mount"].erase("speed");
@@ -180,7 +182,8 @@ TEST_CASE("a configuration format checks its own consistency", "[common][config]
     const json schema = json::parse(R"({"type": "object", "required": ["schema_version", "n"],
         "properties": {"schema_version": {"const": 2}, "n": {"type": "integer"}}})");
     const json defaults = json::parse(R"({"schema_version": 2, "n": 1})");
-    const ConfigMigration step1{1, "first", [](json&) -> Expected<void> { return {}; }};
+    const auto nothing = [](json&) -> Expected<void> { return {}; };
+    const ConfigMigration step1{.from_version = 1, .description = "first", .apply = nothing};
 
     CHECK(ConfigFormat::create(2, schema, defaults, {step1}).has_value());
     CHECK(ConfigFormat::create(2, schema, defaults, {}).has_value());  // no history: only version 2 is readable
@@ -194,10 +197,10 @@ TEST_CASE("a configuration format checks its own consistency", "[common][config]
     CHECK_FALSE(ConfigFormat::create(2, json::parse(R"({"anyOf": []})"), defaults, {step1}).has_value());
     CHECK_FALSE(ConfigFormat::create(0, schema, defaults, {}).has_value());
 
-    const ConfigMigration gap{0, "gap", [](json&) -> Expected<void> { return {}; }};
-    const ConfigMigration no_function{1, "nothing to call", nullptr};
-    CHECK_FALSE(ConfigFormat::create(2, schema, defaults, {step1, step1}).has_value());   // same step twice
-    CHECK_FALSE(ConfigFormat::create(2, schema, defaults, {gap}).has_value());            // does not reach version 2
+    const ConfigMigration gap{.from_version = 0, .description = "gap", .apply = nothing};
+    const ConfigMigration no_function{.from_version = 1, .description = "nothing to call", .apply = nullptr};
+    CHECK_FALSE(ConfigFormat::create(2, schema, defaults, {step1, step1}).has_value());  // same step twice
+    CHECK_FALSE(ConfigFormat::create(2, schema, defaults, {gap}).has_value());           // does not reach version 2
     CHECK_FALSE(ConfigFormat::create(2, schema, defaults, {no_function}).has_value());
 }
 
@@ -257,8 +260,10 @@ TEST_CASE("layers merge: defaults, then files in order, then overrides", "[commo
 {
     const TempWorkspace workspace;
     const ConfigFormat format = mount_format();
-    const auto system = workspace.write("system.toml", "schema_version = 3\nsite = \"ROOF\"\n[mount]\nspeed_deg_s = 10.0\n");
-    const auto user = workspace.write("user.toml", "schema_version = 3\n[mount]\nspeed_deg_s = 20.0\naxes = [\"pan\"]\n");
+    const auto system =
+        workspace.write("system.toml", "schema_version = 3\nsite = \"ROOF\"\n[mount]\nspeed_deg_s = 10.0\n");
+    const auto user =
+        workspace.write("user.toml", "schema_version = 3\n[mount]\nspeed_deg_s = 20.0\naxes = [\"pan\"]\n");
     const auto absent = workspace.path("absent.toml");
 
     const auto defaults_only = load_config(format, {absent});
@@ -268,8 +273,10 @@ TEST_CASE("layers merge: defaults, then files in order, then overrides", "[commo
 
     const auto loaded = load_config(format, {system, absent, user}, json::parse(R"({"site": "CLI"})"));
     REQUIRE(loaded.has_value());
-    CHECK(loaded->effective == json::parse(
-        R"({"schema_version": 3, "site": "CLI", "mount": {"speed_deg_s": 20.0, "axes": ["pan"]}})"));  // lists are replaced
+    CHECK(
+        loaded->effective ==
+        json::parse(
+            R"({"schema_version": 3, "site": "CLI", "mount": {"speed_deg_s": 20.0, "axes": ["pan"]}})"));  // lists are replaced
     CHECK(loaded->files == std::vector<std::filesystem::path>{system, user});
     CHECK(loaded->notes.empty());
 
@@ -283,8 +290,8 @@ TEST_CASE("an invalid file is rejected with the file name and every problem", "[
 {
     const TempWorkspace workspace;
     const ConfigFormat format = mount_format();
-    const auto file = workspace.write("user.toml",
-                                      "schema_version = 3\nsit = \"X\"\n[mount]\nspeed_deg_s = 90.0\ncolour = 1\n");
+    const auto file =
+        workspace.write("user.toml", "schema_version = 3\nsit = \"X\"\n[mount]\nspeed_deg_s = 90.0\ncolour = 1\n");
     const auto loaded = load_config(format, {file});
     REQUIRE_FALSE(loaded.has_value());
     CHECK(loaded.error().code == ErrorCode::Validation);
@@ -422,7 +429,8 @@ TEST_CASE("the CloudScope configuration loads from user and extra files", "[comm
     const TempWorkspace workspace;
     AppPaths paths;
     paths.system_config = workspace.path("etc/config.toml");  // does not exist: optional
-    paths.user_config = workspace.write("user.toml", "schema_version = 1\n[logging]\nlevel = \"debug\"\nmax_files = 3\n");
+    paths.user_config =
+        workspace.write("user.toml", "schema_version = 1\n[logging]\nlevel = \"debug\"\nmax_files = 3\n");
     paths.log_directory = workspace.path("logs");
     const auto extra = workspace.write("extra.toml", "schema_version = 1\n[logging]\nlevel = \"warn\"\n");
 
@@ -430,10 +438,10 @@ TEST_CASE("the CloudScope configuration loads from user and extra files", "[comm
     REQUIRE(loaded.has_value());
     const auto logging = logging_config(loaded->effective, paths);
     REQUIRE(logging.has_value());
-    CHECK(logging->level == LogLevel::Warn);        // extra file wins over the user file
-    CHECK(logging->max_files == 3);                 // from the user file
-    CHECK(logging->max_file_mb == 10);              // default
-    CHECK_FALSE(logging->console);                  // override
+    CHECK(logging->level == LogLevel::Warn);  // extra file wins over the user file
+    CHECK(logging->max_files == 3);           // from the user file
+    CHECK(logging->max_file_mb == 10);        // default
+    CHECK_FALSE(logging->console);            // override
     CHECK(logging->file);
     CHECK(logging->directory == paths.log_directory);  // empty in the file: the standard folder
 

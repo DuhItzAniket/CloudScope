@@ -4,6 +4,13 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P015 — Static analysis (2026-10-04)
+- Added formatting (`.clang-format`, `tools/dev/format.py`) and static analysis (`.clang-tidy`, `tools/dev/tidy.py`) with every finding an error; the code base was brought from 100 clang-tidy findings to zero.
+- Added the sanitizer build option `CLOUDSCOPE_SANITIZE`; all tests pass under AddressSanitizer, the leak detector and UndefinedBehaviorSanitizer.
+- Added three CI jobs: Format and static analysis, Sanitizers, Secret scan (gitleaks over the whole history).
+- Code changes from the findings: `cloudscope-info` catches every exception in `main()` (exit code 3) and reports a failed write; designated initialisers for structs; NaN-safe range checks; new `ScopeExit` helper; one-byte enums; ranges algorithms.
+- Added `docs/dev/quality_gates.md`; style guide and CI guide updated.
+
 ### P014 — Test infrastructure (2026-10-04)
 - Added the test support library (`tests/support`): temporary workspaces, fixture lookup, Qt event-loop waiting with Qt Test inside Catch2; existing tests moved onto it.
 - Added test fixtures (`tests/data`): three CC0 sky photographs with a checksum manifest and rules, enforced by a test.

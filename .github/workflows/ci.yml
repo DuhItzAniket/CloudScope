@@ -91,6 +91,93 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
+  static-analysis:
+    name: Format and static analysis
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+    timeout-minutes: 45
+    env:
+      LC_ALL: C.UTF-8
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install git, Python and the clang tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git python3 clang-format clang-tidy
+
+      - uses: actions/checkout@v7
+
+      - name: Formatting
+        run: python3 tools/ci/run.py "Formatting" python3 tools/dev/format.py --check
+
+      - name: Install build dependencies
+        run: python3 tools/ci/run.py "Install build dependencies" sh tools/build/install-deps-debian.sh
+
+      # Configuring is enough: clang-tidy needs the compile commands and the configured headers, not the binaries.
+      - name: Configure
+        run: python3 tools/ci/run.py "Configure" cmake --preset linux-x64
+
+      - name: clang-tidy
+        run: python3 tools/ci/run.py "clang-tidy" python3 tools/dev/tidy.py --build build/linux-x64 --jobs 4
+
+  sanitizers:
+    name: Sanitizers (address, undefined)
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+    timeout-minutes: 30
+    env:
+      LC_ALL: C.UTF-8
+      DEBIAN_FRONTEND: noninteractive
+      ASAN_OPTIONS: detect_leaks=1:detect_stack_use_after_return=1:strict_string_checks=1:check_initialization_order=1
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - name: Install git and Python
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git python3
+
+      - uses: actions/checkout@v7
+
+      - name: Install build dependencies
+        run: python3 tools/ci/run.py "Install build dependencies" sh tools/build/install-deps-debian.sh
+
+      - name: Configure
+        run: >
+          python3 tools/ci/run.py "Configure"
+          cmake --preset linux-x64 -DCLOUDSCOPE_SANITIZE=address,undefined -DCLOUDSCOPE_WARNINGS_AS_ERRORS=ON
+
+      - name: Build (Debug)
+        run: python3 tools/ci/run.py "Build (Debug)" cmake --build --preset linux-x64 --config Debug
+
+      - name: Test (Debug)
+        run: python3 tools/ci/run.py "Test (Debug)" ctest --preset linux-x64 -C Debug
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+    timeout-minutes: 10
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install git, Python and gitleaks
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git python3 gitleaks
+
+      # The whole history is scanned: a secret stays exposed after it is deleted in a later commit.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks
+        run: >
+          python3 tools/ci/run.py "gitleaks"
+          gitleaks detect --source . --no-banner --redact --verbose
+
   coverage:
     name: Coverage
     runs-on: ubuntu-24.04
@@ -256,3 +343,6 @@ jobs:
 
       - name: CI tool tests
         run: python tools/ci/run.py "CI tool tests" python -m pytest tools/ci/tests -q
+
+      - name: Developer tool tests
+        run: python tools/ci/run.py "Developer tool tests" python -m pytest tools/dev/tests -q

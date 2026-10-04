@@ -1,4 +1,5 @@
 #include <cloudscope/common/error.hpp>
+#include <cloudscope/common/scope_exit.hpp>
 #include <cloudscope/common/units.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -6,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <set>
+#include <stdexcept>
 #include <string>
 
 using namespace cloudscope;
@@ -57,7 +59,7 @@ TEST_CASE("errors propagate through chained operations", "[common][error]")
 
 TEST_CASE("context is added in front of the message and keeps the code", "[common][error]")
 {
-    const Error inner{ErrorCode::Parse, "line 3: unexpected '='"};
+    const Error inner{.code = ErrorCode::Parse, .message = "line 3: unexpected '='"};
     const Error outer = inner.with_context("config.toml");
     CHECK(outer.code == ErrorCode::Parse);
     CHECK(outer.message == "config.toml: line 3: unexpected '='");
@@ -75,7 +77,7 @@ TEST_CASE("every error code has its own name", "[common][error]")
         names.insert(std::string(to_string(code)));
     }
     CHECK(names.size() == 12);
-    CHECK(names.count("Unknown") == 0);
+    CHECK_FALSE(names.contains("Unknown"));
 }
 
 TEST_CASE("degrees and radians convert explicitly", "[common][units]")
@@ -92,20 +94,20 @@ TEST_CASE("degrees and radians convert explicitly", "[common][units]")
 
 TEST_CASE("quantities support arithmetic within one unit", "[common][units]")
 {
-    constexpr Degrees a = 30_deg;
-    constexpr Degrees b = 12.5_deg;
-    STATIC_REQUIRE((a + b).value() == 42.5);
-    STATIC_REQUIRE((a - b).value() == 17.5);
-    STATIC_REQUIRE((-a).value() == -30.0);
-    STATIC_REQUIRE((a * 2.0).value() == 60.0);
-    STATIC_REQUIRE((2.0 * a).value() == 60.0);
-    STATIC_REQUIRE((a / 4.0).value() == 7.5);
-    STATIC_REQUIRE(a / b == 2.4);
-    STATIC_REQUIRE(b < a);
-    STATIC_REQUIRE(a == Degrees(30.0));
+    constexpr Degrees kA = 30_deg;
+    constexpr Degrees kB = 12.5_deg;
+    STATIC_REQUIRE((kA + kB).value() == 42.5);
+    STATIC_REQUIRE((kA - kB).value() == 17.5);
+    STATIC_REQUIRE((-kA).value() == -30.0);
+    STATIC_REQUIRE((kA * 2.0).value() == 60.0);
+    STATIC_REQUIRE((2.0 * kA).value() == 60.0);
+    STATIC_REQUIRE((kA / 4.0).value() == 7.5);
+    STATIC_REQUIRE(kA / kB == 2.4);
+    STATIC_REQUIRE(kB < kA);
+    STATIC_REQUIRE(kA == Degrees(30.0));
 
-    Degrees sum = a;
-    sum += b;
+    Degrees sum = kA;
+    sum += kB;
     sum -= 2.5_deg;
     CHECK(sum == 40_deg);
     CHECK(Degrees().value() == 0.0);
@@ -156,6 +158,25 @@ TEST_CASE("angular_difference takes the short way round", "[common][units]")
     CHECK_THAT(angular_difference(90_deg, 90_deg).value(), WithinAbs(0.0, 1e-9));
     CHECK_THAT(angular_difference(0_deg, 180_deg).value(), WithinAbs(-180.0, 1e-9));  // exactly opposite: -180
     CHECK_THAT(angular_difference(720_deg, 45_deg).value(), WithinAbs(45.0, 1e-9));
+}
+
+TEST_CASE("ScopeExit runs its function when the scope ends, also when an exception passes", "[common][scope_exit]")
+{
+    int calls = 0;
+    {
+        const ScopeExit count([&calls] { ++calls; });
+        CHECK(calls == 0);
+    }
+    CHECK(calls == 1);
+
+    try {
+        const ScopeExit count([&calls] { ++calls; });
+        throw std::runtime_error("leaving early");
+    } catch (const std::runtime_error&) {
+        CHECK(calls == 2);
+    }
+    STATIC_REQUIRE_FALSE(std::is_copy_constructible_v<ScopeExit<void (*)()>>);
+    STATIC_REQUIRE_FALSE(std::is_move_constructible_v<ScopeExit<void (*)()>>);
 }
 
 TEST_CASE("fractional durations convert with std::chrono", "[common][units]")

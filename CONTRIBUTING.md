@@ -38,6 +38,6 @@ UTF-8 everywhere. Line endings are normalised by [`.gitattributes`](.gitattribut
 
 ## Coding standards
 
-- **C++:** [`docs/dev/cpp_style.md`](docs/dev/cpp_style.md); build instructions in [`docs/dev/building.md`](docs/dev/building.md); tests in [`docs/dev/testing.md`](docs/dev/testing.md). Formatting and lint tooling follow in P015.
+- **C++:** [`docs/dev/cpp_style.md`](docs/dev/cpp_style.md); build instructions in [`docs/dev/building.md`](docs/dev/building.md); tests in [`docs/dev/testing.md`](docs/dev/testing.md); the gates every change must pass in [`docs/dev/quality_gates.md`](docs/dev/quality_gates.md). Format with `python tools/dev/format.py` before committing.
 - **Python tools:** as in `tools/sky_logger/` (P003).
 - **Firmware:** defined in P050.

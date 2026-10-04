@@ -70,6 +70,7 @@ For arm64 (emulated, slow but faithful), add `--platform linux/arm64` to both co
 | `CLOUDSCOPE_BUILD_TESTS` | `ON` | Build the unit tests (needs Catch2) |
 | `CLOUDSCOPE_WARNINGS_AS_ERRORS` | `OFF` | Fail the build on any compiler warning in CloudScope code; CI turns this on |
 | `CLOUDSCOPE_COVERAGE` | `OFF` | Instrument the code to measure test coverage (GCC only; see `docs/dev/testing.md`) |
+| `CLOUDSCOPE_SANITIZE` | empty | Sanitizers to build with, e.g. `address,undefined` or `thread` (GCC or Clang; see `docs/dev/quality_gates.md`) |
 
 Pass options at configure time, for example `cmake --preset linux-x64 -DCLOUDSCOPE_WARNINGS_AS_ERRORS=ON`.
 

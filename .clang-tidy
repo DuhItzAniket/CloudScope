@@ -1,0 +1,98 @@
+# Static analysis of all C++ in core/ and apps/ (tests use tests/.clang-tidy). Checked in CI with clang-tidy 19;
+# every finding is an error (NFR-MNT-04). Run locally with: tools/dev/tidy.py (Linux or the Docker image).
+#
+# A check is switched off below only with a reason. To silence one finding, fix the code; if it is a false
+# positive, use NOLINT(<check>) with a comment that says why.
+---
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -cert-err58-cpp,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-vararg,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  -misc-non-private-member-variables-in-classes,
+  -modernize-use-trailing-return-type,
+  -modernize-return-braced-init-list,
+  -modernize-use-nodiscard,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-math-missing-parentheses,
+  -readability-named-parameter,
+  -readability-redundant-member-init,
+  -readability-uppercase-literal-suffix
+# Reasons for the exclusions:
+#   bugprone-easily-swappable-parameters   flags most two-argument functions; strong types (units.hpp) are our answer
+#   cert-err58-cpp                         static regular expressions and tables may throw at start-up; accepted
+#   *-magic-numbers                        physical constants and test values are clearer inline with a comment
+#   cppcoreguidelines-avoid-do-while       no objection to do-while
+#   cppcoreguidelines-avoid-const-or-ref-data-members   short-lived helper objects refer to their inputs
+#   cppcoreguidelines-owning-memory        needs gsl::owner annotations; ownership is expressed with smart pointers
+#   cppcoreguidelines-pro-bounds-*         image and buffer code indexes raw pixel rows on purpose
+#   cppcoreguidelines-pro-type-vararg      C library interfaces (CFITSIO) are variadic
+#   misc-include-cleaner                   disagrees with umbrella headers of Qt, OpenCV and toml++
+#   misc-no-recursion                      tree-shaped data (JSON, TOML, schemas) is walked recursively, with a depth guard
+#   misc-non-private-member-variables-in-classes   plain structs with public fields are intended
+#   modernize-use-trailing-return-type     style choice: classic return types
+#   modernize-return-braced-init-list      naming the type at a converting return is clearer
+#   modernize-use-nodiscard                [[nodiscard]] is placed by hand where ignoring the result is a bug
+#   readability-identifier-length          short names (x, y, i) are fine in small scopes
+#   readability-math-missing-parentheses   the precedence of * and / over + and - is assumed known
+#   readability-named-parameter            unused parameters are left unnamed or commented
+#   readability-redundant-member-init      explicit "= {}" initialisers document intent
+#   readability-uppercase-literal-suffix   1.0F / 1LL are written upper case already; the check also wants 1U etc.
+
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(core|apps)/.*'
+FormatStyle: file
+
+CheckOptions:
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.EnumConstantCase: CamelCase
+  readability-identifier-naming.TypeAliasCase: CamelCase
+  readability-identifier-naming.TemplateParameterCase: CamelCase
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.MethodCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.PublicMemberCase: lower_case
+  readability-identifier-naming.PrivateMemberCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: '_'
+  readability-identifier-naming.ProtectedMemberCase: lower_case
+  readability-identifier-naming.ProtectedMemberSuffix: '_'
+  readability-identifier-naming.ConstexprVariableCase: CamelCase
+  readability-identifier-naming.ConstexprVariablePrefix: k
+  readability-identifier-naming.GlobalConstantCase: CamelCase
+  readability-identifier-naming.GlobalConstantPrefix: k
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  # Qt's own virtual functions and signals keep their camelCase names.
+  readability-identifier-naming.MethodIgnoredRegexp: '^(timerEvent|event|eventFilter|customEvent|childEvent|run)$'
+  readability-function-cognitive-complexity.Threshold: 40
+  readability-function-cognitive-complexity.IgnoreMacros: true
+  readability-function-size.StatementThreshold: 120
+  readability-implicit-bool-conversion.AllowPointerConditions: true
+  misc-const-correctness.AnalyzeValues: true
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
+  cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted: true
+  performance-unnecessary-value-param.AllowedTypes: 'cv::Size'
+...

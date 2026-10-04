@@ -19,7 +19,7 @@ constexpr std::chrono::seconds kSourceCheckInterval{10};
 TimeSource detect_time_source()
 {
 #ifdef __linux__
-    struct timex info {};
+    struct timex info{};
     const int state = adjtimex(&info);  // modes = 0: read only, needs no privilege
     if (state != -1 && state != TIME_ERROR && (info.status & STA_UNSYNC) == 0) {
         return TimeSource::Ntp;
@@ -166,13 +166,13 @@ CivilTime to_civil(UtcTime time)
     const auto day_point = std::chrono::floor<std::chrono::days>(time);
     const std::chrono::year_month_day date{day_point};
     const std::chrono::hh_mm_ss<milliseconds> clock_time{time - day_point};
-    return {static_cast<int>(date.year()),
-            static_cast<unsigned>(date.month()),
-            static_cast<unsigned>(date.day()),
-            clock_time.hours().count(),
-            clock_time.minutes().count(),
-            clock_time.seconds().count(),
-            clock_time.subseconds().count()};
+    return {.year = static_cast<int>(date.year()),
+            .month = static_cast<unsigned>(date.month()),
+            .day = static_cast<unsigned>(date.day()),
+            .hour = clock_time.hours().count(),
+            .minute = clock_time.minutes().count(),
+            .second = clock_time.seconds().count(),
+            .millisecond = clock_time.subseconds().count()};
 }
 
 }  // namespace
@@ -273,9 +273,9 @@ std::int64_t to_unix_ms(UtcTime time)
     return time.time_since_epoch().count();
 }
 
-UtcTime from_unix_ms(std::int64_t value)
+UtcTime from_unix_ms(std::int64_t unix_ms)
 {
-    return UtcTime{milliseconds(value)};
+    return UtcTime{milliseconds(unix_ms)};
 }
 
 }  // namespace cloudscope

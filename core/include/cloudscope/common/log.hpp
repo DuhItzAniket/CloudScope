@@ -13,6 +13,7 @@
 #include <spdlog/logger.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -21,7 +22,7 @@
 
 namespace cloudscope {
 
-enum class LogLevel { Trace, Debug, Info, Warn, Error, Critical };
+enum class LogLevel : std::uint8_t { Trace, Debug, Info, Warn, Error, Critical };
 
 // "trace", "debug", "info", "warn", "error", "critical": the spelling used in configuration files.
 [[nodiscard]] std::string_view to_string(LogLevel level);

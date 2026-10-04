@@ -1,5 +1,7 @@
 #include "cloudscope/common/log.hpp"
 
+#include "cloudscope/common/scope_exit.hpp"
+
 #include <QtCore/QString>
 #include <QtCore/QtLogging>
 #include <fmt/format.h>
@@ -100,15 +102,11 @@ void replace_all(std::string& text, std::string_view what, std::string_view with
 bool mentions_credentials(std::string_view text)
 {
     std::string lower(text);
-    std::transform(lower.begin(), lower.end(), lower.begin(), [](char c) {
-        return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
-    });
-    for (const std::string_view word : {"pass", "secret", "token", "key", "authorization", "bearer"}) {
-        if (lower.find(word) != std::string::npos) {
-            return true;
-        }
-    }
-    return false;
+    std::ranges::transform(lower, lower.begin(),
+                           [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
+    constexpr std::array<std::string_view, 6> kWords = {"pass", "secret", "token", "key", "authorization", "bearer"};
+    return std::ranges::any_of(kWords,
+                               [&lower](std::string_view word) { return lower.find(word) != std::string::npos; });
 }
 
 class Redactor {
@@ -119,7 +117,7 @@ public:
             return false;
         }
         const std::unique_lock lock(mutex_);
-        if (std::find(secrets_.begin(), secrets_.end(), secret) == secrets_.end()) {
+        if (std::ranges::find(secrets_, secret) == secrets_.end()) {
             secrets_.emplace_back(secret);
         }
         return true;
@@ -127,15 +125,15 @@ public:
 
     std::string apply(std::string_view text) const
     {
-        static const auto kFlags = std::regex::ECMAScript | std::regex::icase | std::regex::optimize;
+        static const auto flags = std::regex::ECMAScript | std::regex::icase | std::regex::optimize;
         // key = value, key: value, "key": "value", Authorization: Bearer value
-        static const std::regex kKeyValue(
+        static const std::regex key_value(
             R"(((?:password|passwd|secret|token|api[_-]?key|access[_-]?key|authorization)["']?\s*[:=]\s*))"
             R"((?:(?:bearer|basic)\s+)?("[^"]*"|'[^']*'|[^\s,;&]+))",
-            kFlags);
-        static const std::regex kBearer(R"((\bbearer\s+)[A-Za-z0-9._~+/=-]{8,})", kFlags);
+            flags);
+        static const std::regex bearer(R"((\bbearer\s+)[A-Za-z0-9._~+/=-]{8,})", flags);
         // scheme://user:password@host
-        static const std::regex kUrlPassword(R"((\w+://[^/\s:@]+:)[^@\s/]+(@))", kFlags);
+        static const std::regex url_password(R"((\w+://[^/\s:@]+:)[^@\s/]+(@))", flags);
 
         std::string result(text);
         {
@@ -145,11 +143,11 @@ public:
             }
         }
         if (mentions_credentials(result)) {
-            result = std::regex_replace(result, kKeyValue, "$1[redacted]");
-            result = std::regex_replace(result, kBearer, "$1[redacted]");
+            result = std::regex_replace(result, key_value, "$1[redacted]");
+            result = std::regex_replace(result, bearer, "$1[redacted]");
         }
         if (result.find("://") != std::string::npos) {
-            result = std::regex_replace(result, kUrlPassword, "$1[redacted]$2");
+            result = std::regex_replace(result, url_password, "$1[redacted]$2");
         }
         return result;
     }
@@ -166,10 +164,10 @@ class MemorySink final : public spdlog::sinks::sink {
 public:
     void log(const spdlog::details::log_msg& message) override
     {
-        LogRecord record{std::chrono::time_point_cast<std::chrono::milliseconds>(message.time),
-                         from_spdlog(message.level),
-                         std::string(message.logger_name.data(), message.logger_name.size()),
-                         std::string(message.payload.data(), message.payload.size())};
+        const LogRecord record{.time = std::chrono::time_point_cast<std::chrono::milliseconds>(message.time),
+                               .level = from_spdlog(message.level),
+                               .component = std::string(message.logger_name.data(), message.logger_name.size()),
+                               .message = std::string(message.payload.data(), message.payload.size())};
         std::vector<LogListener> listeners;
         {
             const std::lock_guard lock(mutex_);
@@ -323,13 +321,10 @@ public:
         if (busy) {
             return;
         }
-        struct Guard {
-            Guard() { busy = true; }
-            ~Guard() { busy = false; }
-        } const guard;
+        busy = true;
+        const ScopeExit reset_busy([] { busy = false; });
 
-        const std::string clean =
-            redactor_->apply(std::string_view(message.payload.data(), message.payload.size()));
+        const std::string clean = redactor_->apply(std::string_view(message.payload.data(), message.payload.size()));
         spdlog::details::log_msg redacted = message;
         redacted.payload = clean;
         for (const spdlog::sink_ptr& output : *outputs()) {
@@ -396,7 +391,7 @@ struct LogState {
 // Never destroyed: code that logs while the program shuts down must still find a valid object.
 LogState& state()
 {
-    static LogState* const instance = new LogState;
+    static auto* const instance = new LogState;
     return *instance;
 }
 
@@ -492,7 +487,7 @@ Expected<void> init_logging(const LoggingConfig& config)
 
 void shutdown_logging()
 {
-    LogState& log_state = state();
+    const LogState& log_state = state();
     log_state.root->flush();
     log_state.root->replace_outputs({make_console_sink(), log_state.memory});
 }

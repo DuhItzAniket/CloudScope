@@ -35,10 +35,11 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `apps/info/` | `cloudscope-info`: build information, installation self-test, configuration report |
 | `tests/` | Unit tests (Catch2) and command-line tests; fixtures in `tests/data` |
 | `cmake/`, `CMakePresets.json`, `vcpkg.json` | Build system ([how to build](docs/dev/building.md)) |
-| `docs/dev/` | Developer guides: building, C++ conventions, testing, continuous integration |
+| `docs/dev/` | Developer guides: building, C++ conventions, testing, quality gates, continuous integration |
 | `docs/manual/` | User documentation ([configuration and logs](docs/manual/configuration.md)) |
 | `tools/build/` | Build scripts for Windows, Debian/Raspberry Pi OS and Docker |
-| `tools/ci/` | CI helpers: step runner, CI status without sign-in, licence gate |
+| `tools/ci/` | CI helpers: step runner, CI status without sign-in, licence gate, coverage report |
+| `tools/dev/` | Developer tools: formatting (`format.py`), static analysis (`tidy.py`) |
 | `packaging/licences/` | Reviewed table of third-party components and the licence policy (ADR-010) |
 | `.github/workflows/` | CI: Windows, Debian 13 (x64 and arm64), Ubuntu 26.04, Python tools |
 | `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |

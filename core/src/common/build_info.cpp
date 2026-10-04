@@ -53,25 +53,30 @@ std::string cfitsio_runtime_version()
 BuildInfo collect()
 {
     BuildInfo info;
-    info.version = CLOUDSCOPE_VERSION;
+    info.version = detail::kVersion;
     info.git_revision = detail::kGitRevision;
-    info.build_type = CLOUDSCOPE_BUILD_TYPE;
-    info.compiler = CLOUDSCOPE_COMPILER;
-    info.system = CLOUDSCOPE_SYSTEM;
-    info.architecture = CLOUDSCOPE_ARCH;
-    info.dependencies = {
-        {"Qt", QT_VERSION_STR, qVersion(), "LGPL-3.0-only"},
-        {"OpenCV", CV_VERSION, cv::getVersionString(), "Apache-2.0"},
-        {"spdlog", dotted(SPDLOG_VER_MAJOR, SPDLOG_VER_MINOR, SPDLOG_VER_PATCH), "", "MIT"},
-        {"fmt", dotted(FMT_VERSION / 10000, (FMT_VERSION / 100) % 100, FMT_VERSION % 100), "", "MIT"},
-        {"toml++", dotted(TOML_LIB_MAJOR, TOML_LIB_MINOR, TOML_LIB_PATCH), "", "MIT"},
-        {"nlohmann-json",
-         dotted(NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH), "", "MIT"},
-        {"tl-expected", dotted(TL_EXPECTED_VERSION_MAJOR, TL_EXPECTED_VERSION_MINOR, TL_EXPECTED_VERSION_PATCH), "",
-         "CC0-1.0"},
-        {"CFITSIO", dotted(CFITSIO_MAJOR, CFITSIO_MINOR, CFITSIO_MICRO), cfitsio_runtime_version(), "CFITSIO"},
-        {"libjpeg-turbo", jpeg_turbo_compiled_version(), "", "IJG AND BSD-3-Clause AND Zlib"},
+    info.build_type = CLOUDSCOPE_BUILD_TYPE;  // per configuration: a compile definition, see core/CMakeLists.txt
+    info.compiler = detail::kCompiler;
+    info.system = detail::kSystem;
+    info.architecture = detail::kArchitecture;
+
+    const auto add = [&info](const char* name, std::string compiled, std::string runtime, const char* licence) {
+        info.dependencies.push_back({.name = name,
+                                     .compiled_version = std::move(compiled),
+                                     .runtime_version = std::move(runtime),
+                                     .licence = licence});
     };
+    add("Qt", QT_VERSION_STR, qVersion(), "LGPL-3.0-only");
+    add("OpenCV", CV_VERSION, cv::getVersionString(), "Apache-2.0");
+    add("spdlog", dotted(SPDLOG_VER_MAJOR, SPDLOG_VER_MINOR, SPDLOG_VER_PATCH), "", "MIT");
+    add("fmt", dotted(FMT_VERSION / 10000, (FMT_VERSION / 100) % 100, FMT_VERSION % 100), "", "MIT");
+    add("toml++", dotted(TOML_LIB_MAJOR, TOML_LIB_MINOR, TOML_LIB_PATCH), "", "MIT");
+    add("nlohmann-json", dotted(NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH),
+        "", "MIT");
+    add("tl-expected", dotted(TL_EXPECTED_VERSION_MAJOR, TL_EXPECTED_VERSION_MINOR, TL_EXPECTED_VERSION_PATCH), "",
+        "CC0-1.0");
+    add("CFITSIO", dotted(CFITSIO_MAJOR, CFITSIO_MINOR, CFITSIO_MICRO), cfitsio_runtime_version(), "CFITSIO");
+    add("libjpeg-turbo", jpeg_turbo_compiled_version(), "", "IJG AND BSD-3-Clause AND Zlib");
     return info;
 }
 

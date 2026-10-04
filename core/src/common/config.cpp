@@ -1,5 +1,6 @@
 #include "cloudscope/common/config.hpp"
 
+#include <QtCore/QByteArray>
 #include <QtCore/QFile>
 #include <QtCore/QSaveFile>
 #include <QtCore/QString>
@@ -20,7 +21,7 @@ namespace {
 
 using nlohmann::json;
 
-constexpr qint64 kMaxConfigBytes = 1024 * 1024;
+constexpr qint64 kMaxConfigBytes = qint64{1024} * 1024;
 constexpr const char* kVersionKey = "schema_version";
 
 QString to_qstring(const std::filesystem::path& path)
@@ -222,8 +223,8 @@ Expected<nlohmann::json> read_toml_file(const std::filesystem::path& path)
         return fail(ErrorCode::Io, fmt::format("{}: {}", display(path), file.errorString().toStdString()));
     }
     if (file.size() > kMaxConfigBytes) {
-        return fail(ErrorCode::Validation, fmt::format("{}: larger than 1 MB; this is not a configuration file",
-                                                       display(path)));
+        return fail(ErrorCode::Validation,
+                    fmt::format("{}: larger than 1 MB; this is not a configuration file", display(path)));
     }
     const QByteArray bytes = file.readAll();
     return parse_toml(std::string_view(bytes.constData(), static_cast<std::size_t>(bytes.size())), display(path));
@@ -249,13 +250,15 @@ Expected<void> write_file_atomically(const std::filesystem::path& path, std::str
     if (path.has_parent_path()) {
         std::filesystem::create_directories(path.parent_path(), error);
         if (error) {
-            return fail(ErrorCode::Io, fmt::format("cannot create folder {}: {}", display(path.parent_path()),
-                                                   error.message()));
+            return fail(ErrorCode::Io,
+                        fmt::format("cannot create folder {}: {}", display(path.parent_path()), error.message()));
         }
     }
     QSaveFile file(to_qstring(path));
     const auto size = static_cast<qint64>(content.size());
-    if (!file.open(QIODevice::WriteOnly) || file.write(content.data(), size) != size || !file.commit()) {
+    // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): the length is passed with the pointer
+    const QByteArray bytes = QByteArray::fromRawData(content.data(), size);
+    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != size || !file.commit()) {
         return fail(ErrorCode::Io, fmt::format("cannot write {}: {}", display(path), file.errorString().toStdString()));
     }
     return {};
@@ -295,19 +298,18 @@ Expected<ConfigFormat> ConfigFormat::create(int current_version, nlohmann::json 
     }
     auto compiled = JsonSchema::compile(std::move(schema));
     if (!compiled) {
-        return fail(Error{ErrorCode::Internal, compiled.error().message}.with_context("configuration format"));
+        return fail(Error{.code = ErrorCode::Internal, .message = compiled.error().message}.with_context(
+            "configuration format"));
     }
     if (!defaults.is_object() || !defaults.contains(kVersionKey) || defaults.at(kVersionKey) != current_version) {
-        return fail(ErrorCode::Internal,
-                    fmt::format("configuration format: the defaults must contain {} = {}", kVersionKey,
-                                current_version));
+        return fail(ErrorCode::Internal, fmt::format("configuration format: the defaults must contain {} = {}",
+                                                     kVersionKey, current_version));
     }
     if (const auto issues = compiled->validate(defaults); !issues.empty()) {
         return fail(ErrorCode::Internal,
                     fmt::format("configuration format: the defaults are not valid:\n  {}", join_issues(issues)));
     }
-    std::sort(migrations.begin(), migrations.end(),
-              [](const ConfigMigration& a, const ConfigMigration& b) { return a.from_version < b.from_version; });
+    std::ranges::sort(migrations, {}, &ConfigMigration::from_version);
     for (std::size_t i = 0; i < migrations.size(); ++i) {
         const int expected_version = current_version - static_cast<int>(migrations.size() - i);
         if (migrations[i].from_version != expected_version || expected_version < 1 || !migrations[i].apply) {
@@ -396,21 +398,25 @@ Expected<LoadedConfig> load_config(const ConfigFormat& format, const std::vector
             auto text = to_toml(*document);
             Expected<void> written = fail(ErrorCode::Io, "not attempted");
             if (backup && text) {
-                const std::string header = fmt::format(
-                    "# CloudScope configuration, format version {}.\n"
-                    "# Migrated automatically from version {}; comments were not carried over.\n"
-                    "# The previous file is kept as {}.\n\n",
-                    format.current_version(), old_version, display(backup->filename()));
+                const std::string header =
+                    fmt::format("# CloudScope configuration, format version {}.\n"
+                                "# Migrated automatically from version {}; comments were not carried over.\n"
+                                "# The previous file is kept as {}.\n\n",
+                                format.current_version(), old_version, display(backup->filename()));
                 written = write_file_atomically(path, header + *text);
             }
             if (backup && written) {
-                loaded.notes.push_back(
-                    fmt::format("{}: rewritten in format {}; the previous file is {}", name, format.current_version(),
-                                display(*backup)));
+                loaded.notes.push_back(fmt::format("{}: rewritten in format {}; the previous file is {}", name,
+                                                   format.current_version(), display(*backup)));
             } else {
-                const Error& reason = !backup ? backup.error() : (!text ? text.error() : written.error());
+                std::string reason = written ? std::string() : written.error().message;
+                if (!backup) {
+                    reason = backup.error().message;
+                } else if (!text) {
+                    reason = text.error().message;
+                }
                 loaded.notes.push_back(fmt::format(
-                    "{}: left unchanged on disk ({}); it is migrated in memory at every start", name, reason.message));
+                    "{}: left unchanged on disk ({}); it is migrated in memory at every start", name, reason));
             }
         }
         merge_layer(loaded.effective, *document);

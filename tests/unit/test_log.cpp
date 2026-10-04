@@ -8,7 +8,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include <atomic>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -18,8 +18,8 @@
 #include <vector>
 
 using namespace cloudscope;
-using cloudscope::test::read_file;
 using Catch::Matchers::ContainsSubstring;
+using cloudscope::test::read_file;
 
 namespace {
 
@@ -53,20 +53,15 @@ private:
 
 bool contains_message(const std::vector<LogRecord>& records, const std::string& message)
 {
-    for (const LogRecord& record : records) {
-        if (record.message == message) {
-            return true;
-        }
-    }
-    return false;
+    return std::ranges::find(records, message, &LogRecord::message) != records.end();
 }
 
 }  // namespace
 
 TEST_CASE("log levels have the names used in configuration files", "[common][log]")
 {
-    for (const LogLevel level : {LogLevel::Trace, LogLevel::Debug, LogLevel::Info, LogLevel::Warn, LogLevel::Error,
-                                 LogLevel::Critical}) {
+    for (const LogLevel level :
+         {LogLevel::Trace, LogLevel::Debug, LogLevel::Info, LogLevel::Warn, LogLevel::Error, LogLevel::Critical}) {
         CHECK(log_level_from_string(to_string(level)).value() == level);
     }
     CHECK(to_string(LogLevel::Warn) == "warn");
@@ -117,7 +112,7 @@ TEST_CASE("log records reach the file and the memory buffer, redacted and with U
     REQUIRE(init_logging(workspace.config()).has_value());
 
     logger("camera").info("opened {} at {}x{}", "B0268", 4656, 3496);
-    logger("remote").warn("login with token=abcdef123456 refused");
+    logger("remote").warn("login with token=abcdef123456 refused");  // gitleaks:allow (made-up value)
     logger("camera").debug("below the configured level");
 
     const std::string text = read_file(workspace.file());
@@ -130,7 +125,8 @@ TEST_CASE("log records reach the file and the memory buffer, redacted and with U
         lines.push_back(line);
     }
     REQUIRE(lines.size() == 2);  // flushed after every record; the debug record was dropped
-    const std::regex format(R"(^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+00:00 (info|warning) +\d+ \[(camera|remote)\] .+$)");
+    const std::regex format(
+        R"(^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+00:00 (info|warning) +\d+ \[(camera|remote)\] .+$)");
     CHECK(std::regex_match(lines[0], format));
     CHECK(std::regex_match(lines[1], format));
     CHECK_THAT(lines[0], ContainsSubstring("[camera] opened B0268 at 4656x3496"));
@@ -194,7 +190,7 @@ TEST_CASE("log files rotate by size and old files are deleted", "[common][log]")
     REQUIRE(std::filesystem::exists(workspace.file(2)));
     CHECK_FALSE(std::filesystem::exists(workspace.file(3)));
     for (int index = 0; index < 3; ++index) {
-        CHECK(std::filesystem::file_size(workspace.file(index)) <= 1024U * 1024U);
+        CHECK(std::filesystem::file_size(workspace.file(index)) <= std::uintmax_t{1024} * 1024);
     }
     // The newest record is in the current file, older ones in higher-numbered files; the oldest are gone.
     CHECK_THAT(read_file(workspace.file(0)), ContainsSubstring("] 03599 "));
@@ -289,6 +285,7 @@ TEST_CASE("logging from several threads loses nothing and keeps lines whole", "[
     constexpr int kThreads = 8;
     constexpr int kPerThread = 500;
     std::vector<std::thread> threads;
+    threads.reserve(kThreads);
     for (int t = 0; t < kThreads; ++t) {
         threads.emplace_back([t] {
             spdlog::logger& log = logger("worker");

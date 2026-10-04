@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -22,8 +23,8 @@ using namespace std::chrono_literals;
 
 TEST_CASE("fixtures match the manifest", "[support][fixtures]")
 {
-    constexpr std::uintmax_t kMaxFileBytes = 100U * 1024U;
-    constexpr std::uintmax_t kMaxTotalBytes = 1024U * 1024U;
+    constexpr std::uintmax_t kMaxFileBytes = std::uintmax_t{100} * 1024;
+    constexpr std::uintmax_t kMaxTotalBytes = std::uintmax_t{1024} * 1024;
 
     const nlohmann::json manifest = nlohmann::json::parse(read_file(data_path("manifest.json")));
     std::set<std::string> listed;
@@ -37,8 +38,9 @@ TEST_CASE("fixtures match the manifest", "[support][fixtures]")
         CHECK(content.size() == entry.at("bytes").get<std::size_t>());
         CHECK(content.size() <= kMaxFileBytes);
         total += content.size();
-        const QByteArray digest = QCryptographicHash::hash(
-            QByteArray::fromRawData(content.data(), static_cast<qsizetype>(content.size())), QCryptographicHash::Sha256);
+        const QByteArray digest =
+            QCryptographicHash::hash(QByteArray::fromRawData(content.data(), static_cast<qsizetype>(content.size())),
+                                     QCryptographicHash::Sha256);
         CHECK(digest.toHex().toStdString() == entry.at("sha256").get<std::string>());
         CHECK_FALSE(entry.at("source").get<std::string>().empty());
         CHECK(entry.at("licence") == "CC0-1.0");
@@ -80,7 +82,7 @@ TEST_CASE("a temporary workspace exists during the test and is removed afterward
         CHECK(read_file(file) == "line 1\nline 2\n");
         // The folder name is not plain ASCII, so tests exercise such paths without extra effort.
         const std::u8string name = root.filename().u8string();
-        CHECK(std::any_of(name.begin(), name.end(), [](char8_t c) { return c > 0x7F; }));
+        CHECK(std::ranges::any_of(name, [](char8_t c) { return c > 0x7F; }));
     }
     CHECK_FALSE(std::filesystem::exists(root));
     CHECK(read_file(root / "deep/er/note.txt").empty());

@@ -8,7 +8,7 @@
 namespace cloudscope {
 
 struct SelfTestResult {
-    std::string name;    // short identifier of the check, e.g. "cfitsio"
+    std::string name;  // short identifier of the check, e.g. "cfitsio"
     bool passed = false;
     std::string detail;  // what was verified, or the reason for the failure
 };

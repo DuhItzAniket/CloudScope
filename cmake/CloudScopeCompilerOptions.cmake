@@ -42,6 +42,16 @@ function(cloudscope_target_defaults target)
     endif()
   endif()
 
+  if(CLOUDSCOPE_SANITIZE)
+    if(MSVC)
+      message(FATAL_ERROR "CLOUDSCOPE_SANITIZE is set up for GCC and Clang only.")
+    endif()
+    # no-sanitize-recover: the first finding stops the program, so a test cannot pass over it.
+    target_compile_options(${target} ${_scope}
+      -fsanitize=${CLOUDSCOPE_SANITIZE} -fno-sanitize-recover=all -fno-omit-frame-pointer)
+    target_link_options(${target} ${_scope} -fsanitize=${CLOUDSCOPE_SANITIZE})
+  endif()
+
   if(CLOUDSCOPE_COVERAGE)
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       message(FATAL_ERROR "CLOUDSCOPE_COVERAGE needs GCC (the report is made with gcov and gcovr).")

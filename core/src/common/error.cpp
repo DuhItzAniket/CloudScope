@@ -38,7 +38,7 @@ Error Error::with_context(std::string_view context) const
     std::string text;
     text.reserve(context.size() + 2 + message.size());
     text.append(context).append(": ").append(message);
-    return Error{code, std::move(text)};
+    return Error{.code = code, .message = std::move(text)};
 }
 
 std::string Error::to_string() const

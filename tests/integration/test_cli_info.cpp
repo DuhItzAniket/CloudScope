@@ -58,7 +58,7 @@ public:
         environment.insert(QStringLiteral("XDG_STATE_HOME"), root() + QStringLiteral("/state"));
 #endif
     }
-    QString write(const QString& path, const char* text) const
+    static QString write(const QString& path, const char* text)
     {
         const QFileInfo info(path);
         REQUIRE(QDir().mkpath(info.absolutePath()));
@@ -184,9 +184,11 @@ TEST_CASE("cloudscope-info --show-config reports the built-in defaults when no f
     CHECK(configuration.at("effective").at("logging").at("level") == "info");
     // The standard locations follow the redirected home folder.
     const std::string root = home.root().toStdString();
-    CHECK_THAT(QDir::fromNativeSeparators(QString::fromStdString(configuration.at("user_file").get<std::string>())).toStdString(),
+    CHECK_THAT(QDir::fromNativeSeparators(QString::fromStdString(configuration.at("user_file").get<std::string>()))
+                   .toStdString(),
                StartsWith(root));
-    CHECK_THAT(QDir::fromNativeSeparators(QString::fromStdString(configuration.at("log_folder").get<std::string>())).toStdString(),
+    CHECK_THAT(QDir::fromNativeSeparators(QString::fromStdString(configuration.at("log_folder").get<std::string>()))
+                   .toStdString(),
                StartsWith(root));
 
     const RunResult text = run_info({QStringLiteral("--show-config")}, &home);
@@ -201,11 +203,11 @@ TEST_CASE("cloudscope-info --show-config reports the built-in defaults when no f
 TEST_CASE("cloudscope-info merges the user file and --config files in order", "[cli][info][config]")
 {
     const Home home;
-    home.write(home.user_config(), "schema_version = 1\n[logging]\nlevel = \"debug\"\nmax_files = 3\n");
-    const QString first = home.write(home.root() + QStringLiteral("/first.toml"),
-                                     "schema_version = 1\n[logging]\nmax_files = 7\nconsole = false\n");
+    Home::write(home.user_config(), "schema_version = 1\n[logging]\nlevel = \"debug\"\nmax_files = 3\n");
+    const QString first = Home::write(home.root() + QStringLiteral("/first.toml"),
+                                      "schema_version = 1\n[logging]\nmax_files = 7\nconsole = false\n");
     const QString second =
-        home.write(home.root() + QStringLiteral("/second.toml"), "schema_version = 1\n[logging]\nmax_files = 9\n");
+        Home::write(home.root() + QStringLiteral("/second.toml"), "schema_version = 1\n[logging]\nmax_files = 9\n");
 
     const RunResult result = run_info(
         {QStringLiteral("--config"), first, QStringLiteral("--config"), second, QStringLiteral("--json")}, &home);
@@ -224,8 +226,8 @@ TEST_CASE("cloudscope-info merges the user file and --config files in order", "[
 TEST_CASE("cloudscope-info reports an invalid configuration file and exits with code 1", "[cli][info][config]")
 {
     const Home home;
-    const QString bad = home.write(home.root() + QStringLiteral("/bad.toml"),
-                                   "schema_version = 1\n[logging]\nlevel = \"loud\"\nmax_fiels = 2\n");
+    const QString bad = Home::write(home.root() + QStringLiteral("/bad.toml"),
+                                    "schema_version = 1\n[logging]\nlevel = \"loud\"\nmax_fiels = 2\n");
 
     const RunResult result = run_info({QStringLiteral("--config"), bad}, &home);
     REQUIRE(result.finished);

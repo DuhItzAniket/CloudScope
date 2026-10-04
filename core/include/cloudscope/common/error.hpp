@@ -9,6 +9,7 @@
 
 #include <tl/expected.hpp>
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -16,19 +17,19 @@
 namespace cloudscope {
 
 // Coarse, stable categories. Code branches on the category; people read the message.
-enum class ErrorCode {
-    InvalidArgument,   // the caller passed something unusable
-    NotFound,          // a file, device or key does not exist
+enum class ErrorCode : std::uint8_t {
+    InvalidArgument,  // the caller passed something unusable
+    NotFound,         // a file, device or key does not exist
     AlreadyExists,
     PermissionDenied,
-    Unavailable,       // exists but cannot be used now: device busy or unplugged, service down
+    Unavailable,  // exists but cannot be used now: device busy or unplugged, service down
     Timeout,
-    Io,                // reading, writing or transport failed
-    Parse,             // text or binary data is malformed
-    Validation,        // well-formed, but breaks a schema, a limit or a contract
-    Unsupported,       // this device, file format or build cannot do it
+    Io,           // reading, writing or transport failed
+    Parse,        // text or binary data is malformed
+    Validation,   // well-formed, but breaks a schema, a limit or a contract
+    Unsupported,  // this device, file format or build cannot do it
     Cancelled,
-    Internal,          // a bug: something that should always hold did not
+    Internal,  // a bug: something that should always hold did not
 };
 
 [[nodiscard]] std::string_view to_string(ErrorCode code);
@@ -54,7 +55,7 @@ using Unexpected = tl::unexpected<Error>;
 // The error return value of a function returning Expected<T>.
 [[nodiscard]] inline Unexpected fail(ErrorCode code, std::string message)
 {
-    return Unexpected(Error{code, std::move(message)});
+    return Unexpected(Error{.code = code, .message = std::move(message)});
 }
 
 [[nodiscard]] inline Unexpected fail(Error error)

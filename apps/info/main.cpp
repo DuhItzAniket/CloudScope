@@ -6,7 +6,8 @@
 //   cloudscope-info --config FILE   read FILE on top of the standard configuration files (may be repeated)
 //   cloudscope-info --json          the same as JSON
 //
-// Exit codes: 0 success, 1 a self-test check failed or the configuration is invalid, 2 wrong usage.
+// Exit codes: 0 success, 1 a self-test check failed, the configuration is invalid or the report could not be
+// written, 2 wrong usage, 3 internal error (a bug).
 
 #include <cloudscope/common/app_config.hpp>
 #include <cloudscope/common/build_info.hpp>
@@ -18,6 +19,7 @@
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
+#include <exception>
 #include <filesystem>
 #include <string>
 #include <system_error>
@@ -28,10 +30,12 @@ namespace {
 constexpr int kExitOk = 0;
 constexpr int kExitFailed = 1;
 constexpr int kExitUsage = 2;
+constexpr int kExitInternalError = 3;
 
-void write(std::FILE* stream, const std::string& text)
+// False if the stream did not take the whole text (closed pipe, full disk).
+bool write(std::FILE* stream, const std::string& text)
 {
-    std::fwrite(text.data(), 1, text.size(), stream);
+    return std::fwrite(text.data(), 1, text.size(), stream) == text.size();
 }
 
 std::string display(const std::filesystem::path& path)
@@ -100,9 +104,7 @@ nlohmann::ordered_json config_json(const cloudscope::AppPaths& paths, const clou
     return root;
 }
 
-}  // namespace
-
-int main(int argc, char* argv[])
+int run(int argc, char** argv)
 {
     const QCoreApplication app(argc, argv);
     const cloudscope::BuildInfo& info = cloudscope::build_info();
@@ -110,9 +112,9 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationVersion(QString::fromStdString(info.version));
 
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral(
-        "Shows what this CloudScope build is made of, checks that its libraries work, and prints the "
-        "configuration in effect."));
+    parser.setApplicationDescription(
+        QStringLiteral("Shows what this CloudScope build is made of, checks that its libraries work, and prints the "
+                       "configuration in effect."));
     const QCommandLineOption help_option = parser.addHelpOption();
     const QCommandLineOption version_option = parser.addVersionOption();
     const QCommandLineOption json_option(QStringLiteral("json"), QStringLiteral("Print the report as JSON."));
@@ -120,9 +122,8 @@ int main(int argc, char* argv[])
         QStringLiteral("self-test"),
         QStringLiteral("Exercise every bundled library. The exit code is 1 if a check fails."));
     const QCommandLineOption show_config_option(
-        QStringLiteral("show-config"),
-        QStringLiteral("Print the configuration in effect and the files it came from. "
-                       "The exit code is 1 if a configuration file is invalid."));
+        QStringLiteral("show-config"), QStringLiteral("Print the configuration in effect and the files it came from. "
+                                                      "The exit code is 1 if a configuration file is invalid."));
     const QCommandLineOption config_option(
         QStringLiteral("config"),
         QStringLiteral("Read this configuration file on top of the standard ones (may be repeated). "
@@ -145,12 +146,10 @@ int main(int argc, char* argv[])
         return kExitUsage;
     }
     if (parser.isSet(help_option)) {
-        write(stdout, parser.helpText().toStdString());
-        return kExitOk;
+        return write(stdout, parser.helpText().toStdString()) ? kExitOk : kExitFailed;
     }
     if (parser.isSet(version_option)) {
-        write(stdout, "cloudscope-info " + info.version + "\n");
-        return kExitOk;
+        return write(stdout, "cloudscope-info " + info.version + "\n") ? kExitOk : kExitFailed;
     }
 
     const bool with_self_test = parser.isSet(self_test_option);
@@ -185,6 +184,23 @@ int main(int argc, char* argv[])
         }
     }
 
-    write(stdout, as_json ? json_report.dump(2) + "\n" : text_report);
+    if (!write(stdout, as_json ? json_report.dump(2) + "\n" : text_report)) {
+        failed = true;
+    }
     return failed ? kExitFailed : kExitOk;
+}
+
+}  // namespace
+
+int main(int argc, char** argv)
+{
+    // Nothing may leave main() as an exception: the program would end without a message.
+    try {
+        return run(argc, argv);
+    } catch (const std::exception& error) {
+        write(stderr, std::string("Internal error: ") + error.what() + "\n");
+    } catch (...) {
+        write(stderr, "Internal error of unknown kind.\n");
+    }
+    return kExitInternalError;
 }

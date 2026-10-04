@@ -36,12 +36,12 @@ TEST_CASE("ISO 8601 timestamps parse to UTC", "[common][clock]")
     const auto [text, expected_ms] = GENERATE(table<std::string, std::int64_t>({
         {"2026-10-04T12:34:56.789+00:00", kReferenceMs},
         {"2026-10-04T12:34:56.789Z", kReferenceMs},
-        {"2026-10-04T18:04:56.789+05:30", kReferenceMs},        // India Standard Time
+        {"2026-10-04T18:04:56.789+05:30", kReferenceMs},  // India Standard Time
         {"2026-10-04T05:34:56.789-07:00", kReferenceMs},
-        {"2026-10-05T02:19:56.789+13:45", kReferenceMs},        // offset moves the date
-        {"2026-10-04T12:34:56Z", kReferenceMs - 789},           // no fraction
-        {"2026-10-04T12:34:56.7Z", kReferenceMs - 89},          // tenths
-        {"2026-10-04T12:34:56.789123456Z", kReferenceMs},       // finer than a millisecond: truncated
+        {"2026-10-05T02:19:56.789+13:45", kReferenceMs},   // offset moves the date
+        {"2026-10-04T12:34:56Z", kReferenceMs - 789},      // no fraction
+        {"2026-10-04T12:34:56.7Z", kReferenceMs - 89},     // tenths
+        {"2026-10-04T12:34:56.789123456Z", kReferenceMs},  // finer than a millisecond: truncated
         {"1970-01-01T00:00:00.000+00:00", 0},
         {"2000-02-29T00:00:00Z", 951782400000LL},
     }));
@@ -68,7 +68,7 @@ TEST_CASE("malformed or ambiguous timestamps are rejected with a reason", "[comm
         {"", "expected YYYY-MM-DDThh:mm:ss"},
         {"2026-10-04", "expected YYYY-MM-DDThh:mm:ss"},
         {"2026-10-04 12:34:56Z", "expected YYYY-MM-DDThh:mm:ss"},
-        {"2026-10-04T12:34:56", "offset"},                      // no offset: ambiguous
+        {"2026-10-04T12:34:56", "offset"},  // no offset: ambiguous
         {"2026-10-04T12:34:56.789", "offset"},
         {"2026-10-04T12:34:56.Z", "fraction"},
         {"2026-10-04T12:34:56.1234567890Z", "fraction"},
@@ -76,7 +76,7 @@ TEST_CASE("malformed or ambiguous timestamps are rejected with a reason", "[comm
         {"2026-10-04T12:34:56+24:00", "offset"},
         {"2026-10-04T12:34:56Zjunk", "unexpected characters"},
         {"2026-02-30T12:00:00Z", "no such calendar date"},
-        {"2025-02-29T12:00:00Z", "no such calendar date"},      // 2025 is not a leap year
+        {"2025-02-29T12:00:00Z", "no such calendar date"},  // 2025 is not a leap year
         {"2026-13-01T12:00:00Z", "no such calendar date"},
         {"2026-10-04T24:00:00Z", "out of range"},
         {"2026-10-04T12:60:00Z", "out of range"},
@@ -135,7 +135,8 @@ TEST_CASE("the system clock is close to std::chrono and its monotonic time never
     const Timestamp first = clock.now();
     const Timestamp second = clock.now();
 
-    const auto difference = std::chrono::abs(first.utc - std::chrono::time_point_cast<std::chrono::milliseconds>(reference));
+    const auto difference =
+        std::chrono::abs(first.utc - std::chrono::time_point_cast<std::chrono::milliseconds>(reference));
     CHECK(difference < 2s);
     CHECK(second.monotonic >= first.monotonic);
     CHECK(to_unix_ms(first.utc) > 1767225600000LL);  // after 2026-01-01: the machine's clock is set

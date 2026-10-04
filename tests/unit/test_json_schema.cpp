@@ -8,8 +8,8 @@
 #include <vector>
 
 using namespace cloudscope;
-using nlohmann::json;
 using Catch::Matchers::ContainsSubstring;
+using nlohmann::json;
 
 namespace {
 
@@ -74,7 +74,8 @@ TEST_CASE("each violation is reported with its path and the offending value", "[
         {R"({"name": "a", "exposure_ms": "fast"})", "exposure_ms: must be a number; got a string (\"fast\")"},
         {R"({"name": "a", "exposure_ms": 5, "gain": 2.5})", "gain: must be an integer; got a number (2.5)"},
         {R"({"name": "a", "exposure_ms": 5, "gain": -1})", "gain: must be at least 0; got -1"},
-        {R"({"name": "a", "exposure_ms": 5, "mode": "fast"})", "mode: must be one of \"auto\", \"manual\"; got \"fast\""},
+        {R"({"name": "a", "exposure_ms": 5, "mode": "fast"})",
+         "mode: must be one of \"auto\", \"manual\"; got \"fast\""},
         {R"({"name": "a", "exposure_ms": 5, "version": 3})", "version: must be 2; got 3"},
         {R"({"name": "a", "exposure_ms": 5, "roi": [0, 0, 640]})", "roi: must have at least 4 item(s); got 3"},
         {R"({"name": "a", "exposure_ms": 5, "roi": [0, 0, 640, 480, 1]})", "roi: must have at most 4 item(s); got 5"},
@@ -130,8 +131,8 @@ TEST_CASE("partial documents can skip the required-key check but nothing else", 
 TEST_CASE("string length counts characters, not bytes", "[common][json_schema]")
 {
     const JsonSchema schema = compiled(R"({"type": "string", "maxLength": 4})");
-    CHECK(messages(schema, "\"\xC3\xA9t\xC3\xA9s\"").empty());        // "étés": 4 characters, 6 bytes
-    CHECK(messages(schema, "\"\xC3\xA9t\xC3\xA9s!\"").size() == 1);   // 5 characters
+    CHECK(messages(schema, "\"\xC3\xA9t\xC3\xA9s\"").empty());       // "étés": 4 characters, 6 bytes
+    CHECK(messages(schema, "\"\xC3\xA9t\xC3\xA9s!\"").size() == 1);  // 5 characters
 }
 
 TEST_CASE("local references are followed", "[common][json_schema]")

@@ -1,0 +1,25 @@
+# Tests: the same analysis as the product code, minus checks that fight the Catch2 macros or that do not
+# matter in test code.
+---
+InheritParentConfig: true
+Checks: >
+  -bugprone-chained-comparison,
+  -cert-err33-c,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -misc-const-correctness,
+  -misc-use-anonymous-namespace,
+  -readability-function-cognitive-complexity,
+  -readability-function-size
+# Reasons:
+#   bugprone-chained-comparison               Catch2 decomposes CHECK(a == b) into what looks like a chain
+#   cert-err33-c                              return values of C functions ignored inside test set-up
+#   clang-analyzer-optin.core.EnumCastOutOfRange   reported inside Catch2's own headers
+#   cppcoreguidelines-avoid-non-const-global-variables   TEST_CASE registers itself through a global object
+#   cppcoreguidelines-pro-type-reinterpret-cast          byte-level fixtures
+#   misc-const-correctness                    slow on the large table-driven tests, little value there
+#   misc-use-anonymous-namespace              TEST_CASE generates static functions
+#   readability-function-*                    a test case may be long and branchy by nature
+HeaderFilterRegex: '.*/tests/.*'
+...

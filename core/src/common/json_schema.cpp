@@ -14,20 +14,20 @@ namespace {
 
 using nlohmann::json;
 
-constexpr std::array<std::string_view, 6> kAnnotations = {"$schema", "$id", "title", "description", "default",
-                                                          "examples"};
+constexpr std::array<std::string_view, 6> kAnnotations = {"$schema",     "$id",     "title",
+                                                          "description", "default", "examples"};
 constexpr std::array<std::string_view, 19> kKeywords = {
-    "type",    "enum",     "const",    "properties",  "required",         "additionalProperties", "items",
-    "minItems", "maxItems", "uniqueItems", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
-    "minLength", "maxLength", "pattern", "$defs", "$ref"};
-constexpr std::array<std::string_view, 7> kTypeNames = {"object", "array",   "string", "number",
+    "type",      "enum",      "const",       "properties", "required", "additionalProperties", "items",
+    "minItems",  "maxItems",  "uniqueItems", "minimum",    "maximum",  "exclusiveMinimum",     "exclusiveMaximum",
+    "minLength", "maxLength", "pattern",     "$defs",      "$ref"};
+constexpr std::array<std::string_view, 7> kTypeNames = {"object",  "array",   "string", "number",
                                                         "integer", "boolean", "null"};
 constexpr std::string_view kRefPrefix = "#/$defs/";
 
 template <std::size_t N>
 bool contains(const std::array<std::string_view, N>& list, std::string_view item)
 {
-    return std::find(list.begin(), list.end(), item) != list.end();
+    return std::ranges::find(list, item) != list.end();
 }
 
 // --------------------------------------------------------------------------------------- compile
@@ -69,33 +69,13 @@ struct Compiler {
     {
         const std::string here = where + "/" + key;
         if (key == "type") {
-            const json names = value.is_array() ? value : json::array({value});
-            if (names.empty()) {
-                problem(here, "needs at least one type name");
-            }
-            for (const json& name : names) {
-                if (!name.is_string() || !contains(kTypeNames, name.get_ref<const std::string&>())) {
-                    problem(here, fmt::format("{} is not a type name", name.dump()));
-                }
-            }
+            check_type(value, here);
         } else if (key == "enum") {
-            if (!value.is_array() || value.empty()) {
-                problem(here, "must be a non-empty array");
-            }
+            require(value.is_array() && !value.empty(), here, "must be a non-empty array");
         } else if (key == "properties" || key == "$defs") {
-            if (!value.is_object()) {
-                problem(here, "must be an object of schemas");
-                return;
-            }
-            for (const auto& [name, schema] : value.items()) {
-                check(schema, here + "/" + name);
-            }
+            check_schema_map(value, here);
         } else if (key == "required") {
-            const bool strings = value.is_array() && std::all_of(value.begin(), value.end(),
-                                                                 [](const json& item) { return item.is_string(); });
-            if (!strings) {
-                problem(here, "must be an array of key names");
-            }
+            require(value.is_array() && all_strings(value), here, "must be an array of key names");
         } else if (key == "additionalProperties") {
             if (!value.is_boolean()) {
                 check(value, here);
@@ -103,44 +83,88 @@ struct Compiler {
         } else if (key == "items") {
             check(value, here);
         } else if (key == "minItems" || key == "maxItems" || key == "minLength" || key == "maxLength") {
-            if (!value.is_number_integer() || value.get<long long>() < 0) {
-                problem(here, "must be a non-negative integer");
-            }
+            require(value.is_number_integer() && value.get<long long>() >= 0, here, "must be a non-negative integer");
         } else if (key == "uniqueItems") {
-            if (!value.is_boolean()) {
-                problem(here, "must be true or false");
-            }
+            require(value.is_boolean(), here, "must be true or false");
         } else if (key == "minimum" || key == "maximum" || key == "exclusiveMinimum" || key == "exclusiveMaximum") {
-            if (!value.is_number()) {
-                problem(here, "must be a number");
-            }
+            require(value.is_number(), here, "must be a number");
         } else if (key == "pattern") {
-            if (!value.is_string()) {
-                problem(here, "must be a string");
-                return;
-            }
-            const std::string& pattern = value.get_ref<const std::string&>();
-            try {
-                patterns.emplace(pattern, std::regex(pattern, std::regex::ECMAScript));
-            } catch (const std::regex_error& regex_error) {
-                problem(here, fmt::format("'{}' is not a valid regular expression ({})", pattern, regex_error.what()));
-            }
+            check_pattern(value, here);
         } else if (key == "$ref") {
-            const bool local = value.is_string() && value.get_ref<const std::string&>().starts_with(kRefPrefix);
-            if (!local) {
-                problem(here, "only references of the form \"#/$defs/<name>\" are supported");
-                return;
-            }
-            const std::string name = value.get_ref<const std::string&>().substr(kRefPrefix.size());
-            if (!root.contains("$defs") || !root.at("$defs").is_object() || !root.at("$defs").contains(name)) {
-                problem(here, fmt::format("'#/$defs/{}' does not exist", name));
-            }
+            check_reference(value, here);
         }
         // "const" accepts any value.
+    }
+
+    void require(bool condition, const std::string& where, const std::string& what)
+    {
+        if (!condition) {
+            problem(where, what);
+        }
+    }
+
+    static bool all_strings(const json& list)
+    {
+        return std::ranges::all_of(list, [](const json& item) { return item.is_string(); });
+    }
+
+    void check_type(const json& value, const std::string& here)
+    {
+        const json names = value.is_array() ? value : json::array({value});
+        require(!names.empty(), here, "needs at least one type name");
+        for (const json& name : names) {
+            if (!name.is_string() || !contains(kTypeNames, name.get_ref<const std::string&>())) {
+                problem(here, fmt::format("{} is not a type name", name.dump()));
+            }
+        }
+    }
+
+    void check_schema_map(const json& value, const std::string& here)
+    {
+        if (!value.is_object()) {
+            problem(here, "must be an object of schemas");
+            return;
+        }
+        for (const auto& [name, schema] : value.items()) {
+            check(schema, fmt::format("{}/{}", here, name));
+        }
+    }
+
+    void check_pattern(const json& value, const std::string& here)
+    {
+        if (!value.is_string()) {
+            problem(here, "must be a string");
+            return;
+        }
+        const auto& pattern = value.get_ref<const std::string&>();
+        try {
+            patterns.emplace(pattern, std::regex(pattern, std::regex::ECMAScript));
+        } catch (const std::regex_error& regex_error) {
+            problem(here, fmt::format("'{}' is not a valid regular expression ({})", pattern, regex_error.what()));
+        }
+    }
+
+    void check_reference(const json& value, const std::string& here)
+    {
+        const bool local = value.is_string() && value.get_ref<const std::string&>().starts_with(kRefPrefix);
+        if (!local) {
+            problem(here, "only references of the form \"#/$defs/<name>\" are supported");
+            return;
+        }
+        const std::string name = value.get_ref<const std::string&>().substr(kRefPrefix.size());
+        if (!root.contains("$defs") || !root.at("$defs").is_object() || !root.at("$defs").contains(name)) {
+            problem(here, fmt::format("'#/$defs/{}' does not exist", name));
+        }
     }
 };
 
 // -------------------------------------------------------------------------------------- validate
+
+// True if `list` (a JSON array) has an element equal to `value`.
+bool contains_value(const json& list, const json& value)
+{
+    return std::ranges::any_of(list, [&value](const json& item) { return item == value; });
+}
 
 std::string describe_type(const json& value)
 {
@@ -235,14 +259,14 @@ bool matches_type(const json& value, const std::string& name)
 
 std::size_t code_point_count(const std::string& utf8)
 {
-    return static_cast<std::size_t>(std::count_if(
-        utf8.begin(), utf8.end(), [](char c) { return (static_cast<unsigned char>(c) & 0xC0U) != 0x80U; }));
+    return static_cast<std::size_t>(
+        std::ranges::count_if(utf8, [](char c) { return (static_cast<unsigned char>(c) & 0xC0U) != 0x80U; }));
 }
 
 std::string ascii_lower(std::string text)
 {
-    std::transform(text.begin(), text.end(), text.begin(),
-                   [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
+    std::ranges::transform(text, text.begin(),
+                           [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
     return text;
 }
 
@@ -301,9 +325,10 @@ struct Validator {
         if (schema.contains("type")) {
             const json& type = schema.at("type");
             const json names = type.is_array() ? type : json::array({type});
-            const bool ok = std::any_of(names.begin(), names.end(), [&value](const json& name) {
-                return matches_type(value, name.get_ref<const std::string&>());
-            });
+            bool ok = false;
+            for (const json& name : names) {
+                ok = ok || matches_type(value, name.get_ref<const std::string&>());
+            }
             if (!ok) {
                 std::string expected;
                 for (std::size_t i = 0; i < names.size(); ++i) {
@@ -318,7 +343,7 @@ struct Validator {
         }
         if (schema.contains("enum")) {
             const json& allowed = schema.at("enum");
-            if (std::find(allowed.begin(), allowed.end(), value) == allowed.end()) {
+            if (!contains_value(allowed, value)) {
                 std::string list;
                 for (const json& item : allowed) {
                     list += (list.empty() ? "" : ", ") + item.dump();
@@ -371,7 +396,7 @@ struct Validator {
                                      schema.at("maxLength").get<std::size_t>(), length));
         }
         if (schema.contains("pattern")) {
-            const std::string& pattern = schema.at("pattern").get_ref<const std::string&>();
+            const auto& pattern = schema.at("pattern").get_ref<const std::string&>();
             if (!std::regex_search(text, patterns.at(pattern))) {
                 report(path, fmt::format("must match the pattern {}; got {}", pattern, show(json(text))));
             }
@@ -381,8 +406,8 @@ struct Validator {
     void check_array(const json& schema, const json& value, const std::string& path, int depth)
     {
         if (schema.contains("minItems") && value.size() < schema.at("minItems").get<std::size_t>()) {
-            report(path, fmt::format("must have at least {} item(s); got {}",
-                                     schema.at("minItems").get<std::size_t>(), value.size()));
+            report(path, fmt::format("must have at least {} item(s); got {}", schema.at("minItems").get<std::size_t>(),
+                                     value.size()));
         }
         if (schema.contains("maxItems") && value.size() > schema.at("maxItems").get<std::size_t>()) {
             report(path, fmt::format("must have at most {} item(s); got {}", schema.at("maxItems").get<std::size_t>(),
@@ -407,8 +432,8 @@ struct Validator {
 
     void check_object(const json& schema, const json& value, const std::string& path, int depth)
     {
-        static const json kNoProperties = json::object();
-        const json& properties = schema.contains("properties") ? schema.at("properties") : kNoProperties;
+        static const json no_properties = json::object();
+        const json& properties = schema.contains("properties") ? schema.at("properties") : no_properties;
 
         if (options.check_required && schema.contains("required")) {
             for (const json& key : schema.at("required")) {
@@ -476,7 +501,7 @@ JsonSchema::JsonSchema(nlohmann::json schema, Patterns patterns)
 Expected<JsonSchema> JsonSchema::compile(nlohmann::json schema)
 {
     Patterns patterns;
-    Compiler compiler{schema, patterns, {}};
+    Compiler compiler{.root = schema, .patterns = patterns, .error = {}};
     compiler.check(schema, "");
     if (!compiler.error.empty()) {
         return fail(ErrorCode::Validation, compiler.error);
@@ -487,7 +512,7 @@ Expected<JsonSchema> JsonSchema::compile(nlohmann::json schema)
 std::vector<SchemaIssue> JsonSchema::validate(const nlohmann::json& document, SchemaOptions options) const
 {
     std::vector<SchemaIssue> issues;
-    Validator validator{*schema_, *patterns_, options, issues};
+    Validator validator{.root = *schema_, .patterns = *patterns_, .options = options, .issues = issues};
     validator.validate(*schema_, document, "");
     return issues;
 }

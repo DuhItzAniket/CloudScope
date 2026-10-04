@@ -1,6 +1,6 @@
 # C++ coding conventions
 
-These rules apply to all C++ in `core/`, `daemon/`, `apps/` and `tests/`. Formatting and lint rules are enforced by tools from P015 (clang-format, clang-tidy); this document covers what tools cannot check.
+These rules apply to all C++ in `core/`, `daemon/`, `apps/` and `tests/`. Formatting, naming and many of the rules below are enforced by tools (clang-format, clang-tidy, sanitizers: [`quality_gates.md`](quality_gates.md)); this document also covers what tools cannot check.
 
 ## Language and libraries
 
@@ -19,7 +19,7 @@ These rules apply to all C++ in `core/`, `daemon/`, `apps/` and `tests/`. Format
 | Abstract interfaces | `I` + `PascalCase` | `IClock`, `ICamera` |
 | Functions, variables, parameters | `snake_case` | `run_self_test()`, `frame_count` |
 | Private data members | `snake_case_` with trailing underscore | `queue_`, `exposure_ms_` |
-| Constants (`constexpr`, `const` at namespace scope) | `kPascalCase` | `kMaxFrameBytes` |
+| Constants (`constexpr` anywhere, `const` at namespace scope) | `kPascalCase` | `kMaxFrameBytes` |
 | Namespaces | lower case | `cloudscope`, `cloudscope::capture` |
 | Macros (avoid) | `CLOUDSCOPE_UPPER_CASE` | `CLOUDSCOPE_VERSION` |
 | Files | `snake_case.hpp` / `.cpp` | `build_info.hpp` |
@@ -43,7 +43,9 @@ Physical quantities carry their unit in the name unless the type already does: `
 
 ## Resources and threads
 
-- RAII for every resource; no naked `new`/`delete`; C handles are wrapped in `std::unique_ptr` with a deleter.
+- RAII for every resource; no naked `new`/`delete`; C handles are wrapped in `std::unique_ptr` with a deleter or closed with `ScopeExit` (`scope_exit.hpp`).
+- Structs with several fields are initialised with designated initialisers (`{.code = ..., .message = ...}`), so that fields cannot be swapped silently.
+- Range checks on floating-point input must reject NaN: write `value >= low && value <= high` and negate that, never `value < low || value > high`.
 - State which thread a class lives on in its header comment. Shared state is either immutable, owned by one thread and reached by message passing, or protected by a named mutex. The thread model is in `docs/arch/architecture.md` §4.1.
 - No blocking I/O on the UI thread or the acquisition thread.
 
@@ -56,7 +58,8 @@ Physical quantities carry their unit in the name unless the type already does: `
 
 ## Executables
 
-- Exit codes: 0 success, 1 the requested operation failed, 2 wrong usage. Results go to standard output, diagnostics to standard error.
+- Exit codes: 0 success, 1 the requested operation failed, 2 wrong usage, 3 internal error (a bug). Results go to standard output, diagnostics to standard error.
+- `main()` catches every exception and reports it; nothing leaves `main()` as an exception.
 - Parse arguments with `QCommandLineParser::parse()` and report errors yourself. Never call `process()`, `showHelp()` or `showVersion()`: on Windows they open a message box when the program has no console (service, scheduled task, remote shell) and wait for a click forever. Found in P011; `tests/integration/test_cli_info.cpp` holds the regression test.
 - No interactive prompts: every executable must be usable unattended.
 
