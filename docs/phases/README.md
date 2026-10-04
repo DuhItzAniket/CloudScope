@@ -8,5 +8,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P002](P002-docs-protocol.md) | Docs & phase protocol | DONE |
 | [P003](P003-interim-sky-logger.md) | Interim Sky Logger | PARTIAL |
 | [P004](P004-use-cases.md) | Use cases & personas | DONE |
+| [P005](P005-srs.md) | Software requirements specification | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).
