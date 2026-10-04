@@ -13,6 +13,6 @@ Each ADR records one decision, the options considered and the consequences. Temp
 | [007](ADR-007-config-logging.md) | TOML + JSON Schema configuration; spdlog logging | Accepted | P008 |
 | [008](ADR-008-image-formats.md) | Image/video formats: JPEG, PNG/TIFF, FITS (cfitsio), SER (in-house), MP4 via external FFmpeg | Accepted | P008 |
 | [009](ADR-009-firmware-toolchain.md) | PlatformIO, Arduino framework, FreeRTOS on ESP32 | Accepted | P008 |
-| [010](ADR-010-licensing.md) | Apache-2.0; permissive or dynamically linked LGPL dependencies only; GPL-only modules excluded | Accepted | P008 |
+| [010](ADR-010-licensing.md) | Apache-2.0 (owner-confirmed); permissive or dynamically linked LGPL dependencies only; GPL-only modules excluded | Accepted | P008 |
 | [011](ADR-011-alpaca-indi.md) | ASCOM Alpaca client and server; optional INDI client on Linux | Accepted | P008 |
 | [012](ADR-012-time-coordinates.md) | Time and coordinate conventions shared with STRATIA | Accepted | P008 |

@@ -7,7 +7,8 @@
 | Next phase | P011 — Build system |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
-| Blockers | None. Open items: P003 acceptance (B0268 24 h run); owner decisions D1–D4 in `docs/reviews/gate_R.md` |
+| Blockers | None. Open item: P003 acceptance (B0268 24 h run) |
+| Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
 | Hardware on the development machine | Integrated laptop camera only; Arducam B0268 not connected; no microcontroller attached |
 
 ## Phase log

@@ -1,6 +1,6 @@
 # Gate R — Requirements and architecture review
 
-Date: 2026-10-04 · Phase: P010 · Scope: Stage A (P001–P009) · Reviewer: Claude (automated checks + document review), pending owner sign-off on the decisions in §4
+Date: 2026-10-04 · Phase: P010 · Scope: Stage A (P001–P009) · Reviewer: Claude (automated checks + document review); owner decisions D1–D4 confirmed 2026-10-04
 
 ## 1. Checklist
 
@@ -44,6 +44,8 @@ Date: 2026-10-04 · Phase: P010 · Scope: Stage A (P001–P009) · Reviewer: Cla
 | D3 | Host for field use | Laptop now; Raspberry Pi 5 + 27 W PSU when unattended operation is needed | Stage H deployment, P098 |
 | D4 | Pace until 16 Nov 2026 | Keep CloudScope at low intensity (Stage B foundation only) so STRATIA's CVPR work has priority; connect the B0268 and run the sky logger now | — |
 
+**Owner's answers (2026-10-04):** D1 keep Apache-2.0 · D2 servo tier R1 first · D3 laptop host for now · D4 low intensity until 16 Nov.
+
 ## 5. Risk register (system level)
 
 | # | Risk | Likelihood | Impact | Mitigation |
@@ -59,4 +61,4 @@ Date: 2026-10-04 · Phase: P010 · Scope: Stage A (P001–P009) · Reviewer: Cla
 
 ## 6. Verdict
 
-**GO for Stage B (engineering foundation, P011–P018)**, with the conditions: owner confirms D1–D4; observations O1–O4 stay tracked. Stage A is tagged `stage-A-complete`.
+**GO for Stage B (engineering foundation, P011–P018)**, Owner decisions D1–D4 confirmed; observations O1–O4 stay tracked. Stage A is tagged `stage-A-complete`.

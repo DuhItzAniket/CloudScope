@@ -1,6 +1,6 @@
 # ADR-010 — Apache-2.0 for CloudScope; dependency licence policy
 
-Status: Accepted (licence choice open to the owner's override)     Date: 2026-10-04     Phase: P008
+Status: Accepted (licence confirmed by the owner, Gate R, 2026-10-04)     Date: 2026-10-04     Phase: P008
 
 ## Context
 The repository needs a licence (Apache-2.0 was added as the default in P002), and every dependency must be compatible with distributing CloudScope binaries for Windows and Raspberry Pi.
