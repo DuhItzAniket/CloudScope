@@ -11,7 +11,7 @@
 #   tl::expected                 std::expected for C++20
 #   CloudScope::cfitsio
 #   CloudScope::turbojpeg
-#   Catch2::Catch2WithMain       only when CLOUDSCOPE_BUILD_TESTS is ON
+#   Catch2::Catch2, Qt6::Test    only when CLOUDSCOPE_BUILD_TESTS is ON
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core)
 find_package(OpenCV 4.10 REQUIRED COMPONENTS core imgproc imgcodecs)
@@ -52,6 +52,7 @@ endif()
 
 if(CLOUDSCOPE_BUILD_TESTS)
   find_package(Catch2 3.7 CONFIG REQUIRED)
+  find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
 endif()
 
 message(STATUS "CloudScope dependencies: Qt ${Qt6_VERSION}, OpenCV ${OpenCV_VERSION}, spdlog ${spdlog_VERSION}, "

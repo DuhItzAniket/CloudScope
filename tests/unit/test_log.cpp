@@ -1,8 +1,9 @@
 #include <cloudscope/common/log.hpp>
 
+#include "test_support.hpp"
+
 #include <QtCore/QDebug>
 #include <QtCore/QLoggingCategory>
-#include <QtCore/QTemporaryDir>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -17,19 +18,17 @@
 #include <vector>
 
 using namespace cloudscope;
+using cloudscope::test::read_file;
 using Catch::Matchers::ContainsSubstring;
 
 namespace {
 
-// A log folder that is removed again, with a non-ASCII character in its name; logging is reset afterwards.
+// A log folder inside a temporary workspace; logging is reset when the test ends, which closes the log file
+// so that the folder can be deleted.
 class LogWorkspace {
 public:
-    LogWorkspace()
-    {
-        REQUIRE(temporary_.isValid());
-        directory_ = std::filesystem::path(temporary_.path().toStdU16String()) / std::filesystem::path(u8"journée");
-    }
-    ~LogWorkspace() { shutdown_logging(); }  // closes the file so that the folder can be deleted
+    LogWorkspace() : directory_(workspace_.path("logs")) {}
+    ~LogWorkspace() { shutdown_logging(); }
     LogWorkspace(const LogWorkspace&) = delete;
     LogWorkspace& operator=(const LogWorkspace&) = delete;
 
@@ -46,16 +45,9 @@ public:
         config.directory = directory_;
         return config;
     }
-    static std::string read(const std::filesystem::path& path)
-    {
-        const std::ifstream stream(path, std::ios::binary);
-        std::ostringstream text;
-        text << stream.rdbuf();
-        return text.str();
-    }
 
 private:
-    QTemporaryDir temporary_;
+    cloudscope::test::TempWorkspace workspace_;
     std::filesystem::path directory_;
 };
 
@@ -128,7 +120,7 @@ TEST_CASE("log records reach the file and the memory buffer, redacted and with U
     logger("remote").warn("login with token=abcdef123456 refused");
     logger("camera").debug("below the configured level");
 
-    const std::string text = LogWorkspace::read(workspace.file());
+    const std::string text = read_file(workspace.file());
     std::vector<std::string> lines;
     std::istringstream stream(text);
     for (std::string line; std::getline(stream, line);) {
@@ -205,10 +197,10 @@ TEST_CASE("log files rotate by size and old files are deleted", "[common][log]")
         CHECK(std::filesystem::file_size(workspace.file(index)) <= 1024U * 1024U);
     }
     // The newest record is in the current file, older ones in higher-numbered files; the oldest are gone.
-    CHECK_THAT(LogWorkspace::read(workspace.file(0)), ContainsSubstring("] 03599 "));
-    const std::string oldest_kept = LogWorkspace::read(workspace.file(2));
+    CHECK_THAT(read_file(workspace.file(0)), ContainsSubstring("] 03599 "));
+    const std::string oldest_kept = read_file(workspace.file(2));
     CHECK_THAT(oldest_kept, !ContainsSubstring("] 00000 "));
-    const std::string newer = LogWorkspace::read(workspace.file(1));
+    const std::string newer = read_file(workspace.file(1));
     CHECK(oldest_kept.substr(40, 60) < newer.substr(40, 60));  // record numbers increase from file 2 to file 1
 }
 
@@ -221,7 +213,7 @@ TEST_CASE("an existing log file is continued, not truncated", "[common][log]")
     REQUIRE(init_logging(workspace.config()).has_value());
     logger("append").info("second run");
 
-    const std::string text = LogWorkspace::read(workspace.file());
+    const std::string text = read_file(workspace.file());
     CHECK_THAT(text, ContainsSubstring("first run"));
     CHECK_THAT(text, ContainsSubstring("second run"));
     CHECK(text.find("first run") < text.find("second run"));
@@ -248,7 +240,7 @@ TEST_CASE("a bad logging configuration is refused and the previous set-up stays"
     CHECK(init_logging(blocked).error().code == ErrorCode::Io);
 
     logger("still").info("still logging to the first file");
-    CHECK_THAT(LogWorkspace::read(workspace.file()), ContainsSubstring("still logging to the first file"));
+    CHECK_THAT(read_file(workspace.file()), ContainsSubstring("still logging to the first file"));
 }
 
 TEST_CASE("the memory buffer keeps only the most recent records", "[common][log]")
@@ -309,7 +301,7 @@ TEST_CASE("logging from several threads loses nothing and keeps lines whole", "[
         thread.join();
     }
 
-    std::istringstream stream(LogWorkspace::read(workspace.file()));
+    std::istringstream stream(read_file(workspace.file()));
     const std::regex whole_line(R"(^\S+ info +\d+ \[worker\] thread \d message \d+ end\r?$)");
     int lines = 0;
     for (std::string line; std::getline(stream, line);) {

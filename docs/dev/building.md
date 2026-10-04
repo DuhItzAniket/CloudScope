@@ -69,6 +69,7 @@ For arm64 (emulated, slow but faithful), add `--platform linux/arm64` to both co
 |---|---|---|
 | `CLOUDSCOPE_BUILD_TESTS` | `ON` | Build the unit tests (needs Catch2) |
 | `CLOUDSCOPE_WARNINGS_AS_ERRORS` | `OFF` | Fail the build on any compiler warning in CloudScope code; CI turns this on |
+| `CLOUDSCOPE_COVERAGE` | `OFF` | Instrument the code to measure test coverage (GCC only; see `docs/dev/testing.md`) |
 
 Pass options at configure time, for example `cmake --preset linux-x64 -DCLOUDSCOPE_WARNINGS_AS_ERRORS=ON`.
 
@@ -85,6 +86,7 @@ Code must compile against the **minimum** column: those are the versions in Debi
 | nlohmann-json | 3.11.3 | 3.12.0 | JSON sidecars and API payloads |
 | CFITSIO | 4.6.2 | 4.6.4 | FITS files |
 | libjpeg-turbo | 2.1.5 | 3.2.0 | JPEG and MJPEG (use the 2.1 TurboJPEG API: `tjCompress2`, `tjDecompress2`) |
+| tl-expected | 1.1.0 | 1.3.1 | `Expected<T>` error returns |
 | Catch2 | 3.7.1 | 3.15.3 | Unit tests |
 
 The vcpkg versions are pinned by `builtin-baseline` in `vcpkg.json`. To update them, change the baseline to a newer vcpkg release commit, rebuild, run the tests and update this table.

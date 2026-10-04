@@ -30,12 +30,14 @@ From P012 onward, a phase is complete only when CI is green for its commit: buil
 
 Captured images, datasets, model weights (`*.onnx`, `*.pth`, …) other than the two frozen legacy deliverables, credentials, tokens, keys, or personal photos. Large artefacts go to GitHub Releases.
 
+The only exception is small, licence-clean test fixtures under the rules of [`tests/data/README.md`](tests/data/README.md) (CC0 or made by this project, no personal data or EXIF, at most 100 KB each, listed in a manifest with checksums).
+
 ## Line endings and encoding
 
 UTF-8 everywhere. Line endings are normalised by [`.gitattributes`](.gitattributes): LF in the repository, CRLF only for Windows batch files.
 
 ## Coding standards
 
-- **C++:** [`docs/dev/cpp_style.md`](docs/dev/cpp_style.md); build instructions in [`docs/dev/building.md`](docs/dev/building.md). Formatting and lint tooling follow in P015.
+- **C++:** [`docs/dev/cpp_style.md`](docs/dev/cpp_style.md); build instructions in [`docs/dev/building.md`](docs/dev/building.md); tests in [`docs/dev/testing.md`](docs/dev/testing.md). Formatting and lint tooling follow in P015.
 - **Python tools:** as in `tools/sky_logger/` (P003).
 - **Firmware:** defined in P050.

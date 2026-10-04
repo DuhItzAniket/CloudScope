@@ -24,6 +24,7 @@ add_library(cloudscope_core STATIC
   include/cloudscope/common/log.hpp
   include/cloudscope/common/self_test.hpp
   include/cloudscope/common/units.hpp
+  include/cloudscope/sim/synthetic_sky.hpp
   src/common/app_config.cpp
   src/common/build_info.cpp
   src/common/clock.cpp
@@ -33,6 +34,7 @@ add_library(cloudscope_core STATIC
   src/common/log.cpp
   src/common/self_test.cpp
   src/common/units.cpp
+  src/sim/synthetic_sky.cpp
   "${_git_revision_cpp}")
 add_library(CloudScope::core ALIAS cloudscope_core)
 add_dependencies(cloudscope_core cloudscope_git_revision)
@@ -61,8 +63,9 @@ target_link_libraries(cloudscope_core
     nlohmann_json::nlohmann_json
     spdlog::spdlog
     fmt::fmt
+    opencv_core
   PRIVATE
-    opencv_core opencv_imgproc opencv_imgcodecs
+    opencv_imgproc opencv_imgcodecs
     tomlplusplus::tomlplusplus
     CloudScope::cfitsio
     CloudScope::turbojpeg)

@@ -1,0 +1,38 @@
+{
+  "description": "Test fixtures of CloudScope. Rules: tests/data/README.md",
+  "files": [
+    {
+      "file": "sky/ccsn_ci_n001.jpg",
+      "bytes": 55100,
+      "sha256": "a5dcca03fe32f8e6aa1173a25930340d40f39a37e36461fd9b0dce7699241ea3",
+      "width": 400,
+      "height": 400,
+      "format": "JPEG",
+      "shows": "bright cirrus on blue sky, some clipped highlights, tree at the lower right",
+      "source": "CCSN database v2, file Ci/Ci-N001.jpg (doi:10.7910/DVN/CADDPD)",
+      "licence": "CC0-1.0"
+    },
+    {
+      "file": "sky/ccsn_cu_n001.jpg",
+      "bytes": 41590,
+      "sha256": "20faa88bc890866b7ca15b82ab34ebcff2fa974a1534bd9953a59eafd5b0cc5a",
+      "width": 400,
+      "height": 400,
+      "format": "JPEG",
+      "shows": "cumulus against a dark sky, low mean brightness",
+      "source": "CCSN database v2, file Cu/Cu-N001.jpg (doi:10.7910/DVN/CADDPD)",
+      "licence": "CC0-1.0"
+    },
+    {
+      "file": "sky/ccsn_st_n001.jpg",
+      "bytes": 36416,
+      "sha256": "64f94af206ad3c1f4270fecf2ec61e80e148b243f62e5e514e0e43d9648dcf33",
+      "width": 400,
+      "height": 400,
+      "format": "JPEG",
+      "shows": "grey low-contrast layer cloud, treeline at the bottom",
+      "source": "CCSN database v2, file St/St-N001.jpg (doi:10.7910/DVN/CADDPD)",
+      "licence": "CC0-1.0"
+    }
+  ]
+}

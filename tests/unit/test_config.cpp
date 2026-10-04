@@ -1,51 +1,22 @@
 #include <cloudscope/common/app_config.hpp>
 #include <cloudscope/common/config.hpp>
 
-#include <QtCore/QTemporaryDir>
+#include "test_support.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <filesystem>
-#include <fstream>
 #include <map>
-#include <sstream>
 #include <string>
 
 using namespace cloudscope;
+using cloudscope::test::read_file;
+using cloudscope::test::TempWorkspace;
 using nlohmann::json;
 using Catch::Matchers::ContainsSubstring;
 
 namespace {
-
-// A temporary folder with helpers to write and read text files; the folder name contains a non-ASCII
-// character, because user profile folders on Windows often do.
-class Workspace {
-public:
-    Workspace()
-    {
-        REQUIRE(temporary_.isValid());
-        root_ = std::filesystem::path(temporary_.path().toStdU16String()) / std::filesystem::path(u8"configuraci\u00f3n");
-        std::filesystem::create_directories(root_);
-    }
-    std::filesystem::path path(const char* name) const { return root_ / name; }
-    std::filesystem::path write(const char* name, const std::string& text) const
-    {
-        std::ofstream stream(path(name), std::ios::binary);
-        stream << text;
-        return path(name);
-    }
-    static std::string read(const std::filesystem::path& file)
-    {
-        const std::ifstream stream(file, std::ios::binary);
-        std::ostringstream text;
-        text << stream.rdbuf();
-        return text.str();
-    }
-
-private:
-    QTemporaryDir temporary_;
-    std::filesystem::path root_;
-};
 
 // A small format with history: version 1 had mount.speed (percent), version 2 renamed it to
 // mount.speed_percent, version 3 replaced it by mount.speed_deg_s (100 % = 60 deg/s).
@@ -169,13 +140,13 @@ TEST_CASE("values TOML cannot hold are refused when writing", "[common][config]"
 
 TEST_CASE("files are written atomically, also into folders with non-ASCII names", "[common][config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     const std::filesystem::path file = workspace.path("sub/dir/settings.toml");
 
     REQUIRE(write_file_atomically(file, "a = 1\n").has_value());
-    CHECK(Workspace::read(file) == "a = 1\n");
+    CHECK(read_file(file) == "a = 1\n");
     REQUIRE(write_file_atomically(file, "a = 2\n").has_value());  // replaces the content
-    CHECK(Workspace::read(file) == "a = 2\n");
+    CHECK(read_file(file) == "a = 2\n");
 
     int entries = 0;
     for (const auto& entry : std::filesystem::directory_iterator(file.parent_path())) {
@@ -191,7 +162,7 @@ TEST_CASE("files are written atomically, also into folders with non-ASCII names"
 
 TEST_CASE("reading a missing file is NotFound and writing below a regular file is an Io error", "[common][config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     const auto missing = read_toml_file(workspace.path("nothing.toml"));
     REQUIRE_FALSE(missing.has_value());
     CHECK(missing.error().code == ErrorCode::NotFound);
@@ -284,7 +255,7 @@ TEST_CASE("documents that cannot be migrated are refused with a clear reason", "
 
 TEST_CASE("layers merge: defaults, then files in order, then overrides", "[common][config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     const ConfigFormat format = mount_format();
     const auto system = workspace.write("system.toml", "schema_version = 3\nsite = \"ROOF\"\n[mount]\nspeed_deg_s = 10.0\n");
     const auto user = workspace.write("user.toml", "schema_version = 3\n[mount]\nspeed_deg_s = 20.0\naxes = [\"pan\"]\n");
@@ -310,7 +281,7 @@ TEST_CASE("layers merge: defaults, then files in order, then overrides", "[commo
 
 TEST_CASE("an invalid file is rejected with the file name and every problem", "[common][config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     const ConfigFormat format = mount_format();
     const auto file = workspace.write("user.toml",
                                       "schema_version = 3\nsit = \"X\"\n[mount]\nspeed_deg_s = 90.0\ncolour = 1\n");
@@ -343,7 +314,7 @@ TEST_CASE("invalid overrides are rejected", "[common][config]")
 
 TEST_CASE("an old file is migrated, rewritten in the current format and backed up", "[common][config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     const ConfigFormat format = mount_format();
     const std::string original = "# my rooftop\nschema_version = 1\nsite = \"ROOF\"\n[mount]\nspeed = 50\n";
     const auto file = workspace.write("config.toml", original);
@@ -355,9 +326,9 @@ TEST_CASE("an old file is migrated, rewritten in the current format and backed u
 
     const auto backup = workspace.path("config.toml.v1.bak");
     REQUIRE(std::filesystem::exists(backup));
-    CHECK(Workspace::read(backup) == original);  // byte for byte, comments included
+    CHECK(read_file(backup) == original);  // byte for byte, comments included
 
-    const std::string rewritten = Workspace::read(file);
+    const std::string rewritten = read_file(file);
     CHECK_THAT(rewritten, ContainsSubstring("format version 3"));
     CHECK_THAT(rewritten, ContainsSubstring("config.toml.v1.bak"));
     const auto reread = parse_toml(rewritten, "rewritten");
@@ -379,19 +350,19 @@ TEST_CASE("an old file is migrated, rewritten in the current format and backed u
 
 TEST_CASE("an existing backup is never overwritten", "[common][config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     const ConfigFormat format = mount_format();
     const auto file = workspace.write("config.toml", "schema_version = 2\nsite = \"NEW\"\n");
     workspace.write("config.toml.v2.bak", "precious earlier backup");
 
     REQUIRE(load_config(format, {file}).has_value());
-    CHECK(Workspace::read(workspace.path("config.toml.v2.bak")) == "precious earlier backup");
-    CHECK(Workspace::read(workspace.path("config.toml.v2.1.bak")) == "schema_version = 2\nsite = \"NEW\"\n");
+    CHECK(read_file(workspace.path("config.toml.v2.bak")) == "precious earlier backup");
+    CHECK(read_file(workspace.path("config.toml.v2.1.bak")) == "schema_version = 2\nsite = \"NEW\"\n");
 }
 
 TEST_CASE("a file that fails validation after migration is left untouched", "[common][config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     const ConfigFormat format = mount_format();
     const std::string original = "schema_version = 1\n[mount]\nspeed = 500\n";  // 500 % -> 300 deg/s: over the limit
     const auto file = workspace.write("config.toml", original);
@@ -399,7 +370,7 @@ TEST_CASE("a file that fails validation after migration is left untouched", "[co
     const auto loaded = load_config(format, {file});
     REQUIRE_FALSE(loaded.has_value());
     CHECK_THAT(loaded.error().message, ContainsSubstring("mount.speed_deg_s: must be at most 60"));
-    CHECK(Workspace::read(file) == original);
+    CHECK(read_file(file) == original);
     CHECK_FALSE(std::filesystem::exists(workspace.path("config.toml.v1.bak")));
 }
 
@@ -448,7 +419,7 @@ TEST_CASE("standard paths follow the platform conventions", "[common][app_config
 
 TEST_CASE("the CloudScope configuration loads from user and extra files", "[common][app_config]")
 {
-    const Workspace workspace;
+    const TempWorkspace workspace;
     AppPaths paths;
     paths.system_config = workspace.path("etc/config.toml");  // does not exist: optional
     paths.user_config = workspace.write("user.toml", "schema_version = 1\n[logging]\nlevel = \"debug\"\nmax_files = 3\n");

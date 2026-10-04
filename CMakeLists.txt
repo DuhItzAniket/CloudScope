@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 option(CLOUDSCOPE_BUILD_TESTS "Build the unit tests" ON)
 option(CLOUDSCOPE_WARNINGS_AS_ERRORS "Treat compiler warnings in CloudScope code as errors" OFF)
+option(CLOUDSCOPE_COVERAGE "Instrument CloudScope code to measure test coverage (GCC, Debug builds)" OFF)
 set(CLOUDSCOPE_EXPECT_ARCH "" CACHE STRING
     "Architecture the chosen preset is meant for (x86_64 or aarch64); configuring on another one is an error")
 

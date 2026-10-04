@@ -10,6 +10,7 @@ Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). It runs 
 | Debian 13 arm64 | GitHub arm64 runner, `debian:trixie` container | Same, on real arm64 hardware | What a Raspberry Pi 5 with Raspberry Pi OS builds and runs |
 | Ubuntu 26.04 x64 | GitHub x64 runner, `ubuntu:26.04` container | GCC 15, Qt 6.10 | Newest toolchain; finds problems before they reach Debian |
 | Windows x64 | `windows-2022` | MSVC 2022, vcpkg, **Qt 6.8.3** installed with aqtinstall | The Windows build against the oldest supported Qt |
+| Coverage | GitHub x64 runner, `debian:trixie` container | GCC with coverage instrumentation, gcovr | Line coverage of the core library is at least 70 % (NFR-MNT-03); HTML report as artifact |
 | Python tools | `ubuntu-24.04`, Python 3.11 | pytest | Sky logger tests and the tests of the CI scripts |
 
 Each C++ job: configure with warnings as errors, build and test **Debug** and **Release**, run the licence check, upload the Release binaries with the licence report (`THIRD_PARTY_LICENCES.md`) as an artifact kept for 14 days.
@@ -23,7 +24,7 @@ python tools/ci/status.py            # result for HEAD
 python tools/ci/status.py --wait     # wait until all jobs have finished
 ```
 
-Exit code 0 means every job passed. For a failed job the script prints the error lines and the end of the failing step's output.
+Exit code 0 means every job passed. For a failed job the script prints the error lines and the end of the failing step's output; for passed jobs it prints their notices, such as the coverage figure.
 
 How this works: every step runs through `tools/ci/run.py`, which passes the output through and, when the command fails, repeats the error lines and the last part of the output as GitHub *annotations*. Annotations are public for a public repository; full job logs need a signed-in user. The script uses the public API (60 requests per hour without a token; set `GITHUB_TOKEN` to raise the limit).
 

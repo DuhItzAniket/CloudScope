@@ -33,9 +33,9 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `docs/reviews/` | Stage gate reviews |
 | `core/` | `libcloudscope-core`: all domain logic (C++20, Qt Core) |
 | `apps/info/` | `cloudscope-info`: build information, installation self-test, configuration report |
-| `tests/` | Unit tests (Catch2) and command-line tests |
+| `tests/` | Unit tests (Catch2) and command-line tests; fixtures in `tests/data` |
 | `cmake/`, `CMakePresets.json`, `vcpkg.json` | Build system ([how to build](docs/dev/building.md)) |
-| `docs/dev/` | Developer guides: building, C++ conventions, continuous integration |
+| `docs/dev/` | Developer guides: building, C++ conventions, testing, continuous integration |
 | `docs/manual/` | User documentation ([configuration and logs](docs/manual/configuration.md)) |
 | `tools/build/` | Build scripts for Windows, Debian/Raspberry Pi OS and Docker |
 | `tools/ci/` | CI helpers: step runner, CI status without sign-in, licence gate |

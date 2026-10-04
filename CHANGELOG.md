@@ -4,6 +4,13 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P014 — Test infrastructure (2026-10-04)
+- Added the test support library (`tests/support`): temporary workspaces, fixture lookup, Qt event-loop waiting with Qt Test inside Catch2; existing tests moved onto it.
+- Added test fixtures (`tests/data`): three CC0 sky photographs with a checksum manifest and rules, enforced by a test.
+- Added the synthetic sky generator (`cloudscope/sim/synthetic_sky.hpp`) with ground truth: cloud mask and fraction, Sun position and radius, exact count of saturated pixels.
+- Added coverage measurement: build option `CLOUDSCOPE_COVERAGE`, CI job *Coverage* (fails below 70 % line coverage of the core library, NFR-MNT-03), HTML report as artifact; `tools/ci/status.py` prints the figure. Local result: 94.3 % of core-library lines.
+- 15 new C++ tests (95 on Windows, 94 on Linux) and 7 new Python tests; developer guide `docs/dev/testing.md`.
+
 ### P013 — Core utilities (2026-10-04)
 - Added core utilities (`core/include/cloudscope/common/`): `Expected<T>` error returns, `Degrees`/`Radians` strong types, clocks and ISO 8601 UTC timestamps with time source, logging (rotating file, in-memory buffer with listeners, secret redaction, Qt message routing), a JSON Schema subset validator with user-oriented messages, and layered TOML configuration with schema validation, automatic migration and backups.
 - Added CloudScope's `config.toml` format (version 1: `[logging]`), embedded schema and defaults, standard file locations; `cloudscope-info --show-config` and `--config FILE`; user documentation `docs/manual/configuration.md`.

@@ -88,6 +88,10 @@ def exit_code_for(runs: list[dict]) -> int:
     return 2 if unfinished else 0
 
 
+def has_annotations(run: dict) -> bool:
+    return bool((run.get("output") or {}).get("annotations_count"))
+
+
 def annotation_order(annotation: dict) -> tuple[int, str]:
     """Error lines first, then the parts of the log end in order, then anything else."""
     title = annotation.get("title") or ""
@@ -103,6 +107,14 @@ def print_report(api: Api, slug: str, sha: str, runs: list[dict]) -> None:
     for run in sorted(runs, key=lambda item: item["name"]):
         state = run["conclusion"] if run["status"] == "completed" else run["status"]
         print(f"  {state:<12} {run['name']}")
+    for run in sorted(runs, key=lambda item: item["name"]):
+        # Jobs that passed may still carry notices, such as the coverage figure.
+        if run["status"] == "completed" and run["conclusion"] in PASSING and has_annotations(run):
+            annotations = api.get(f"/repos/{slug}/check-runs/{run['id']}/annotations?per_page=50")
+            for annotation in annotations:
+                if annotation.get("annotation_level") == "notice":
+                    print(f"\n{run['name']}: {annotation.get('title') or 'notice'}: "
+                          f"{annotation.get('message', '').rstrip()}")
     for run in sorted(runs, key=lambda item: item["name"]):
         if run["status"] != "completed" or run["conclusion"] in PASSING:
             continue

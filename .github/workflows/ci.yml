@@ -91,6 +91,49 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+    timeout-minutes: 30
+    env:
+      LC_ALL: C.UTF-8
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install git, Python and gcovr
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git python3 gcovr
+
+      - uses: actions/checkout@v7
+
+      - name: Install build dependencies
+        run: python3 tools/ci/run.py "Install build dependencies" sh tools/build/install-deps-debian.sh
+
+      - name: Configure
+        run: python3 tools/ci/run.py "Configure" cmake --preset linux-x64 -DCLOUDSCOPE_COVERAGE=ON
+
+      - name: Build (Debug)
+        run: python3 tools/ci/run.py "Build (Debug)" cmake --build --preset linux-x64 --config Debug
+
+      - name: Test (Debug)
+        run: python3 tools/ci/run.py "Test (Debug)" ctest --preset linux-x64 -C Debug
+
+      # NFR-MNT-03: at least 70 % line coverage of the core library.
+      - name: Coverage report
+        run: >
+          python3 tools/ci/run.py "Coverage report"
+          python3 tools/ci/coverage_report.py --build build/linux-x64 --output build/coverage --min-line 70
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cloudscope-coverage
+          path: build/coverage/
+          retention-days: 14
+
   windows:
     name: Windows x64
     runs-on: windows-2022

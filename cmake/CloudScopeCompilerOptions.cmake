@@ -42,6 +42,15 @@ function(cloudscope_target_defaults target)
     endif()
   endif()
 
+  if(CLOUDSCOPE_COVERAGE)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      message(FATAL_ERROR "CLOUDSCOPE_COVERAGE needs GCC (the report is made with gcov and gcovr).")
+    endif()
+    # atomic: counters stay correct when tests run threads; abs-path: gcovr finds sources from any folder.
+    target_compile_options(${target} ${_scope} --coverage -fprofile-update=atomic -fprofile-abs-path)
+    target_link_options(${target} ${_scope} --coverage)
+  endif()
+
   # Qt: no keyword macros (signals/slots/emit), no implicit string conversions, no APIs deprecated before 6.8.
   target_compile_definitions(${target} ${_scope}
     QT_NO_KEYWORDS
