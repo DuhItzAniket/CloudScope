@@ -1,8 +1,8 @@
 # CloudScope — Software Requirements Specification (SRS)
 
-Version 1.1 · Phases P005, P006 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`, `docs/research/P006_competitive_analysis.md`
+Version 1.2 · Phases P005, P006, P008 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`, `docs/research/P006_competitive_analysis.md`
 
-**Revision history:** v1.0 (P005) initial, 138 requirements. v1.1 (P006) adds 10 requirements and tightens FR-REC-02 after the competitive analysis (FR-CAM-12, FR-DSP-11, FR-REC-10/11/12, FR-SEQ-06, FR-CTL-12/13, FR-REM-09/10).
+**Revision history:** v1.0 (P005) initial, 138 requirements. v1.1 (P006) adds 10 requirements and tightens FR-REC-02 after the competitive analysis (FR-CAM-12, FR-DSP-11, FR-REC-10/11/12, FR-SEQ-06, FR-CTL-12/13, FR-REM-09/10). v1.2 (P008) changes FR-PLT-01 to Raspberry Pi OS on Debian 13 "Trixie" with Qt ≥ 6.8 (ADR-001): Bookworm ships Qt 6.4, below the minimum.
 
 ## 1. Introduction
 
@@ -212,7 +212,7 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 ### 2.15 Platform and packaging (FR-PLT) — UC-17
 | ID | Requirement | Pri | Ver | Phase |
 |---|---|---|---|---|
-| FR-PLT-01 | The system shall run on Windows 10/11 x64, Ubuntu 22.04/24.04 x64 and Raspberry Pi OS Bookworm 64-bit on a Raspberry Pi 5. | M | T | P012, P098 |
+| FR-PLT-01 | The system shall run on Windows 10/11 x64, Ubuntu 24.04 x64 and Raspberry Pi OS based on Debian 13 "Trixie" (64-bit) on a Raspberry Pi 5, with Qt 6.8 or newer. | M | T | P012, P098 |
 | FR-PLT-02 | The system shall provide a Windows installer, Debian packages (amd64, arm64) with a systemd unit, and released firmware binaries. | M | D | P098 |
 | FR-PLT-03 | Configuration shall be stored in human-readable files, validated against a schema, and migrated automatically between versions. | M | T | P013 |
 
@@ -283,7 +283,7 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | # | Constraint / assumption | Consequence |
 |---|---|---|
 | C1 | Development hardware: one Windows laptop (RTX 4050), Arducam B0268 (USB), no Raspberry Pi or controller yet | Simulator-first development (P018); hardware phases verified when parts arrive |
-| C2 | Qt is used under the LGPL with dynamic linking | Packaging must ship Qt as shared libraries with licence notices |
+| C2 | Qt is used under the LGPL with dynamic linking; GPL-only Qt modules (e.g. Qt HTTP Server, Qt Graphs) are excluded (ADR-010) | Packaging must ship Qt as shared libraries with licence notices; HTTP server is Drogon (ADR-006) |
 | C3 | The Arduino Uno has 2 KB of RAM | Uno is limited to CSDP-Lite (FR-FW-02) |
 | C4 | Location: Bengaluru, India (hot season, monsoon) | Enclosure and thermal requirements in P094/P095 |
 | C5 | STRATIA model availability depends on the STRATIA repository | Stage F starts after STRATIA exports a model; a contract-conformant dummy model is used for testing earlier |

@@ -41,12 +41,12 @@ CloudScope is the **complete sky-observation system**. STRATIA is only the brain
 
 | ADR | Decision | Reason |
 |---|---|---|
-| 001 | **C++20 + Qt 6 (6.8 LTS line)**, CMake | Keeps the existing toolchain (Qt 6.9 / MSVC already installed); native performance on Pi 5; one codebase for Windows + Linux aarch64 |
+| 001 | **C++20 + Qt ≥ 6.8**, CMake | Keeps the existing toolchain (Qt 6.9 / MSVC already installed); Raspberry Pi OS (Debian 13 "Trixie") ships Qt 6.8.2; native performance on Pi 5; one codebase for Windows + Linux aarch64 |
 | 002 | **Desktop UI in Qt Widgets + Qt Advanced Docking System** (replaces legacy QML) | Dockable, dense "workbench" UI like SharpCap; QML kept only if a touch UI is needed later |
 | 003 | **Client/daemon split**: `cloudscope-core` (library) → `cloudscoped` (headless daemon owning devices) → clients (desktop app, web UI). Desktop app can also embed the core in-process for zero-latency local use | Same code path for local and remote; Pi runs headless |
 | 004 | **ONNX Runtime** for STRATIA (CUDA → DirectML → CPU on Windows; CPU/XNNPACK on Pi; optional Hailo) | Matches STRATIA export; legacy ORT GPU path already proven (21 fps) |
 | 005 | **CSDP — CloudScope Device Protocol**: COBS framing + CRC-16/CCITT + versioned fixed-layout messages, generated from one YAML schema into C (firmware) and C++ (host) | Small enough for an Uno, robust over serial and Wi-Fi |
-| 006 | **Remote API**: REST (OpenAPI 3) + WebSocket via QHttpServer/QWebSockets; video via MJPEG first, WebRTC (libdatachannel) later | Minimal extra dependencies; works through browsers |
+| 006 | **Remote API**: REST (OpenAPI 3) + WebSocket via **Drogon** (MIT) — Qt HTTP Server is GPL-only (see ADR-006); video via MJPEG first, WebRTC (libdatachannel) later | Permissive licence; works through browsers |
 | 007 | Config in TOML (toml++) with JSON-schema validation and migrations; logs via spdlog | — |
 | 008 | Image formats: PNG/TIFF-16, JPEG, **FITS** (cfitsio, full headers), **SER** video, MP4 via FFmpeg (optional) | Astronomy/meteorology interoperability |
 | 009 | Firmware: PlatformIO; ESP32 on Arduino-ESP32 core + FreeRTOS tasks; Uno on Arduino core | Fast to build, easy for you to flash |

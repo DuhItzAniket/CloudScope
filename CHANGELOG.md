@@ -4,6 +4,10 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P008 — Architecture decision records (2026-10-04)
+- Added ADR-001…012 and an ADR index: C++20/Qt ≥ 6.8, Qt Widgets + ADS, one Session API, ONNX Runtime, CSDP, Drogon, TOML + spdlog, image formats, PlatformIO, licensing policy, ASCOM Alpaca/INDI, shared time and coordinate conventions.
+- Changed two plan choices after verifying primary sources: Drogon replaces the GPL-only Qt HTTP Server; the Pi platform is Raspberry Pi OS on Debian 13 "Trixie" (Qt 6.8.2) instead of Bookworm (Qt 6.4) — SRS v1.2.
+
 ### P007 — System architecture (2026-10-04)
 - Added `docs/arch/architecture.md`: C4 context, container and component views, the single Session API with local and remote implementations, thread model, capture and safety sequences, failure handling, and the time and coordinate conventions shared with STRATIA (six Mermaid diagrams, render-checked).
 

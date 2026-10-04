@@ -12,7 +12,7 @@ python -m venv .venv
 pip install -r requirements.txt   # add -dev to run the tests
 ```
 
-**Raspberry Pi OS (Bookworm)**
+**Raspberry Pi OS (Bookworm or Trixie)**
 ```
 sudo apt install python3-opencv python3-numpy
 cd tools/sky_logger               # run with: python3 -m sky_logger ...

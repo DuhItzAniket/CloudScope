@@ -11,5 +11,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P005](P005-srs.md) | Software requirements specification | DONE |
 | [P006](P006-competitive-analysis.md) | Competitive analysis | DONE |
 | [P007](P007-system-architecture.md) | System architecture | DONE |
+| [P008](P008-adrs.md) | Architecture decision records | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).
