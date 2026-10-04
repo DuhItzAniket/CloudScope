@@ -149,7 +149,9 @@ def main() -> int:
         code = exit_code_for(runs)
         # Jobs take a moment to appear after a push: keep waiting for the first three minutes.
         appearing = code == 3 and time.monotonic() - start < 180
-        if not args.wait or (code in (0, 1)) or (code == 3 and not appearing) or time.monotonic() > deadline:
+        # With --wait, keep going until every job has finished, so that all failures are shown together.
+        running = any(run["status"] != "completed" for run in runs)
+        if not args.wait or (runs and not running) or (code == 3 and not appearing) or time.monotonic() > deadline:
             break
         passed, failed, unfinished = summarise(runs)
         print(f"  waiting: {passed} passed, {failed} failed, {unfinished} running "

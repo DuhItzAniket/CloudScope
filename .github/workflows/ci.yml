@@ -173,10 +173,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # gitleaks calls git itself; inside the container the checkout belongs to another user, which git refuses
+      # to read unless the folder is declared safe.
       - name: gitleaks
-        run: >
-          python3 tools/ci/run.py "gitleaks"
-          gitleaks detect --source . --no-banner --redact --verbose
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python3 tools/ci/run.py "gitleaks" gitleaks detect --source . --no-banner --redact --verbose
 
   coverage:
     name: Coverage
