@@ -10,6 +10,7 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 - Added `cloudscope-bench` and a benchmark test: 4K BGR frames are copied and handed over at 794 fps on Windows and 679 fps on Linux on the laptop without a dropped frame (required: more than 60 fps); enforced in CI in Release builds.
 - Added the thread-sanitizer CI job; all tests pass under the thread, address and undefined-behaviour sanitizers. 46 new tests (142 on Windows, 141 on Linux, plus the benchmark test in Release).
 - Added `docs/dev/threading.md`.
+- Fixed after the first CI run: a GCC 15 warning-as-error in the queue (Ubuntu 26.04, Release) and a timed wait that could return slightly early (Windows).
 
 ### P015 — Static analysis (2026-10-04)
 - Added formatting (`.clang-format`, `tools/dev/format.py`) and static analysis (`.clang-tidy`, `tools/dev/tidy.py`) with every finding an error; the code base was brought from 100 clang-tidy findings to zero.

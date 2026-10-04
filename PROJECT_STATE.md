@@ -7,7 +7,7 @@
 | Next phase | P017 — HAL interfaces |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
-| Last CI result checked | `4e8a300` (P015 with its CI fix): all nine jobs green; full clang-tidy run 0 findings; coverage 94.1 % |
+| Last CI result checked | `7d14204` (P016): eight of ten jobs green; Ubuntu 26.04 Release and Windows Debug failed and are fixed by the next commit (see the P016 phase document) |
 | Blockers | None. Open item: P003 acceptance (B0268 24 h run) |
 | Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
 | Hardware on the development machine | Integrated laptop camera only; Arducam B0268 not connected; no microcontroller attached |

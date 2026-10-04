@@ -55,8 +55,12 @@ public:
         if (head == tail_.load(std::memory_order_acquire)) {
             return std::nullopt;
         }
-        std::optional<T> value = std::move(slots_[head]);
-        slots_[head].reset();
+        // Every slot between head and tail holds a value. Taking the value itself (not the optional around it)
+        // also keeps GCC 15 from reporting a "maybe uninitialized" read in optimised builds.
+        std::optional<T>& slot = slots_[head];
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access,bugprone-optional-value-conversion): see above
+        std::optional<T> value(std::move(*slot));
+        slot.reset();
         head_.store(next(head), std::memory_order_release);
         return value;
     }

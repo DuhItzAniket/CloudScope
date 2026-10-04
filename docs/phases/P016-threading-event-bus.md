@@ -72,4 +72,8 @@ What the tests establish:
 - The plan said "lock-free SPSC frame ring buffer"; delivered as a frame pool plus lock-free SPSC queues per consumer (reasons above). The exit criterion is met with this design.
 - "Typed signals" are an own implementation rather than Qt signals (reasons above).
 - clang-tidy: `clang-analyzer-cplusplus.NewDeleteLeaks` (false positive inside Qt's `invokeMethod`) and `clang-analyzer-optin.performance.Padding` are now off; 24 checks off in total, each with its reason.
+- **Addendum after the push.** The first CI run of this phase (commit `7d14204`) failed in two jobs, both fixed in the follow-up commit:
+  - *Ubuntu 26.04, Release:* GCC 15 reported a "maybe uninitialized" read (an error under warnings-as-errors) where the queue moved an optional out of its slot. The queue now takes the value itself; the two clang-tidy remarks about that line are silenced with a reason (the slot is always occupied there). This platform had not been built locally for this phase, only Windows and Debian: from now on the Ubuntu 26.04 container is part of the local check before every push.
+  - *Windows, Debug:* a timed wait for a frame returned after 48 ms instead of 50 ms on the CI machine, and the test caught it. `FrameSubscription::wait` now waits out the full timeout even if the system's timed wait comes back early.
+  - After the fix: Ubuntu 26.04 (GCC 15.2) 141 Debug / 142 Release, Windows 142 / 143, Debian 13 Release 142, clang-tidy clean.
 - Next: **P017 — HAL interfaces**.

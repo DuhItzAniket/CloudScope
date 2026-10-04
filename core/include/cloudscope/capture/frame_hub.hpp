@@ -55,7 +55,8 @@ public:
 
 private:
     friend class FrameHub;
-    void offer(const FramePtr& frame);  // producer thread
+    void offer(const FramePtr& frame);    // producer thread
+    [[nodiscard]] FramePtr take_ready();  // consumer thread, after a permit of ready_ was acquired
 
     std::string name_;
     Delivery delivery_;

@@ -35,23 +35,27 @@ void FrameSubscription::offer(const FramePtr& frame)
 
 FramePtr FrameSubscription::try_take()
 {
-    if (!ready_.try_acquire()) {
-        return nullptr;
-    }
-    if (delivery_ == Delivery::Queue) {
-        return queue_.try_pop().value_or(nullptr);
-    }
-    const std::lock_guard lock(latest_mutex_);
-    return std::exchange(latest_, nullptr);
+    return ready_.try_acquire() ? take_ready() : nullptr;
 }
 
 FramePtr FrameSubscription::wait(std::chrono::milliseconds timeout)
 {
-    if (!ready_.try_acquire_for(timeout)) {
-        return nullptr;
+    // A timed semaphore wait may return a little before its time (seen on Windows: 48 ms of 50 ms).
+    // The loop makes "nothing within the timeout" mean the whole timeout.
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (!ready_.try_acquire_until(deadline)) {
+        if (std::chrono::steady_clock::now() >= deadline) {
+            return nullptr;
+        }
     }
+    return take_ready();
+}
+
+FramePtr FrameSubscription::take_ready()
+{
     if (delivery_ == Delivery::Queue) {
-        return queue_.try_pop().value_or(nullptr);
+        std::optional<FramePtr> frame = queue_.try_pop();
+        return frame ? std::move(*frame) : nullptr;
     }
     const std::lock_guard lock(latest_mutex_);
     return std::exchange(latest_, nullptr);

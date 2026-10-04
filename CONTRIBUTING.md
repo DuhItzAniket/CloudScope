@@ -16,7 +16,7 @@ CloudScope is built phase by phase following [`docs/PLAN.md`](docs/PLAN.md) (100
    `Phase-Status` is `DONE`, `PARTIAL` (some exit criteria not met, documented why) or `BLOCKED` (cannot proceed; documented what is needed).
 6. At the end of a stage: `git tag -a stage-<X>-complete -m "Stage <X> complete"` and `git push origin --tags`.
 
-From P012 onward, a phase is complete only when CI is green for its commit: build and test locally (Windows, and Linux through the Docker image) before pushing, then check the result with `python tools/ci/status.py --wait` ([`docs/dev/ci.md`](docs/dev/ci.md)). A red commit is fixed by the next commit, never left.
+From P012 onward, a phase is complete only when CI is green for its commit: build and test locally (Windows, and both Linux images, Debian 13 and Ubuntu 26.04, through Docker) before pushing, then check the result with `python tools/ci/status.py --wait` ([`docs/dev/ci.md`](docs/dev/ci.md)). A red commit is fixed by the next commit, never left.
 
 ## Quality bar
 
