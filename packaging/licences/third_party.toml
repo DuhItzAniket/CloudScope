@@ -1,0 +1,187 @@
+# Third-party components of the CloudScope host software and the licence policy of ADR-010.
+#
+# tools/ci/licence_check.py reads this file in CI and fails the build when
+#   - a library is linked or shipped that is not listed here,
+#   - a listed licence is not allowed by [policy], or an LGPL library is not linked dynamically,
+#   - vcpkg records a licence for a port that this table does not mention.
+# Adding a dependency therefore needs a reviewed entry here. Licences are SPDX expressions.
+
+[policy]
+# Permissive licences: allowed with any kind of linking.
+allowed = [
+    "0BSD",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CFITSIO",
+    "IJG",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "Zlib",
+    "libpng-2.0",
+    "libtiff",
+]
+# Allowed only when the library is linked dynamically, so that users can replace it (ADR-010, rule 2).
+allowed_dynamic = [
+    "LGPL-2.1-only",
+    "LGPL-2.1-or-later",
+    "LGPL-3.0-only",
+    "LGPL-3.0-or-later",
+]
+# Compiler and C runtime libraries. They are part of the operating system or the compiler, are never shipped
+# by CloudScope on Linux, and carry exceptions that permit linking from programs under any licence.
+allowed_system = [
+    "GPL-3.0-or-later WITH GCC-exception-3.1",
+    "LGPL-2.1-or-later",
+]
+
+# ---------------------------------------------------------------------------------------------------------
+# Components. Fields:
+#   name          display name
+#   licence       SPDX expression
+#   linking       "dynamic", "static", "header-only", "system" (compiler/C runtime) or "build-only" (never shipped)
+#   homepage      upstream project
+#   used_for      why CloudScope depends on it
+#   vcpkg_ports   vcpkg port names (Windows builds)
+#   windows_dlls  DLL name patterns not installed by vcpkg (Qt)
+#   linux_libraries  shared-library name patterns (DT_NEEDED entries of CloudScope binaries on Linux)
+# ---------------------------------------------------------------------------------------------------------
+
+[[component]]
+name = "Qt"
+licence = "LGPL-3.0-only"
+linking = "dynamic"
+homepage = "https://www.qt.io/"
+used_for = "Application framework (Qt Core)"
+vcpkg_ports = []
+windows_dlls = ["Qt6Core.dll", "Qt6Cored.dll"]
+linux_libraries = ["libQt6Core.so.*"]
+
+[[component]]
+name = "OpenCV"
+licence = "Apache-2.0"
+linking = "dynamic"
+homepage = "https://opencv.org/"
+used_for = "Image processing and image codecs"
+vcpkg_ports = ["opencv4"]
+linux_libraries = ["libopencv_core.so.*", "libopencv_imgproc.so.*", "libopencv_imgcodecs.so.*"]
+
+[[component]]
+name = "spdlog"
+licence = "MIT"
+linking = "dynamic"
+homepage = "https://github.com/gabime/spdlog"
+used_for = "Logging"
+vcpkg_ports = ["spdlog"]
+linux_libraries = ["libspdlog.so.*"]
+
+[[component]]
+name = "fmt"
+licence = "MIT"
+linking = "dynamic"
+homepage = "https://fmt.dev/"
+used_for = "Text formatting"
+vcpkg_ports = ["fmt"]
+linux_libraries = ["libfmt.so.*"]
+
+[[component]]
+name = "toml++"
+licence = "MIT"
+linking = "dynamic"
+homepage = "https://marzer.github.io/tomlplusplus/"
+used_for = "Configuration files"
+vcpkg_ports = ["tomlplusplus"]
+linux_libraries = ["libtomlplusplus.so.*"]
+
+[[component]]
+name = "nlohmann-json"
+licence = "MIT"
+linking = "header-only"
+homepage = "https://json.nlohmann.me/"
+used_for = "JSON sidecars, reports and API payloads"
+vcpkg_ports = ["nlohmann-json"]
+
+[[component]]
+name = "CFITSIO"
+licence = "CFITSIO"
+linking = "dynamic"
+homepage = "https://heasarc.gsfc.nasa.gov/fitsio/"
+used_for = "FITS image files"
+vcpkg_ports = ["cfitsio"]
+linux_libraries = ["libcfitsio.so.*"]
+
+[[component]]
+name = "libjpeg-turbo"
+licence = "IJG AND BSD-3-Clause AND Zlib"
+linking = "dynamic"
+homepage = "https://libjpeg-turbo.org/"
+used_for = "JPEG and MJPEG encoding and decoding"
+vcpkg_ports = ["libjpeg-turbo"]
+linux_libraries = ["libturbojpeg.so.*", "libjpeg.so.*"]
+
+[[component]]
+name = "zlib"
+licence = "Zlib"
+linking = "dynamic"
+homepage = "https://zlib.net/"
+used_for = "Compression (needed by CFITSIO, libpng, libtiff)"
+vcpkg_ports = ["zlib"]
+
+[[component]]
+name = "libpng"
+licence = "libpng-2.0"
+linking = "dynamic"
+homepage = "http://www.libpng.org/pub/png/libpng.html"
+used_for = "PNG codec (needed by OpenCV)"
+vcpkg_ports = ["libpng"]
+
+[[component]]
+name = "LibTIFF"
+licence = "libtiff"
+linking = "dynamic"
+homepage = "https://libtiff.gitlab.io/libtiff/"
+used_for = "TIFF codec (needed by OpenCV)"
+vcpkg_ports = ["tiff"]
+
+[[component]]
+name = "XZ Utils (liblzma)"
+licence = "0BSD"
+linking = "dynamic"
+homepage = "https://tukaani.org/xz/"
+used_for = "LZMA compression in TIFF files (needed by LibTIFF)"
+vcpkg_ports = ["liblzma"]
+
+[[component]]
+name = "Catch2"
+licence = "BSL-1.0"
+linking = "build-only"
+homepage = "https://github.com/catchorg/Catch2"
+used_for = "Unit tests; not part of any release"
+vcpkg_ports = ["catch2"]
+linux_libraries = ["libCatch2*.so.*"]
+
+[[component]]
+name = "vcpkg build helpers"
+licence = "MIT AND Apache-2.0"
+linking = "build-only"
+homepage = "https://github.com/microsoft/vcpkg"
+used_for = "Scripts that run while dependencies are built; nothing from them is linked or shipped"
+vcpkg_ports = ["vcpkg-cmake", "vcpkg-cmake-config", "vcpkg-cmake-get-vars", "vcpkg-get-python-packages", "vcpkg-tool-meson"]
+
+[[component]]
+name = "GNU C++ runtime (libstdc++, libgcc)"
+licence = "GPL-3.0-or-later WITH GCC-exception-3.1"
+linking = "system"
+homepage = "https://gcc.gnu.org/"
+used_for = "C++ standard library on Linux"
+linux_libraries = ["libstdc++.so.*", "libgcc_s.so.*"]
+
+[[component]]
+name = "GNU C library"
+licence = "LGPL-2.1-or-later"
+linking = "system"
+homepage = "https://www.gnu.org/software/libc/"
+used_for = "C runtime on Linux"
+linux_libraries = ["libc.so.*", "libm.so.*", "libpthread.so.*", "libdl.so.*", "ld-linux*.so.*"]

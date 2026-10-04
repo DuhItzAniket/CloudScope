@@ -1,0 +1,5 @@
+# CI: the same packages as requirements-dev.txt, with the OpenCV build that needs no display libraries.
+opencv-python-headless>=4.8,<5
+numpy>=1.24
+pytest>=8
+pvlib>=0.11

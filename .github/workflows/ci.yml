@@ -1,0 +1,214 @@
+# Builds and tests CloudScope on every supported platform (NFR-MNT-02, FR-PLT-01).
+#
+# Every step runs through tools/ci/run.py: when a step fails, the end of its output is attached to the commit as
+# error annotations, which `python tools/ci/status.py` can read without signing in to GitHub.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.image }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Reference Linux: the distribution Raspberry Pi OS is based on (Qt 6.8.2, GCC 14).
+          - name: Debian 13 x64
+            runner: ubuntu-24.04
+            image: debian:trixie
+            preset: linux-x64
+            artifact: cloudscope-debian13-x64
+          # Same distribution on a real arm64 machine: what a Raspberry Pi 5 builds.
+          - name: Debian 13 arm64
+            runner: ubuntu-24.04-arm
+            image: debian:trixie
+            preset: linux-aarch64
+            artifact: cloudscope-debian13-arm64
+          # Newest toolchain (Qt 6.10, GCC 15): finds problems before they reach Debian.
+          - name: Ubuntu 26.04 x64
+            runner: ubuntu-24.04
+            image: ubuntu:26.04
+            preset: linux-x64
+            artifact: cloudscope-ubuntu2604-x64
+    env:
+      LC_ALL: C.UTF-8
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install git and Python
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git python3
+
+      - uses: actions/checkout@v7
+
+      - name: Install build dependencies
+        run: python3 tools/ci/run.py "Install build dependencies" sh tools/build/install-deps-debian.sh
+
+      - name: Configure
+        run: python3 tools/ci/run.py "Configure" cmake --preset ${{ matrix.preset }} -DCLOUDSCOPE_WARNINGS_AS_ERRORS=ON
+
+      - name: Build (Debug)
+        run: python3 tools/ci/run.py "Build (Debug)" cmake --build --preset ${{ matrix.preset }} --config Debug
+
+      - name: Test (Debug)
+        run: python3 tools/ci/run.py "Test (Debug)" ctest --preset ${{ matrix.preset }} -C Debug
+
+      - name: Build (Release)
+        run: python3 tools/ci/run.py "Build (Release)" cmake --build --preset ${{ matrix.preset }} --config Release
+
+      - name: Test (Release)
+        run: python3 tools/ci/run.py "Test (Release)" ctest --preset ${{ matrix.preset }} -C Release
+
+      - name: Licence check
+        run: >
+          python3 tools/ci/run.py "Licence check"
+          python3 tools/ci/licence_check.py linux
+          --bin build/${{ matrix.preset }}/bin/Release
+          --report build/${{ matrix.preset }}/bin/Release/THIRD_PARTY_LICENCES.md
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/${{ matrix.preset }}/bin/Release/
+          retention-days: 14
+          if-no-files-found: error
+
+  windows:
+    name: Windows x64
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      # The oldest supported Qt (ADR-001), installed with aqtinstall; the development machine has a newer one.
+      QT_VERSION: "6.8.3"
+      QT_ARCH: win64_msvc2022_64
+      QT_ROOT_DIR: C:\Qt\6.8.3\msvc2022_64
+      AQT_VERSION: "3.3.0"
+      VCPKG_ROOT: C:\vcpkg
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\.vcpkg-cache,readwrite
+    defaults:
+      run:
+        shell: cmd
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Restore Qt
+        id: qt
+        uses: actions/cache@v6
+        with:
+          path: C:\Qt
+          key: qt-${{ env.QT_VERSION }}-${{ env.QT_ARCH }}-aqt${{ env.AQT_VERSION }}
+
+      - name: Install Qt
+        if: steps.qt.outputs.cache-hit != 'true'
+        run: |
+          python -m pip install --disable-pip-version-check aqtinstall==%AQT_VERSION% || exit /b 1
+          python tools\ci\run.py "Install Qt" python -m aqt install-qt windows desktop %QT_VERSION% %QT_ARCH% --outputdir C:\Qt
+
+      # Compiled dependencies (vcpkg binary packages) are kept between runs. The newest cache is restored;
+      # a new one is saved only when its content changed, also when a later step fails.
+      - name: Restore vcpkg binary cache
+        id: vcpkg-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: .vcpkg-cache
+          key: vcpkg-x64-windows-none
+          restore-keys: vcpkg-x64-windows-
+
+      - name: Configure
+        run: |
+          if not exist .vcpkg-cache mkdir .vcpkg-cache
+          call tools\build\win-env.bat || exit /b 1
+          python tools\ci\run.py "Configure" cmake --preset windows-msvc -DCLOUDSCOPE_WARNINGS_AS_ERRORS=ON
+
+      - name: Describe vcpkg binary cache
+        id: vcpkg-state
+        if: always()
+        shell: pwsh
+        run: |
+          $names = (Get-ChildItem -Recurse -File .vcpkg-cache -ErrorAction SilentlyContinue | ForEach-Object Name | Sort-Object) -join "`n"
+          $bytes = [Text.Encoding]::UTF8.GetBytes($names)
+          $hash = [BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($bytes)).Replace('-', '').Substring(0, 16).ToLower()
+          "key=vcpkg-x64-windows-$hash" >> $env:GITHUB_OUTPUT
+          "packages=$(($names -split "`n" | Where-Object { $_ }).Count)" >> $env:GITHUB_OUTPUT
+
+      - name: Save vcpkg binary cache
+        if: always() && steps.vcpkg-state.outputs.packages != '0' && steps.vcpkg-state.outputs.key != steps.vcpkg-restore.outputs.cache-matched-key
+        uses: actions/cache/save@v6
+        with:
+          path: .vcpkg-cache
+          key: ${{ steps.vcpkg-state.outputs.key }}
+
+      - name: Build (Debug)
+        run: |
+          call tools\build\win-env.bat || exit /b 1
+          python tools\ci\run.py "Build (Debug)" cmake --build --preset windows-msvc --config Debug
+
+      - name: Test (Debug)
+        run: |
+          call tools\build\win-env.bat || exit /b 1
+          python tools\ci\run.py "Test (Debug)" ctest --preset windows-msvc -C Debug
+
+      - name: Build (Release)
+        run: |
+          call tools\build\win-env.bat || exit /b 1
+          python tools\ci\run.py "Build (Release)" cmake --build --preset windows-msvc --config Release
+
+      - name: Test (Release)
+        run: |
+          call tools\build\win-env.bat || exit /b 1
+          python tools\ci\run.py "Test (Release)" ctest --preset windows-msvc -C Release
+
+      - name: Licence check
+        run: >
+          python tools\ci\run.py "Licence check"
+          python tools\ci\licence_check.py windows
+          --vcpkg-installed build\windows-msvc\vcpkg_installed
+          --bin build\windows-msvc\bin\Release
+          --report build\windows-msvc\bin\Release\THIRD_PARTY_LICENCES.md
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: cloudscope-windows-x64
+          path: |
+            build/windows-msvc/bin/Release/
+            !build/windows-msvc/bin/Release/*.pdb
+          retention-days: 14
+          if-no-files-found: error
+
+  python-tools:
+    name: Python tools
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: python tools/ci/run.py "Install test dependencies" python -m pip install --disable-pip-version-check -r tools/sky_logger/requirements-ci.txt
+
+      - name: Sky logger tests
+        run: python tools/ci/run.py "Sky logger tests" python -m pytest tools/sky_logger/tests -q
+
+      - name: CI tool tests
+        run: python tools/ci/run.py "CI tool tests" python -m pytest tools/ci/tests -q

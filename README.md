@@ -1,5 +1,7 @@
 # CloudScope
 
+[![CI](https://github.com/DuhItzAniket/CloudScope/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/DuhItzAniket/CloudScope/actions/workflows/ci.yml)
+
 **CloudScope is an open sky-observation system**: a professional camera application, a hardware control system for a pan-tilt sky camera, manual and autonomous operating modes, remote access, and on-device AI powered by the [STRATIA](https://github.com/DuhItzAniket/STRATIA) cloud-understanding model.
 
 > **Status: Stage B (engineering foundation) in progress.** The build system and the first part of the core library exist; the camera application starts in Stage C. See [`PROJECT_STATE.md`](PROJECT_STATE.md).
@@ -33,8 +35,11 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `apps/info/` | `cloudscope-info`: build information and installation self-test |
 | `tests/` | Unit tests (Catch2) and command-line tests |
 | `cmake/`, `CMakePresets.json`, `vcpkg.json` | Build system ([how to build](docs/dev/building.md)) |
-| `docs/dev/` | Developer guides: building, C++ conventions |
+| `docs/dev/` | Developer guides: building, C++ conventions, continuous integration |
 | `tools/build/` | Build scripts for Windows, Debian/Raspberry Pi OS and Docker |
+| `tools/ci/` | CI helpers: step runner, CI status without sign-in, licence gate |
+| `packaging/licences/` | Reviewed table of third-party components and the licence policy (ADR-010) |
+| `.github/workflows/` | CI: Windows, Debian 13 (x64 and arm64), Ubuntu 26.04, Python tools |
 | `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |
 | `legacy/` | Frozen v0.1 AI-Day prototype (Python training scripts, Qt/QML desktop app, ONNX models, reports) |
 
