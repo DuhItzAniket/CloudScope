@@ -1,0 +1,20 @@
+# Normalise text files to LF in the repository
+* text=auto eol=lf
+
+# Windows scripts need CRLF to run correctly
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binary files
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.onnx binary
+*.fits binary
+*.ser  binary
+*.stl  binary
+*.3mf  binary
+*.step binary
+*.pdf  binary
+*.xlsx binary
