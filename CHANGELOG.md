@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P004 — Use cases & personas (2026-10-04)
+- Added `docs/requirements/use_cases.md`: 4 personas, 4 deployment configurations, 17 use cases mapped to plan stages.
+
 ### P003 — Interim Sky Logger (2026-10-04, PARTIAL)
 - Added `tools/sky_logger`: fixed-interval sky capture with UTC timestamps, per-frame JSON sidecars (settings read-back, image statistics, Sun position), drift-free scheduling, atomic writes, disk guard, night pause, camera reconnect, systemd unit for Raspberry Pi.
 - 28 unit tests; solar position within 0.02 deg of NREL SPA.
