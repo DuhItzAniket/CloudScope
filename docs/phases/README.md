@@ -15,5 +15,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P009](P009-hardware-reference-designs.md) | Hardware reference designs | DONE |
 | [P010](P010-gate-r.md) | Gate R — requirements and architecture review | DONE |
 | [P011](P011-build-system.md) | Build system | DONE |
+| [P012](P012-ci.md) | CI | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).

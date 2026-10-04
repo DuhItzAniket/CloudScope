@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Current stage | B — Engineering foundation (P011–P018); Stage A complete (Gate R: GO with conditions) |
-| Last completed phase | P011 — Build system |
-| Next phase | P012 — CI |
+| Last completed phase | P012 — CI |
+| Next phase | P013 — Core utilities |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Blockers | None. Open item: P003 acceptance (B0268 24 h run) |
@@ -26,3 +26,4 @@
 | P009 | Hardware reference designs | DONE | 2026-10-04 |
 | P010 | Gate R — requirements and architecture review | DONE | 2026-10-04 |
 | P011 | Build system | DONE | 2026-10-04 |
+| P012 | CI | DONE | 2026-10-04 |

@@ -6,7 +6,8 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    # 'ci/...' branches are for trying changes to the workflow itself without touching master.
+    branches: [master, 'ci/**']
   pull_request:
   workflow_dispatch:
 

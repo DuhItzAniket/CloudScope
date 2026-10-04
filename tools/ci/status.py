@@ -88,6 +88,16 @@ def exit_code_for(runs: list[dict]) -> int:
     return 2 if unfinished else 0
 
 
+def annotation_order(annotation: dict) -> tuple[int, str]:
+    """Error lines first, then the parts of the log end in order, then anything else."""
+    title = annotation.get("title") or ""
+    if "error lines" in title:
+        return (0, title)
+    if "[log end" in title:
+        return (1, title)
+    return (2, title)
+
+
 def print_report(api: Api, slug: str, sha: str, runs: list[dict]) -> None:
     print(f"CI for {slug} @ {sha[:10]}")
     for run in sorted(runs, key=lambda item: item["name"]):
@@ -100,7 +110,7 @@ def print_report(api: Api, slug: str, sha: str, runs: list[dict]) -> None:
         annotations = api.get(f"/repos/{slug}/check-runs/{run['id']}/annotations?per_page=50")
         if not annotations:
             print("  (no annotations; open the link above for the log)")
-        for annotation in annotations:
+        for annotation in sorted(annotations, key=annotation_order):
             title = annotation.get("title") or annotation.get("annotation_level", "")
             print(f"[{title}]")
             print(annotation.get("message", "").rstrip())

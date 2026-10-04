@@ -46,6 +46,17 @@ def test_failure_annotations_put_error_lines_first_and_keep_the_log_end():
     assert all(len(command) < 5000 for command in commands)
 
 
+def test_error_lines_are_recognised_but_passing_tests_with_error_in_their_name_are_not():
+    assert run.is_error_line("main.cpp:7:1: error: expected ';'")
+    assert run.is_error_line(r"D:\a\x\test.cpp(30): FAILED:")
+    assert run.is_error_line(" 3/15 Test  #3: unit.all_passed ...***Failed    0.02 sec")
+    assert run.is_error_line("CMake Error at CMakeLists.txt:34 (include):")
+    assert run.is_error_line("ld: undefined reference to `foo()'")
+    assert not run.is_error_line("      Start 15: cli.rejects wrong usage with a message on standard error")
+    assert not run.is_error_line("15/15 Test #15: cli.message on standard error ...   Passed    0.09 sec")
+    assert not run.is_error_line("[3/7] Linking CXX static library lib/libcloudscope-core.a")
+
+
 def test_successful_command_passes_output_through_without_annotations():
     result = run_step("Step", "print('hello'); print('error: only a word in normal output')", in_actions=True)
     assert result.returncode == 0
@@ -111,6 +122,15 @@ def check_run(state: str, conclusion: str | None = None) -> dict:
 ])
 def test_exit_code_for_check_runs(runs, expected):
     assert status.exit_code_for(runs) == expected
+
+
+def test_annotations_are_printed_in_reading_order():
+    titles = ["Test (Debug) failed (exit code 8) [log end, part 2/2]", None,
+              "Test (Debug) failed (exit code 8) [log end, part 1/2]", "Test (Debug): error lines"]
+    ordered = sorted(({"title": title} for title in titles), key=status.annotation_order)
+    assert [item["title"] for item in ordered] == [
+        "Test (Debug): error lines", "Test (Debug) failed (exit code 8) [log end, part 1/2]",
+        "Test (Debug) failed (exit code 8) [log end, part 2/2]", None]
 
 
 def test_summary_counts():

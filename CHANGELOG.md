@@ -4,6 +4,12 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P012 — CI (2026-10-04)
+- Added CI (`.github/workflows/ci.yml`): Debian 13 x64, Debian 13 arm64, Ubuntu 26.04 x64, Windows x64 (MSVC, vcpkg, Qt 6.8.3 via aqtinstall) and Python tools; Debug and Release builds with warnings as errors, tests, licence gate, Release binaries as artifacts. First run green on all five jobs.
+- Added `tools/ci/`: `run.py` (failure output attached to the commit as annotations), `status.py` (CI result and failure details from the laptop without a GitHub sign-in), `licence_check.py` (ADR-010 gate against `packaging/licences/third_party.toml`), with 61 tests.
+- Verified the failure path with a temporary branch (compile error on Linux, failing test on Windows) and the Windows caches (configure 47 s instead of 18.6 min).
+- ADR-010 amended: exact licence allow-list in the component table; compiler and C runtime as "system" libraries. `docs/dev/ci.md` added; CI badge in the README.
+
 ### P011 — Build system (2026-10-04)
 - Added the build system: CMake presets `windows-msvc`, `linux-x64`, `linux-aarch64` (Ninja Multi-Config), vcpkg manifest pinned to release 2026.07.29 for Windows, Debian package list for Linux and Raspberry Pi OS, build scripts and a Docker build image (`tools/build/`).
 - Added the first core module (`build_info`, `self_test`) and the `cloudscope-info` executable: version, git revision, compiler, library versions and licences, plus a self-test in which every bundled library does real work.

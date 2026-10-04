@@ -23,6 +23,8 @@ MAX_ANNOTATIONS = 8         # GitHub shows at most 10 error annotations per step
 MAX_ANNOTATION_CHARS = 3500
 ERROR_LINE = re.compile(r"(\berror\b|\bFAILED\b|\bfatal\b|Error:|\*\*\*Failed|undefined reference|CMake Error)", re.I)
 MAX_ERROR_LINES = 40
+# CTest lines that only mention a test whose name contains a word such as "error".
+NOT_AN_ERROR = re.compile(r"^\s*(Start\s+\d+:|\d+/\d+ Test\s+#\d+: .*\bPassed\b)")
 
 
 def escape_data(text: str) -> str:
@@ -33,6 +35,10 @@ def escape_data(text: str) -> str:
 def escape_property(text: str) -> str:
     """Escape a property value (such as title=) for a GitHub workflow command."""
     return escape_data(text).replace(":", "%3A").replace(",", "%2C")
+
+
+def is_error_line(line: str) -> bool:
+    return bool(ERROR_LINE.search(line)) and not NOT_AN_ERROR.match(line)
 
 
 def chunk_lines(lines: list[str], max_chars: int) -> list[str]:
@@ -94,7 +100,7 @@ def main(argv: list[str]) -> int:
         sys.stdout.flush()
         line = line.rstrip("\r\n")
         tail.append(line)
-        if len(error_lines) < MAX_ERROR_LINES and ERROR_LINE.search(line):
+        if len(error_lines) < MAX_ERROR_LINES and is_error_line(line):
             error_lines.append(line)
     exit_code = process.wait()
     if in_actions:

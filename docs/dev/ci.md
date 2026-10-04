@@ -49,3 +49,4 @@ On Linux the gate covers direct dependencies only: CloudScope's Debian packages 
 - Actions are referenced by major version (`actions/checkout@v7`, `actions/cache@v6`, `actions/upload-artifact@v7`, `actions/setup-python@v7`); only GitHub's own actions are used.
 - The workflow has read-only permissions and uses no secrets.
 - Test a change to the Linux jobs locally first with the Docker image (`docs/dev/building.md`).
+- To try a workflow change on GitHub without touching `master`, push it to a branch named `ci/<something>`: such branches run the workflow too. Read the result with `python tools/ci/status.py <commit>` and delete the branch afterwards.
