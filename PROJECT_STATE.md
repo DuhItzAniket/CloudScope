@@ -3,10 +3,11 @@
 | Field | Value |
 |---|---|
 | Current stage | B — Engineering foundation (P011–P018); Stage A complete (Gate R: GO with conditions) |
-| Last completed phase | P012 — CI |
-| Next phase | P013 — Core utilities |
+| Last completed phase | P013 — Core utilities |
+| Next phase | P014 — Test infrastructure |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
+| Last CI result checked | `73b1792` (P012): all five jobs green |
 | Blockers | None. Open item: P003 acceptance (B0268 24 h run) |
 | Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
 | Hardware on the development machine | Integrated laptop camera only; Arducam B0268 not connected; no microcontroller attached |
@@ -27,3 +28,4 @@
 | P010 | Gate R — requirements and architecture review | DONE | 2026-10-04 |
 | P011 | Build system | DONE | 2026-10-04 |
 | P012 | CI | DONE | 2026-10-04 |
+| P013 | Core utilities | DONE | 2026-10-04 |

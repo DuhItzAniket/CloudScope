@@ -25,6 +25,7 @@
       ]
     },
     "spdlog",
+    "tl-expected",
     "tomlplusplus"
   ],
   "features": {

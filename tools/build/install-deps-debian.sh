@@ -17,6 +17,7 @@ $SUDO apt-get install -y --no-install-recommends \
     cmake \
     git \
     libcfitsio-dev \
+    libexpected-dev \
     libfmt-dev \
     libjpeg-dev \
     libopencv-dev \

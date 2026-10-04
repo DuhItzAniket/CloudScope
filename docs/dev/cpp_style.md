@@ -16,6 +16,7 @@ These rules apply to all C++ in `core/`, `daemon/`, `apps/` and `tests/`. Format
 | Element | Style | Example |
 |---|---|---|
 | Types, enumerators, concepts | `PascalCase` | `FrameMetadata`, `PixelFormat::Mono16` |
+| Abstract interfaces | `I` + `PascalCase` | `IClock`, `ICamera` |
 | Functions, variables, parameters | `snake_case` | `run_self_test()`, `frame_count` |
 | Private data members | `snake_case_` with trailing underscore | `queue_`, `exposure_ms_` |
 | Constants (`constexpr`, `const` at namespace scope) | `kPascalCase` | `kMaxFrameBytes` |
@@ -35,7 +36,8 @@ Physical quantities carry their unit in the name unless the type already does: `
 
 ## Errors
 
-- Expected failures (device unplugged, malformed file, timeout) are **return values**: `Expected<T, Error>` from P013. Exceptions are for programming errors and for unrecoverable start-up failures only, and never cross thread or library boundaries.
+- Expected failures (device unplugged, malformed file, timeout) are **return values**: `Expected<T>` with an `Error{code, message}` (`cloudscope/common/error.hpp`); return failures with `fail(ErrorCode::NotFound, "...")` and add where it happened with `with_context()`. Exceptions are for programming errors and for unrecoverable start-up failures only, and never cross thread or library boundaries.
+- Error messages say what is wrong and, where possible, what to do, in words a user understands; they name the file, key or device concerned (NFR-USE-04).
 - Functions that return a value the caller must look at are `[[nodiscard]]`.
 - No silent fallbacks: if a requested setting cannot be applied, report it. Never substitute a default and present it as the requested or measured value (quality bar in `CONTRIBUTING.md`).
 
@@ -44,6 +46,13 @@ Physical quantities carry their unit in the name unless the type already does: `
 - RAII for every resource; no naked `new`/`delete`; C handles are wrapped in `std::unique_ptr` with a deleter.
 - State which thread a class lives on in its header comment. Shared state is either immutable, owned by one thread and reached by message passing, or protected by a named mutex. The thread model is in `docs/arch/architecture.md` §4.1.
 - No blocking I/O on the UI thread or the acquisition thread.
+
+## Time, logging and configuration
+
+- Code that needs the time takes an `IClock&` (`cloudscope/common/clock.hpp`); it never calls `std::chrono::system_clock::now()` itself. Tests use `ManualClock`. Intervals and schedules use monotonic time; stored times are `UtcTime`, written with `format_iso8601()`.
+- Angles are `Degrees` or `Radians` (`units.hpp`), never bare `double`, in every interface.
+- Log through `logger("component")` (`log.hpp`). Keep the reference when logging often: `static spdlog::logger& log = logger("camera");`. Do not log per frame above `debug` level. Never build log text that contains a credential on purpose; the redaction filter is a safety net, not a licence.
+- Settings come from the configuration (`config.hpp`, `app_config.hpp`). A new setting needs: a key in `core/resources/config.schema.json` and `config.defaults.toml`, a row in `docs/manual/configuration.md`, and, if it changes the meaning of existing files, a migration and a new `schema_version`.
 
 ## Executables
 
@@ -54,5 +63,6 @@ Physical quantities carry their unit in the name unless the type already does: `
 ## Comments and tests
 
 - Comments explain why, constraints and units; they do not repeat the code.
+- Test names are plain sentences without square brackets or semicolons: CMake treats those characters specially and test discovery then merges or loses tests (seen with CMake 3.31 in P013).
 - Every public function has a unit test for its normal case and its failure cases. Tests use real libraries and synthetic data; simulated devices are labelled as simulated.
 - Warnings are errors in CI (`CLOUDSCOPE_WARNINGS_AS_ERRORS`). Fix the cause; suppress a warning only with a comment that says why it is a false positive.

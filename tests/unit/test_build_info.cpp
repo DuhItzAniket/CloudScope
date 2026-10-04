@@ -40,7 +40,7 @@ TEST_CASE("every bundled library is listed with a version and a licence", "[comm
     const std::regex version(R"(\d+\.\d+(\.\d+)*)");
 
     for (const char* name :
-         {"Qt", "OpenCV", "spdlog", "fmt", "toml++", "nlohmann-json", "CFITSIO", "libjpeg-turbo"}) {
+         {"Qt", "OpenCV", "spdlog", "fmt", "toml++", "nlohmann-json", "tl-expected", "CFITSIO", "libjpeg-turbo"}) {
         INFO("library: " << name);
         const auto found = std::find_if(info.dependencies.begin(), info.dependencies.end(),
                                         [name](const DependencyInfo& dep) { return dep.name == name; });
@@ -48,7 +48,7 @@ TEST_CASE("every bundled library is listed with a version and a licence", "[comm
         CHECK(std::regex_search(found->compiled_version, version));
         CHECK_FALSE(found->licence.empty());
     }
-    CHECK(info.dependencies.size() == 8);
+    CHECK(info.dependencies.size() == 9);
 }
 
 TEST_CASE("Qt is at least the version Raspberry Pi OS ships", "[common][build_info]")

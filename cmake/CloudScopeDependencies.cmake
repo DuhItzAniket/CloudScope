@@ -8,6 +8,7 @@
 #   spdlog::spdlog, fmt::fmt
 #   tomlplusplus::tomlplusplus
 #   nlohmann_json::nlohmann_json
+#   tl::expected                 std::expected for C++20
 #   CloudScope::cfitsio
 #   CloudScope::turbojpeg
 #   Catch2::Catch2WithMain       only when CLOUDSCOPE_BUILD_TESTS is ON
@@ -18,6 +19,8 @@ find_package(spdlog 1.15 CONFIG REQUIRED)
 find_package(fmt 10.1 CONFIG REQUIRED)
 find_package(tomlplusplus 3.4 CONFIG REQUIRED)
 find_package(nlohmann_json 3.11 CONFIG REQUIRED)
+# Debian's tl-expected 1.1.0 calls itself 1.0.0 in its CMake package file, hence the lower number here.
+find_package(tl-expected 1.0 CONFIG REQUIRED)
 
 # CFITSIO: CMake package from upstream (vcpkg), pkg-config file on Debian.
 if(NOT TARGET CloudScope::cfitsio)
@@ -53,4 +56,4 @@ endif()
 
 message(STATUS "CloudScope dependencies: Qt ${Qt6_VERSION}, OpenCV ${OpenCV_VERSION}, spdlog ${spdlog_VERSION}, "
                "fmt ${fmt_VERSION}, toml++ ${tomlplusplus_VERSION}, nlohmann-json ${nlohmann_json_VERSION}, "
-               "libjpeg-turbo ${libjpeg-turbo_VERSION}")
+               "libjpeg-turbo ${libjpeg-turbo_VERSION}, tl-expected ${tl-expected_VERSION}")

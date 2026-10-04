@@ -1,0 +1,23 @@
+# CloudScope configuration: built-in defaults.
+#
+# To change a setting, copy only the lines you need (and schema_version) into your own config.toml:
+#   Windows:  %APPDATA%\CloudScope\config.toml
+#   Linux:    ~/.config/cloudscope/config.toml
+# Unknown keys and invalid values are reported as errors when CloudScope starts.
+# `cloudscope-info --show-config` prints the configuration in effect and the files it came from.
+
+schema_version = 1
+
+[logging]
+# Messages below this level are dropped: trace, debug, info, warn, error, critical.
+level = "info"
+# Write log lines to standard error.
+console = true
+# Write log lines to cloudscope.log in the log folder.
+file = true
+# Log folder. Empty: %LOCALAPPDATA%\CloudScope\logs on Windows, ~/.local/state/cloudscope/logs on Linux.
+directory = ""
+# A log file is rotated when it would grow beyond this size (MB).
+max_file_mb = 10
+# Number of log files kept: cloudscope.log plus cloudscope.1.log, cloudscope.2.log, ...
+max_files = 5

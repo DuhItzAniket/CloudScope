@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DuhItzAniket/CloudScope/blob/master/core/resources/config.schema.json",
+  "title": "CloudScope configuration (config.toml), format version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "logging"],
+  "properties": {
+    "schema_version": {
+      "description": "Version of the file format. CloudScope migrates older files automatically.",
+      "type": "integer",
+      "const": 1
+    },
+    "logging": {
+      "description": "What is logged and where.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "console", "file", "directory", "max_file_mb", "max_files"],
+      "properties": {
+        "level": {
+          "description": "Messages below this level are dropped.",
+          "enum": ["trace", "debug", "info", "warn", "error", "critical"]
+        },
+        "console": {
+          "description": "Write log lines to standard error.",
+          "type": "boolean"
+        },
+        "file": {
+          "description": "Write log lines to cloudscope.log in the log folder.",
+          "type": "boolean"
+        },
+        "directory": {
+          "description": "Log folder. Empty: the standard folder for this platform.",
+          "type": "string"
+        },
+        "max_file_mb": {
+          "description": "A log file is rotated when it would grow beyond this size.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "max_files": {
+          "description": "Number of log files kept: the current one plus rotated ones.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    }
+  }
+}

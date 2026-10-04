@@ -2,10 +2,14 @@
 
 #include <cloudscope/common/build_info.hpp>
 
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 #include <QtCore/QProcess>
 #include <QtCore/QProcessEnvironment>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
+#include <QtCore/QTemporaryDir>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <nlohmann/json.hpp>
@@ -27,15 +31,59 @@ struct RunResult {
     std::string err;
 };
 
-RunResult run_info(const QStringList& arguments)
+// A private home folder for one test: the program under test looks for its configuration there,
+// never in the developer's own profile.
+class Home {
+public:
+    Home() { REQUIRE(temporary_.isValid()); }
+
+    QString root() const { return temporary_.path(); }
+    QString user_config() const
+    {
+#ifdef Q_OS_WIN
+        return root() + QStringLiteral("/roaming/CloudScope/config.toml");
+#else
+        return root() + QStringLiteral("/config/cloudscope/config.toml");
+#endif
+    }
+    void apply(QProcessEnvironment& environment) const
+    {
+#ifdef Q_OS_WIN
+        environment.insert(QStringLiteral("PROGRAMDATA"), root() + QStringLiteral("/programdata"));
+        environment.insert(QStringLiteral("APPDATA"), root() + QStringLiteral("/roaming"));
+        environment.insert(QStringLiteral("LOCALAPPDATA"), root() + QStringLiteral("/local"));
+#else
+        environment.insert(QStringLiteral("HOME"), root());
+        environment.insert(QStringLiteral("XDG_CONFIG_HOME"), root() + QStringLiteral("/config"));
+        environment.insert(QStringLiteral("XDG_STATE_HOME"), root() + QStringLiteral("/state"));
+#endif
+    }
+    QString write(const QString& path, const char* text) const
+    {
+        const QFileInfo info(path);
+        REQUIRE(QDir().mkpath(info.absolutePath()));
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        file.write(text);
+        return path;
+    }
+
+private:
+    QTemporaryDir temporary_;
+};
+
+RunResult run_info(const QStringList& arguments, const Home* home = nullptr)
 {
     QProcess process;
+    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
 #ifndef Q_OS_WIN
     // In a plain "C" locale (containers, some services) Qt prints a locale warning on standard error.
-    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
     environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C.UTF-8"));
-    process.setProcessEnvironment(environment);
 #endif
+    if (home != nullptr) {
+        home->apply(environment);
+    }
+    process.setProcessEnvironment(environment);
     process.start(QStringLiteral(CLOUDSCOPE_INFO_EXE), arguments);
     RunResult result;
     result.finished = process.waitForFinished(kTimeoutMs);
@@ -119,6 +167,87 @@ TEST_CASE("cloudscope-info rejects wrong usage with exit code 2 and a message on
     REQUIRE(positional.finished);
     CHECK(positional.exit_code == 2);
     CHECK_THAT(positional.err, ContainsSubstring("stray"));
+}
+
+TEST_CASE("cloudscope-info --show-config reports the built-in defaults when no file exists", "[cli][info][config]")
+{
+    const Home home;
+    const RunResult result = run_info({QStringLiteral("--show-config"), QStringLiteral("--json")}, &home);
+    REQUIRE(result.finished);
+    CHECK(result.exit_code == 0);
+    CHECK(result.err.empty());
+
+    const nlohmann::json configuration = nlohmann::json::parse(result.out).at("configuration");
+    CHECK(configuration.at("files_read").empty());
+    CHECK(configuration.at("notes").empty());
+    CHECK(configuration.at("effective").at("schema_version") == 1);
+    CHECK(configuration.at("effective").at("logging").at("level") == "info");
+    // The standard locations follow the redirected home folder.
+    const std::string root = home.root().toStdString();
+    CHECK_THAT(QDir::fromNativeSeparators(QString::fromStdString(configuration.at("user_file").get<std::string>())).toStdString(),
+               StartsWith(root));
+    CHECK_THAT(QDir::fromNativeSeparators(QString::fromStdString(configuration.at("log_folder").get<std::string>())).toStdString(),
+               StartsWith(root));
+
+    const RunResult text = run_info({QStringLiteral("--show-config")}, &home);
+    REQUIRE(text.finished);
+    CHECK(text.exit_code == 0);
+    CHECK_THAT(text.out, ContainsSubstring("Configuration files, lowest priority first:"));
+    CHECK_THAT(text.out, ContainsSubstring("(not present)"));
+    CHECK_THAT(text.out, ContainsSubstring("Configuration in effect:"));
+    CHECK_THAT(text.out, ContainsSubstring("max_files = 5"));
+}
+
+TEST_CASE("cloudscope-info merges the user file and --config files in order", "[cli][info][config]")
+{
+    const Home home;
+    home.write(home.user_config(), "schema_version = 1\n[logging]\nlevel = \"debug\"\nmax_files = 3\n");
+    const QString first = home.write(home.root() + QStringLiteral("/first.toml"),
+                                     "schema_version = 1\n[logging]\nmax_files = 7\nconsole = false\n");
+    const QString second =
+        home.write(home.root() + QStringLiteral("/second.toml"), "schema_version = 1\n[logging]\nmax_files = 9\n");
+
+    const RunResult result = run_info(
+        {QStringLiteral("--config"), first, QStringLiteral("--config"), second, QStringLiteral("--json")}, &home);
+    REQUIRE(result.finished);
+    CHECK(result.exit_code == 0);
+
+    const nlohmann::json configuration = nlohmann::json::parse(result.out).at("configuration");
+    CHECK(configuration.at("files_read").size() == 3);
+    const nlohmann::json& logging = configuration.at("effective").at("logging");
+    CHECK(logging.at("level") == "debug");   // user file
+    CHECK(logging.at("console") == false);   // first --config file
+    CHECK(logging.at("max_files") == 9);     // the last file wins
+    CHECK(logging.at("max_file_mb") == 10);  // built-in default
+}
+
+TEST_CASE("cloudscope-info reports an invalid configuration file and exits with code 1", "[cli][info][config]")
+{
+    const Home home;
+    const QString bad = home.write(home.root() + QStringLiteral("/bad.toml"),
+                                   "schema_version = 1\n[logging]\nlevel = \"loud\"\nmax_fiels = 2\n");
+
+    const RunResult result = run_info({QStringLiteral("--config"), bad}, &home);
+    REQUIRE(result.finished);
+    CHECK(result.exit_code == 1);
+    CHECK_THAT(result.err, ContainsSubstring("bad.toml"));
+    CHECK_THAT(result.err, ContainsSubstring("logging.level: must be one of \"trace\""));
+    CHECK_THAT(result.err, ContainsSubstring("logging.max_fiels: unknown key (did you mean 'max_files'?)"));
+    CHECK_THAT(result.out, !ContainsSubstring("Configuration in effect"));
+
+    const RunResult json = run_info({QStringLiteral("--config"), bad, QStringLiteral("--json")}, &home);
+    REQUIRE(json.finished);
+    CHECK(json.exit_code == 1);
+    CHECK(nlohmann::json::parse(json.out).at("configuration").contains("error"));
+
+    const RunResult missing = run_info({QStringLiteral("--config"), home.root() + QStringLiteral("/typo.toml")}, &home);
+    REQUIRE(missing.finished);
+    CHECK(missing.exit_code == 1);
+    CHECK_THAT(missing.err, ContainsSubstring("the file does not exist"));
+
+    const RunResult no_value = run_info({QStringLiteral("--config")}, &home);
+    REQUIRE(no_value.finished);
+    CHECK(no_value.exit_code == 2);
 }
 
 #ifdef Q_OS_WIN

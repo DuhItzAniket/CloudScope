@@ -4,6 +4,13 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P013 — Core utilities (2026-10-04)
+- Added core utilities (`core/include/cloudscope/common/`): `Expected<T>` error returns, `Degrees`/`Radians` strong types, clocks and ISO 8601 UTC timestamps with time source, logging (rotating file, in-memory buffer with listeners, secret redaction, Qt message routing), a JSON Schema subset validator with user-oriented messages, and layered TOML configuration with schema validation, automatic migration and backups.
+- Added CloudScope's `config.toml` format (version 1: `[logging]`), embedded schema and defaults, standard file locations; `cloudscope-info --show-config` and `--config FILE`; user documentation `docs/manual/configuration.md`.
+- 65 new tests (80 on Windows, 79 on Linux); verified with warnings as errors on Windows, Debian 13 x64 and arm64, Ubuntu 26.04.
+- New dependency tl-expected (CC0-1.0) in vcpkg, the Debian package list and the licence table. ADR-007 gains implementation notes (own validator and file sink, and why).
+- Found and fixed: a recursive template that exhausted MSVC's memory; test names with square brackets that made CMake 3.31 silently merge tests.
+
 ### P012 — CI (2026-10-04)
 - Added CI (`.github/workflows/ci.yml`): Debian 13 x64, Debian 13 arm64, Ubuntu 26.04 x64, Windows x64 (MSVC, vcpkg, Qt 6.8.3 via aqtinstall) and Python tools; Debug and Release builds with warnings as errors, tests, licence gate, Release binaries as artifacts. First run green on all five jobs.
 - Added `tools/ci/`: `run.py` (failure output attached to the commit as annotations), `status.py` (CI result and failure details from the laptop without a GitHub sign-in), `licence_check.py` (ADR-010 gate against `packaging/licences/third_party.toml`), with 61 tests.

@@ -9,6 +9,7 @@
 #include <opencv2/core/utility.hpp>
 #include <opencv2/core/version.hpp>
 #include <spdlog/version.h>
+#include <tl/expected.hpp>
 #include <toml++/toml.hpp>
 
 #include <cmath>
@@ -66,6 +67,8 @@ BuildInfo collect()
         {"toml++", dotted(TOML_LIB_MAJOR, TOML_LIB_MINOR, TOML_LIB_PATCH), "", "MIT"},
         {"nlohmann-json",
          dotted(NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_PATCH), "", "MIT"},
+        {"tl-expected", dotted(TL_EXPECTED_VERSION_MAJOR, TL_EXPECTED_VERSION_MINOR, TL_EXPECTED_VERSION_PATCH), "",
+         "CC0-1.0"},
         {"CFITSIO", dotted(CFITSIO_MAJOR, CFITSIO_MINOR, CFITSIO_MICRO), cfitsio_runtime_version(), "CFITSIO"},
         {"libjpeg-turbo", jpeg_turbo_compiled_version(), "", "IJG AND BSD-3-Clause AND Zlib"},
     };

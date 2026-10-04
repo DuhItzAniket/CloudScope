@@ -26,6 +26,11 @@ cloudscope_add_tests(cloudscope_unit_tests
   PREFIX "unit."
   SOURCES
     unit/test_build_info.cpp
+    unit/test_clock.cpp
+    unit/test_config.cpp
+    unit/test_error_units.cpp
+    unit/test_json_schema.cpp
+    unit/test_log.cpp
     unit/test_self_test.cpp
   LIBRARIES
     nlohmann_json::nlohmann_json)
