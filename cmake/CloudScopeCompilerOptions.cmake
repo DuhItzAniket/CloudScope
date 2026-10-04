@@ -50,6 +50,9 @@ function(cloudscope_target_defaults target)
     target_compile_options(${target} ${_scope}
       -fsanitize=${CLOUDSCOPE_SANITIZE} -fno-sanitize-recover=all -fno-omit-frame-pointer)
     target_link_options(${target} ${_scope} -fsanitize=${CLOUDSCOPE_SANITIZE})
+    if(CLOUDSCOPE_SANITIZE MATCHES "thread" AND _type STREQUAL "EXECUTABLE")
+      target_sources(${target} PRIVATE "${PROJECT_SOURCE_DIR}/cmake/tsan_suppressions.cpp")
+    endif()
   endif()
 
   if(CLOUDSCOPE_COVERAGE)

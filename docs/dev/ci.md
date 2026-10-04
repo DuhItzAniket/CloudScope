@@ -12,6 +12,7 @@ Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). It runs 
 | Windows x64 | `windows-2022` | MSVC 2022, vcpkg, **Qt 6.8.3** installed with aqtinstall | The Windows build against the oldest supported Qt |
 | Format and static analysis | GitHub x64 runner, `debian:trixie` container | clang-format 19, clang-tidy 19 | Code is formatted; clang-tidy reports nothing ([`quality_gates.md`](quality_gates.md)) |
 | Sanitizers | GitHub x64 runner, `debian:trixie` container | GCC with AddressSanitizer and UndefinedBehaviorSanitizer | All tests pass without memory errors, leaks or undefined behaviour |
+| Sanitizers (thread) | GitHub x64 runner, `debian:trixie` container | GCC with ThreadSanitizer | All tests pass without data races or lock-order problems |
 | Secret scan | GitHub x64 runner, `debian:trixie` container | gitleaks | No credentials anywhere in the history |
 | Coverage | GitHub x64 runner, `debian:trixie` container | GCC with coverage instrumentation, gcovr | Line coverage of the core library is at least 70 % (NFR-MNT-03); HTML report as artifact |
 | Python tools | `ubuntu-24.04`, Python 3.11 | pytest | Sky logger tests and the tests of the CI scripts |

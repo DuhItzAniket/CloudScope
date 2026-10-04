@@ -13,6 +13,7 @@
 #   CloudScope::turbojpeg
 #   Catch2::Catch2, Qt6::Test    only when CLOUDSCOPE_BUILD_TESTS is ON
 
+find_package(Threads REQUIRED)
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core)
 find_package(OpenCV 4.10 REQUIRED COMPONENTS core imgproc imgcodecs)
 find_package(spdlog 1.15 CONFIG REQUIRED)

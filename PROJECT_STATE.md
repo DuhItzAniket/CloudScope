@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Current stage | B — Engineering foundation (P011–P018); Stage A complete (Gate R: GO with conditions) |
-| Last completed phase | P015 — Static analysis |
-| Next phase | P016 — Threading & event bus |
+| Last completed phase | P016 — Threading & event bus |
+| Next phase | P017 — HAL interfaces |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
-| Last CI result checked | `9659698` (P014): all six jobs green; coverage of the core library 94.3 % of lines |
+| Last CI result checked | `4e8a300` (P015 with its CI fix): all nine jobs green; full clang-tidy run 0 findings; coverage 94.1 % |
 | Blockers | None. Open item: P003 acceptance (B0268 24 h run) |
 | Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
 | Hardware on the development machine | Integrated laptop camera only; Arducam B0268 not connected; no microcontroller attached |
@@ -31,3 +31,4 @@
 | P013 | Core utilities | DONE | 2026-10-04 |
 | P014 | Test infrastructure | DONE | 2026-10-04 |
 | P015 | Static analysis | DONE | 2026-10-04 |
+| P016 | Threading & event bus | DONE | 2026-10-04 |

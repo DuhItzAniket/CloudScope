@@ -55,4 +55,5 @@ One new C++ test (`ScopeExit`); test counts are now 96 on Windows and 95 on Linu
 - NFR-SEC-02 also asks for scanning dependencies for known vulnerabilities. Not done: vcpkg has no advisory database, and the Linux builds use distribution packages that receive security updates. Decision deferred to P087 (threat model for remote access), when network-facing dependencies (Drogon, TLS) arrive and the question becomes material.
 - gitleaks comes from Debian 13 (8.16), not the latest upstream release (8.30): no binary download in CI, at the price of an older rule set.
 - clang-tidy needs Linux here; on Windows it is run in the Docker image. A full run takes about 12 minutes on the laptop (six parallel jobs).
+- Addendum after the push: the first CI run of the *Secret scan* job failed before scanning, because git refused the checkout inside the container (it belongs to another user there). Fixed in commit `4e8a300` by declaring the folder safe; that commit's run is green on all nine jobs, including the full clang-tidy run (0 findings).
 - Next: **P016 — Threading & event bus**.

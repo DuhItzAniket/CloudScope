@@ -15,25 +15,35 @@ add_custom_target(cloudscope_git_revision
   VERBATIM)
 
 add_library(cloudscope_core STATIC
+  include/cloudscope/capture/frame.hpp
+  include/cloudscope/capture/frame_hub.hpp
   include/cloudscope/common/app_config.hpp
   include/cloudscope/common/build_info.hpp
   include/cloudscope/common/clock.hpp
   include/cloudscope/common/config.hpp
   include/cloudscope/common/error.hpp
+  include/cloudscope/common/event_bus.hpp
+  include/cloudscope/common/executor.hpp
   include/cloudscope/common/json_schema.hpp
   include/cloudscope/common/log.hpp
   include/cloudscope/common/scope_exit.hpp
   include/cloudscope/common/self_test.hpp
+  include/cloudscope/common/signal.hpp
+  include/cloudscope/common/spsc_queue.hpp
   include/cloudscope/common/units.hpp
   include/cloudscope/sim/synthetic_sky.hpp
+  src/capture/frame.cpp
+  src/capture/frame_hub.cpp
   src/common/app_config.cpp
   src/common/build_info.cpp
   src/common/clock.cpp
   src/common/config.cpp
   src/common/error.cpp
+  src/common/executor.cpp
   src/common/json_schema.cpp
   src/common/log.cpp
   src/common/self_test.cpp
+  src/common/signal.cpp
   src/common/units.cpp
   src/sim/synthetic_sky.cpp
   "${_git_revision_cpp}")
@@ -65,6 +75,7 @@ target_link_libraries(cloudscope_core
     spdlog::spdlog
     fmt::fmt
     opencv_core
+    Threads::Threads
   PRIVATE
     opencv_imgproc opencv_imgcodecs
     tomlplusplus::tomlplusplus

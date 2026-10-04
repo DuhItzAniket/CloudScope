@@ -8,6 +8,8 @@ Every push to `master` must pass all of these; CI enforces them (`docs/dev/ci.md
 | Formatting | clang-format 19 | `.clang-format` | `python tools/dev/format.py` (add `--check` to only check) |
 | Static analysis | clang-tidy 19 | `.clang-tidy`, `tests/.clang-tidy` | `python3 tools/dev/tidy.py --build build/linux-x64` (Linux or Docker image) |
 | Memory and undefined-behaviour errors | AddressSanitizer, LeakSanitizer, UndefinedBehaviorSanitizer (GCC) | `CLOUDSCOPE_SANITIZE` | configure with `-DCLOUDSCOPE_SANITIZE=address,undefined`, build, run the tests |
+| Data races | ThreadSanitizer (GCC) | `CLOUDSCOPE_SANITIZE=thread` | `docs/dev/threading.md` |
+| Frame pipeline speed | `cloudscope-bench --min-fps 60` (4K, Release builds) | `tests/CMakeLists.txt` (`bench.` tests) | `ctest --preset <preset> -C Release -R bench` |
 | Tests | Catch2, CTest | `tests/` | `tools/build/build.bat`, `sh tools/build/build.sh` |
 | Coverage ≥ 70 % of core-library lines | gcov, gcovr | `CLOUDSCOPE_COVERAGE` | `docs/dev/testing.md` |
 | Third-party licences | `tools/ci/licence_check.py` | `packaging/licences/third_party.toml` | `docs/dev/ci.md` |
@@ -29,7 +31,7 @@ clang-tidy runs with these check families: `bugprone`, `cert`, `clang-analyzer`,
 
 The sanitizer build makes the tests fail on the first out-of-bounds access, use after free, memory leak, signed overflow, misaligned access or other undefined behaviour, including inside third-party code called by the tests. Code that passes its tests but does any of these is not done.
 
-A thread-sanitizer build (`-DCLOUDSCOPE_SANITIZE=thread`) joins CI with the threading code in P016.
+A separate thread-sanitizer build (`-DCLOUDSCOPE_SANITIZE=thread`) runs all tests too and fails on the first data race; it must be started with address-space randomisation off (`setarch -R`), see `docs/dev/threading.md`.
 
 ## Secrets
 

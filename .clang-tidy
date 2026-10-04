@@ -18,6 +18,8 @@ Checks: >
   readability-*,
   -bugprone-easily-swappable-parameters,
   -cert-err58-cpp,
+  -clang-analyzer-cplusplus.NewDeleteLeaks,
+  -clang-analyzer-optin.performance.Padding,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-avoid-do-while,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
@@ -41,6 +43,9 @@ Checks: >
 # Reasons for the exclusions:
 #   bugprone-easily-swappable-parameters   flags most two-argument functions; strong types (units.hpp) are our answer
 #   cert-err58-cpp                         static regular expressions and tables may throw at start-up; accepted
+#   clang-analyzer-cplusplus.NewDeleteLeaks   false positive inside Qt's invokeMethod; leaks are found by the
+#                                          leak sanitizer when the tests run
+#   clang-analyzer-optin.performance.Padding   lock-free structures pad to cache lines on purpose
 #   *-magic-numbers                        physical constants and test values are clearer inline with a comment
 #   cppcoreguidelines-avoid-do-while       no objection to do-while
 #   cppcoreguidelines-avoid-const-or-ref-data-members   short-lived helper objects refer to their inputs

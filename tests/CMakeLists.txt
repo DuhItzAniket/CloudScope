@@ -36,9 +36,13 @@ cloudscope_add_tests(cloudscope_unit_tests
     unit/test_clock.cpp
     unit/test_config.cpp
     unit/test_error_units.cpp
+    unit/test_executor.cpp
+    unit/test_frame.cpp
     unit/test_json_schema.cpp
     unit/test_log.cpp
     unit/test_self_test.cpp
+    unit/test_signal.cpp
+    unit/test_spsc_queue.cpp
     unit/test_synthetic_sky.cpp
     unit/test_test_support.cpp
   LIBRARIES
@@ -55,3 +59,11 @@ cloudscope_add_tests(cloudscope_cli_tests
 add_dependencies(cloudscope_cli_tests cloudscope_info)
 target_compile_definitions(cloudscope_cli_tests PRIVATE
   "CLOUDSCOPE_INFO_EXE=\"$<TARGET_FILE:cloudscope_info>\"")
+
+# Benchmarks with a pass mark, run in optimised builds only: a Debug build says nothing about speed.
+#   bench.4K frames ...   plan P016: 4K frames copied at more than 60 fps without a dropped frame
+add_test(NAME "bench.4K frames are copied and handed over at more than 60 fps without loss"
+  COMMAND cloudscope_bench --width 3840 --height 2160 --frames 240 --min-fps 60
+  CONFIGURATIONS Release RelWithDebInfo)
+set_tests_properties("bench.4K frames are copied and handed over at more than 60 fps without loss"
+  PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)

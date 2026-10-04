@@ -46,7 +46,7 @@ Physical quantities carry their unit in the name unless the type already does: `
 - RAII for every resource; no naked `new`/`delete`; C handles are wrapped in `std::unique_ptr` with a deleter or closed with `ScopeExit` (`scope_exit.hpp`).
 - Structs with several fields are initialised with designated initialisers (`{.code = ..., .message = ...}`), so that fields cannot be swapped silently.
 - Range checks on floating-point input must reject NaN: write `value >= low && value <= high` and negate that, never `value < low || value > high`.
-- State which thread a class lives on in its header comment. Shared state is either immutable, owned by one thread and reached by message passing, or protected by a named mutex. The thread model is in `docs/arch/architecture.md` §4.1.
+- State which thread a class lives on in its header comment. Shared state is either immutable, owned by one thread and reached by message passing, or protected by a named mutex. The thread model is in `docs/arch/architecture.md` §4.1; the building blocks and rules are in [`threading.md`](threading.md).
 - No blocking I/O on the UI thread or the acquisition thread.
 
 ## Time, logging and configuration

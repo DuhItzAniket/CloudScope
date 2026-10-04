@@ -15,6 +15,7 @@ Every Catch2 test case is one CTest entry, named `<tier>.<test name>` and run in
 |---|---|---|
 | `unit.` | `cloudscope-unit-tests` | Functions and classes of the core library, in-process |
 | `cli.` | `cloudscope-cli-tests` | The real executables, started as child processes: output, exit codes, files |
+| `bench.` | `cloudscope-bench` | Speed requirements with a pass mark; only in Release and RelWithDebInfo builds |
 
 Later tiers (hardware-in-the-loop, user interface) get their own executables in their phases.
 
