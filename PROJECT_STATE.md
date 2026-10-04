@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Current stage | A — Re-foundation & requirements (P001–P010) |
-| Last completed phase | P005 — Software requirements specification |
-| Next phase | P006 — Competitive analysis |
+| Last completed phase | P006 — Competitive analysis |
+| Next phase | P007 — System architecture |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Blockers | None for Stage A. Open hardware item: P003 acceptance run needs the B0268 connected |
@@ -19,3 +19,4 @@
 | P003 | Interim Sky Logger | PARTIAL | 2026-10-04 |
 | P004 | Use cases & personas | DONE | 2026-10-04 |
 | P005 | Software requirements specification | DONE | 2026-10-04 |
+| P006 | Competitive analysis | DONE | 2026-10-04 |

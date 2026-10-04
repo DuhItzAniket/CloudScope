@@ -1,6 +1,8 @@
 # CloudScope — Software Requirements Specification (SRS)
 
-Version 1.0 · Phase P005 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`
+Version 1.1 · Phases P005, P006 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`, `docs/research/P006_competitive_analysis.md`
+
+**Revision history:** v1.0 (P005) initial, 138 requirements. v1.1 (P006) adds 10 requirements and tightens FR-REC-02 after the competitive analysis (FR-CAM-12, FR-DSP-11, FR-REC-10/11/12, FR-SEQ-06, FR-CTL-12/13, FR-REM-09/10).
 
 ## 1. Introduction
 
@@ -48,6 +50,7 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | FR-CAM-09 | The system shall provide a sky-specific automatic exposure that protects cloud highlights, and exposure bracketing with HDR merge. | S | A | P025 |
 | FR-CAM-10 | The system shall support dark-frame and flat-field correction. | C | A | P026 |
 | FR-CAM-11 | The system shall support Raspberry Pi CSI cameras through libcamera. | C | D | P019 |
+| FR-CAM-12 | The system shall expose raw sensor formats (RAW8/RAW16/MONO16), region of interest and binning when the camera or its SDK provides them. | S | T | P020 |
 
 ### 2.2 Display and analysis (FR-DSP) — UC-02
 | ID | Requirement | Pri | Ver | Phase |
@@ -62,12 +65,13 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | FR-DSP-08 | The desktop UI shall use dockable panels whose layout persists between sessions, and offer dark and red night-vision themes. | M | D | P033 |
 | FR-DSP-09 | The system shall show device, mount, sensor, AI, remote-client and disk status in a status bar, and keep a searchable log console. | M | D | P042 |
 | FR-DSP-10 | The system shall support keyboard shortcuts for all frequent actions and gamepad input for motion. | S | D | P043 |
+| FR-DSP-11 | The system shall apply display stretch (manual and automatic) to the preview only, never to recorded data, and shall highlight over-exposed pixels. | M | T | P036 |
 
 ### 2.3 Recording and metadata (FR-REC) — UC-03
 | ID | Requirement | Pri | Ver | Phase |
 |---|---|---|---|---|
 | FR-REC-01 | The system shall save frames as JPEG, PNG and 16-bit TIFF. | M | T | P027 |
-| FR-REC-02 | The system shall save frames as FITS with standard header keywords (at least DATE-OBS, EXPTIME, GAIN, site latitude/longitude/altitude, pointing azimuth/elevation, calibration ID). | M | T | P027 |
+| FR-REC-02 | The system shall save frames as FITS with standard header keywords: at least DATE-OBS (UTC, ms), TIMESYS, MJD-OBS, EXPTIME, GAIN, OBSGEO-B/L/H and SITELAT/SITELONG/SITEELEV (decimal degrees, east positive), CENTALT/CENTAZ, ROWORDER, SWCREATE and the calibration ID. | M | T | P027 |
 | FR-REC-03 | The system shall record video as SER and, when FFmpeg is available, MP4/H.264. | S | T | P028 |
 | FR-REC-04 | The system shall write a JSON sidecar for every saved frame containing capture time, camera settings read back from the driver, site, pointing (stating whether it is measured or declared), calibration ID, image statistics, Sun position and software versions. | M | T | P027 |
 | FR-REC-05 | Every file shall be written atomically (temporary file, flush, rename) and its SHA-256 recorded. | M | T | P027 |
@@ -75,6 +79,9 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | FR-REC-07 | The system shall refuse to start a capture, and stop a running one, when free space falls below a configurable threshold. | M | T | P029 |
 | FR-REC-08 | The sidecar schema shall be versioned and backward compatible with the interim logger schema `cloudscope.sky_logger.frame/1`. | M | T | P027 |
 | FR-REC-09 | The system shall assemble time-lapse videos from captured sequences. | C | D | P028 |
+| FR-REC-10 | 16-bit TIFF files shall carry an AstroTIFF header (FITS-style keywords in the ImageDescription tag). | S | T | P027 |
+| FR-REC-11 | The system shall produce keograms and star-trail images from captured sequences. | S | T | P028 |
+| FR-REC-12 | For frames with a valid calibration, FITS files shall include zenithal-projection WCS keywords. | C | T | P027 |
 
 ### 2.4 Sequencer (FR-SEQ) — UC-04
 | ID | Requirement | Pri | Ver | Phase |
@@ -84,6 +91,7 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | FR-SEQ-03 | Sequences shall stop on count, duration, end time, or a Sun-elevation condition, and pause/resume on Sun elevation. | M | T | P029 |
 | FR-SEQ-04 | The system shall show sequence progress and the time to the next capture. | M | D | P039 |
 | FR-SEQ-05 | After a camera failure the sequencer shall reopen the camera with exponential backoff and continue. | M | T | P029 |
+| FR-SEQ-06 | The system shall switch between day and night capture profiles (exposure, gain, interval) at a configurable Sun elevation. | M | T | P029 |
 
 ### 2.5 Calibration (FR-CAL) — UC-05, UC-08
 | ID | Requirement | Pri | Ver | Phase |
@@ -109,6 +117,8 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | FR-CTL-09 | The user shall be able to jog axes (on-screen joystick, keyboard, gamepad) and command a go-to az/el. | M | D | P061 |
 | FR-CTL-10 | The system shall display mount orientation on a sky-dome widget showing the camera footprint, the Sun and the keep-out zone. | M | D | P061 |
 | FR-CTL-11 | The system shall read and log IMU attitude, GPS time/position, RTC, temperature/humidity/pressure, rain and light sensors when present. | S | T | P052, P053, P062 |
+| FR-CTL-12 | The system shall control ASCOM Alpaca devices (telescope/mount in alt-az, focuser, switch, ObservingConditions) through the HAL, including Alpaca discovery. | S | T | P055 |
+| FR-CTL-13 | On Linux, the system shall use INDI devices through an INDI client backend. | C | T | P055 |
 
 ### 2.7 Firmware (FR-FW) — UC-06, UC-16
 | ID | Requirement | Pri | Ver | Phase |
@@ -175,6 +185,8 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | FR-REM-06 | A web dashboard served by the daemon shall provide live view, controls, missions and the gallery, usable on a phone. | M | D | P088 |
 | FR-REM-07 | The desktop application shall work as a client of a remote daemon with the same features as locally. | M | D | P089 |
 | FR-REM-08 | Only one client at a time shall hold the control lock; others are read-only. The lock shall time out when its holder disconnects. | M | T | P087 |
+| FR-REM-09 | The daemon shall publish telemetry and AI results over MQTT with Home Assistant discovery. | S | T | P085 |
+| FR-REM-10 | The daemon shall expose CloudScope as ASCOM Alpaca SafetyMonitor and ObservingConditions devices so other astronomy software can use its sky assessment; disabled by default and limited to the local network. | S | T | P084 |
 
 ### 2.13 Security (FR-SEC) — UC-11, UC-12
 | ID | Requirement | Pri | Ver | Phase |
@@ -283,31 +295,31 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 |---|---|---|
 | Q1 | Default keep-out half-angle for a ~105° lens that always sees much of the sky | P060 (with measurements of glare and sensor behaviour) |
 | Q2 | Servo vs stepper pan-tilt for the target pointing accuracy | P009, P057 |
-| Q3 | INDI or ASCOM Alpaca compatibility | P006, ADR in P008 |
+| Q3 | INDI or ASCOM Alpaca compatibility | Resolved in P006 / ADR-011: Alpaca client and server (should), INDI client on Linux (could) |
 | Q4 | Which accelerator (if any) for Raspberry Pi inference | P066, after STRATIA P095 |
 
 ## 6. Summary and traceability
 
 | Group | M | S | C | Total |
 |---|---|---|---|---|
-| FR-CAM | 7 | 2 | 2 | 11 |
-| FR-DSP | 6 | 4 | 0 | 10 |
-| FR-REC | 7 | 1 | 1 | 9 |
-| FR-SEQ | 5 | 0 | 0 | 5 |
+| FR-CAM | 7 | 3 | 2 | 12 |
+| FR-DSP | 7 | 4 | 0 | 11 |
+| FR-REC | 7 | 3 | 2 | 12 |
+| FR-SEQ | 6 | 0 | 0 | 6 |
 | FR-CAL | 4 | 2 | 0 | 6 |
-| FR-CTL | 9 | 2 | 0 | 11 |
+| FR-CTL | 9 | 3 | 1 | 13 |
 | FR-FW | 3 | 1 | 1 | 5 |
 | FR-SAF | 6 | 2 | 0 | 8 |
 | FR-MOD | 3 | 0 | 1 | 4 |
 | FR-MIS | 5 | 3 | 0 | 8 |
 | FR-AI | 7 | 2 | 0 | 9 |
-| FR-REM | 7 | 1 | 0 | 8 |
+| FR-REM | 7 | 3 | 0 | 10 |
 | FR-SEC | 5 | 1 | 0 | 6 |
 | FR-DAT | 3 | 3 | 1 | 7 |
 | FR-PLT | 3 | 0 | 0 | 3 |
 | NFR (all) | 24 | 4 | 0 | 28 |
-| **Total** | **104** | **28** | **6** | **138** |
+| **Total** | **106** | **34** | **8** | **148** |
 
-Counts verified by parsing this file (138 requirements, no duplicate IDs).
+Counts generated by parsing this file (148 requirements, no duplicate IDs).
 
 Traceability rule: each requirement's acceptance test is `AT-<ID>` (P097); each phase document lists the requirement IDs it covers; `docs/requirements/traceability.csv` (generated from this file in P012 by a CI script) maps requirement → phase → test → status.

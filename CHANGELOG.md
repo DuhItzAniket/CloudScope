@@ -4,6 +4,11 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P006 — Competitive analysis (2026-10-04)
+- Added the competitive analysis: evidence document with product profiles, feature matrix and format facts (98 sources) and a decision summary (D1–D7).
+- SRS v1.1: 10 new requirements (raw/ROI/binning, preview-only stretch, AstroTIFF, keograms and star trails, FITS WCS, day/night profiles, ASCOM Alpaca client and server, INDI client, MQTT + Home Assistant) and a tightened FITS keyword requirement; 148 requirements in total.
+- Plan rows P020, P027, P028, P029, P036, P055, P084, P085 updated accordingly.
+
 ### P005 — Software requirements specification (2026-10-04)
 - Added `docs/requirements/SRS.md`: 138 requirements (104 must, 28 should, 6 could) across 15 functional and 7 non-functional groups, each with priority, verification method and delivering phase.
 

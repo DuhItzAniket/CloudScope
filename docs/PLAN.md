@@ -126,16 +126,16 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | ID | Phase | Work | Exit criteria | |
 |---|---|---|---|---|
 | P019 | Device enumeration | Media Foundation (Windows), V4L2 (Linux), optional libcamera (Pi CSI); stable device IDs; hot-plug | B0268 + laptop webcam detected on both OSes | HW |
-| P020 | Modes | Resolution/fps/pixel format negotiation (MJPEG/YUYV); measured B0268 mode table | Table in docs (actual fps per mode) | HW |
+| P020 | Modes | Resolution/fps/pixel format negotiation (MJPEG/YUYV; RAW8/RAW16/MONO16, ROI and binning where the camera supports them); measured B0268 mode table | Table in docs (actual fps per mode) | HW |
 | P021 | Camera controls | Absolute exposure, gain, WB, brightness/contrast/saturation, auto on/off; capability discovery; profiles | Each control verified by measuring frame brightness response | HW |
 | P022 | Acquisition pipeline | Capture thread, host monotonic + UTC timestamps, drop detection, frame metadata | Drop counter accurate under stress | HW |
 | P023 | Decode & colour | libjpeg-turbo MJPEG, YUYV→RGB, 8/16-bit paths | Decode latency table | |
 | P024 | Frame statistics | Histogram, clipping %, mean/median, noise estimate, saturation map, sun-blob detection | Unit tests on synthetic frames | |
 | P025 | Sky auto-exposure + HDR | Sun-aware percentile AE that protects cloud highlights; bracketing; Mertens/Debevec merge | Fewer clipped cloud pixels than camera auto-exposure on test scenes | HW |
 | P026 | Calibration frames | Dark frames, flat field, vignetting correction | Flat-corrected frame uniformity improved (measured) | HW |
-| P027 | Recording I | PNG/TIFF-16, JPEG, FITS (DATE-OBS, EXPTIME, GAIN, AZ/EL, SITE, CALIB), JSON sidecar | Files open in Siril/DS9; sidecar schema valid | |
-| P028 | Recording II | SER video, MP4/H.264 (FFmpeg, optional), time-lapse assembly | SER plays in SER Player | |
-| P029 | Capture sequencer | Single, burst, interval, bracket, scheduled; filename templates; disk guard | 1,000-frame interval run without error | |
+| P027 | Recording I | PNG/TIFF-16 with AstroTIFF header, JPEG, FITS with the keyword set in `docs/research/P006_competitive_analysis.md` (DATE-OBS UTC, TIMESYS, MJD-OBS, EXPTIME, GAIN, OBSGEO-B/L/H, SITELAT/SITELONG, CENTALT/CENTAZ, ROWORDER, calibration ID; WCS when calibrated), JSON sidecar | Files open in Siril/DS9 with correct orientation and keywords; sidecar schema valid | |
+| P028 | Recording II | SER v3 video with UTC trailer (endianness flag set by round-trip test), MP4/H.264 (FFmpeg, optional), time-lapse assembly, keograms and star trails | SER opens in SER Player and Siril; keogram matches sequence | |
+| P029 | Capture sequencer | Single, burst, interval, bracket, scheduled; day/night capture profiles switched at a configurable Sun elevation; filename templates; disk guard | 1,000-frame interval run without error; profile switch at the configured elevation | |
 | P030 | Sessions & catalogue | Session folder layout; SQLite catalogue of frames + metadata; retention policy | Query 100k frames < 100 ms | |
 | P031 | Intrinsic calibration tool | Checkerboard capture assistant; OpenCV fisheye/omnidir fit; export in STRATIA camera-model format | Reprojection error < 0.5 px; file loads in STRATIA P043 | HW |
 | P032 | Camera soak test | 24 h capture on laptop and Pi 5; fps, latency, memory, temperature | No leaks/crashes; report | HW |
@@ -147,7 +147,7 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | P033 | App shell | Main window, docking, layout save/restore, dark theme + red night-vision theme | Layouts persist across restarts | |
 | P034 | Live view | QRhi/OpenGL renderer, zoom/pan, 1:1, fit, FPS & drop indicators | 4656×3496 MJPEG preview smooth on laptop | |
 | P035 | Camera control panel | All controls with real ranges, auto toggles, profiles | Every control round-trips to device | |
-| P036 | Histogram & scopes | Live histogram (lin/log), clipping indicators, RGB parade | Matches offline computation | |
+| P036 | Histogram, scopes & stretch | Live histogram (lin/log), clipping indicators, RGB parade; display stretch (manual/auto) applied to preview only; over-exposure highlight | Matches offline computation; recorded files unaffected by stretch | |
 | P037 | Overlays | Reticle, grid, altitude circles & compass (from calibration + pose), sun marker & keep-out zone | Overlay accuracy checked against sun position | |
 | P038 | Image tools | Focus aid (Laplacian variance), loupe, pixel inspector, ROI stats | Unit tests on known images | |
 | P039 | Capture panel | Formats, sequencer UI, progress, countdown | Drives P029 end-to-end | |
@@ -171,7 +171,7 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | P052 | ESP32 IMU | MPU-6050, MPU-9250/ICM-20948, BNO085 drivers; Madgwick fusion (or BNO085 quaternions); magnetometer hard/soft-iron calibration | Static attitude error < 1–2° (documented method) | HW |
 | P053 | ESP32 aux sensors | GPS (NEO-M8N: time + location), DS3231 RTC, BME280, rain sensor, light sensor, limit switches | Values streamed + logged | HW |
 | P054 | Arduino Uno CSDP-Lite | Servos + raw MPU-6050 + heartbeat; RAM/flash budget report | Works with host; < 75% RAM used | HW |
-| P055 | Raspberry Pi 5 native HAL | libgpiod / i2c-dev: PCA9685 + IMU direct; hardware PWM | Same tests as ESP32 tier pass | HW |
+| P055 | Native & standard HALs | Raspberry Pi 5 libgpiod / i2c-dev (PCA9685 + IMU direct, hardware PWM); ASCOM Alpaca client (discovery, Telescope alt-az, Focuser, Switch, ObservingConditions); optional INDI client on Linux | Same tests as ESP32 tier pass; Alpaca simulator passes ConformU-style checks | HW |
 | P056 | Mount kinematics | Pan/tilt ↔ az/el, mechanical offsets, backlash model | Unit tests | |
 | P057 | Motion control | Trapezoidal/S-curve trajectories, soft limits, homing, park, IMU closed-loop correction | Overshoot/settling measured | HW |
 | P058 | IMU–camera extrinsics | Hand-eye calibration (checkerboard or sky features) | Residual reported | HW |
@@ -215,8 +215,8 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | ID | Phase | Work | Exit criteria | |
 |---|---|---|---|---|
 | P083 | `cloudscoped` daemon | Headless service owning devices; systemd unit (Pi), Windows service option | Survives reboot; desktop app attaches | |
-| P084 | REST API | OpenAPI 3 spec; devices, camera, capture, missions, sessions, models | Contract tests generated from spec | |
-| P085 | WebSocket channels | Telemetry, events, logs, AI results | Load test: 5 clients | |
+| P084 | REST API & Alpaca server | OpenAPI 3 spec; devices, camera, capture, missions, sessions, models; ASCOM Alpaca SafetyMonitor + ObservingConditions server (off by default, LAN only) | Contract tests generated from spec; an Alpaca client reads CloudScope's safety state | |
+| P085 | Event channels | WebSocket (telemetry, events, logs, AI results) and MQTT with Home Assistant discovery | Load test: 5 clients; entities appear in Home Assistant | |
 | P086 | Video streaming | MJPEG preview (LAN), then WebRTC (libdatachannel) with bandwidth adaptation | Latency < 300 ms LAN (measured) | |
 | P087 | Security | Token auth, roles (viewer/operator/admin), TLS, single-controller lock, audit log, threat model | Security test checklist; no default passwords | |
 | P088 | Web dashboard | Static SPA served by daemon: live view, controls, missions, gallery; mobile layout | Works on phone browser | |
