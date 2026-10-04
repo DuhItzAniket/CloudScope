@@ -21,9 +21,9 @@ CloudScope is the **complete sky-observation system**. STRATIA is only the brain
 | Tier | Hardware | Runs |
 |---|---|---|
 | Host — full | Windows/Linux laptop (your Legion 5i) | Desktop app + daemon + GPU inference (CUDA/DirectML) |
-| Host — embedded | Raspberry Pi 5 (8 GB recommended) | Daemon + web UI (+ optional desktop app on HDMI); CPU/INT8 inference; optional Hailo-8L AI Kit |
+| Host — embedded | Raspberry Pi 5 (8 GB recommended) | Daemon + web UI (+ optional desktop app on HDMI); CPU/INT8 inference; optional Raspberry Pi AI HAT+ (box-mounted; the AI Kit is discontinued) |
 | Controller — full | ESP32 (USB serial or Wi-Fi) | Servo control (PCA9685 or direct PWM), IMU fusion, GPS/RTC/env sensors, watchdog |
-| Controller — lite | Arduino Uno (USB serial) | Servos + raw MPU-6050 + heartbeat only (2 KB RAM) |
+| Controller — lite | Arduino Uno R4 Minima (reference) or Uno R3 (USB serial) | Servos + heartbeat + e-stop; IMU via BNO085 UART-RVC on R4, legacy MPU-6050 on R3 |
 | Controller — native | Raspberry Pi 5 GPIO/I2C | PCA9685 + IMU directly, no microcontroller |
 | Controller — none | Fixed camera | Everything except motion |
 
@@ -44,7 +44,7 @@ CloudScope is the **complete sky-observation system**. STRATIA is only the brain
 | 001 | **C++20 + Qt ≥ 6.8**, CMake | Keeps the existing toolchain (Qt 6.9 / MSVC already installed); Raspberry Pi OS (Debian 13 "Trixie") ships Qt 6.8.2; native performance on Pi 5; one codebase for Windows + Linux aarch64 |
 | 002 | **Desktop UI in Qt Widgets + Qt Advanced Docking System** (replaces legacy QML) | Dockable, dense "workbench" UI like SharpCap; QML kept only if a touch UI is needed later |
 | 003 | **Client/daemon split**: `cloudscope-core` (library) → `cloudscoped` (headless daemon owning devices) → clients (desktop app, web UI). Desktop app can also embed the core in-process for zero-latency local use | Same code path for local and remote; Pi runs headless |
-| 004 | **ONNX Runtime** for STRATIA (CUDA → DirectML → CPU on Windows; CPU/XNNPACK on Pi; optional Hailo) | Matches STRATIA export; legacy ORT GPU path already proven (21 fps) |
+| 004 | **ONNX Runtime** for STRATIA (CUDA → DirectML → CPU on Windows; CPU/XNNPACK on Pi; optional Raspberry Pi AI HAT+ via a separately compiled HEF model) | Matches STRATIA export; legacy ORT GPU path already proven (21 fps) |
 | 005 | **CSDP — CloudScope Device Protocol**: COBS framing + CRC-16/CCITT + versioned fixed-layout messages, generated from one YAML schema into C (firmware) and C++ (host) | Small enough for an Uno, robust over serial and Wi-Fi |
 | 006 | **Remote API**: REST (OpenAPI 3) + WebSocket via **Drogon** (MIT) — Qt HTTP Server is GPL-only (see ADR-006); video via MJPEG first, WebRTC (libdatachannel) later | Permissive licence; works through browsers |
 | 007 | Config in TOML (toml++) with JSON-schema validation and migrations; logs via spdlog | — |
@@ -105,7 +105,7 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | P006 | Competitive analysis | Feature matrix vs SharpCap, AMCap, FireCapture, NINA, KStars/Ekos/INDI, indi-allsky, allsky; adopt/skip decisions (incl. INDI/ASCOM compatibility ADR) | Matrix committed | |
 | P007 | System architecture | C4 diagrams (context, container, component), threading model, data flow, failure domains | Reviewed | |
 | P008 | ADRs 001–010 | Write decisions in Section 1 as ADRs | All accepted | |
-| P009 | Hardware reference designs | BOM per tier, wiring diagrams (ESP32+PCA9685+BNO085/MPU-6050, Pi 5 direct I2C, Uno lite), power budget (separate servo rail) | Diagrams + BOM in `hardware/` | |
+| P009 | Hardware reference designs | BOM per tier, wiring diagrams (ESP32-S3+PCA9685+BNO085, steppers for precision, Pi 5 direct GPIO, Uno R4/R3 lite), power budget (separate servo rail), thermal split (sky head vs electronics box) | Designs in `docs/hardware/`, facts in `docs/research/` | |
 | P010 | **Gate R — Requirements & architecture review** | Walkthrough of P004–P009 | Signed | |
 
 ### Stage B — Engineering foundation (P011–P018)
@@ -168,9 +168,9 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | P049 | Discovery & capabilities | Port scan, HELLO handshake, capability bitmap → UI/planner adapt automatically | Swapping ESP32 ↔ Uno changes available features without config edits | HW |
 | P050 | ESP32 firmware base | PlatformIO, FreeRTOS tasks, CSDP stack, hardware watchdog, NVS config, OTA update | 24 h link soak without desync | HW |
 | P051 | ESP32 actuation | PCA9685 (I2C) and direct LEDC PWM; per-channel pulse↔angle calibration; slew-rate limits | Commanded vs measured angle within servo spec | HW |
-| P052 | ESP32 IMU | MPU-6050, MPU-9250/ICM-20948, BNO085 drivers; Madgwick fusion (or BNO085 quaternions); magnetometer hard/soft-iron calibration | Static attitude error < 1–2° (documented method) | HW |
+| P052 | ESP32 IMU | BNO085 (reference; Game Rotation Vector near motors), BMI270/LSM6DSOX 6-axis fallback with Madgwick fusion, legacy MPU-6050; magnetometer calibration only where no motor magnets are near | Static attitude error < 1–2° (documented method) | HW |
 | P053 | ESP32 aux sensors | GPS (NEO-M8N: time + location), DS3231 RTC, BME280, rain sensor, light sensor, limit switches | Values streamed + logged | HW |
-| P054 | Arduino Uno CSDP-Lite | Servos + raw MPU-6050 + heartbeat; RAM/flash budget report | Works with host; < 75% RAM used | HW |
+| P054 | Arduino Uno CSDP-Lite | Uno R4 Minima (reference) and R3: servos + heartbeat + e-stop; IMU via BNO085 UART-RVC on R4 Serial1, legacy MPU-6050 on R3; RAM/flash budget report | Works with host; < 75% RAM used on each board | HW |
 | P055 | Native & standard HALs | Raspberry Pi 5 libgpiod / i2c-dev (PCA9685 + IMU direct, hardware PWM); ASCOM Alpaca client (discovery, Telescope alt-az, Focuser, Switch, ObservingConditions); optional INDI client on Linux | Same tests as ESP32 tier pass; Alpaca simulator passes ConformU-style checks | HW |
 | P056 | Mount kinematics | Pan/tilt ↔ az/el, mechanical offsets, backlash model | Unit tests | |
 | P057 | Motion control | Trapezoidal/S-curve trajectories, soft limits, homing, park, IMU closed-loop correction | Overshoot/settling measured | HW |
@@ -187,7 +187,7 @@ Legend — **NOW** = needed immediately to feed STRATIA with data; **HW** = need
 | ID | Phase | Work | Exit criteria | |
 |---|---|---|---|---|
 | P065 | Contract implementation | Load `model_card.json` (stratia-contract v1), validate version/IO, reject incompatible models | Contract test with STRATIA's exported dummy model | |
-| P066 | Inference engine | ORT session per EP (CUDA→DirectML→CPU; CPU/XNNPACK on Pi; optional Hailo); async scheduler with frame skipping; preprocessing | Latency table per device/EP; outputs equal Python reference ≤1e-4 | |
+| P066 | Inference engine | ORT session per EP (CUDA→DirectML→CPU; CPU/XNNPACK on Pi; optional AI HAT+ with a HEF model compiled on x86-64 Linux by the Hailo DFC); async scheduler with frame skipping; preprocessing | Latency table per device/EP; outputs equal Python reference ≤1e-4 | |
 | P067 | Metadata provider | UTC + lat/lon (GPS/config) + intrinsics (P031) + pose (IMU/mount) → `ray_map` + `meta` tensors | Ray map matches STRATIA's generator on same inputs (cross-repo test) | |
 | P068 | AI overlays | Sky-parse & layer masks, genus + confidence/top-k, oktas, CBH with interval, OOD warning badge | Overlays only drawn when valid; "uncertain" state shown honestly | |
 | P069 | AI logging & charts | Per-frame results to catalogue; timelines (cover, CBH, genus) | Charts match logged data | |
@@ -278,4 +278,4 @@ Cross-repo tests: P065/P067 here are tested against STRATIA's exported reference
 
 ## 6. Hardware shopping list (reference, finalized in P009)
 
-ESP32-WROOM/-S3 dev board · PCA9685 16-ch servo driver · BNO085 IMU (recommended; on-chip fusion) or MPU-6050 (cheap) · NEO-M8N GPS · DS3231 RTC · BME280 · 2 metal-gear servos (or NEMA-14 steppers + TMC2209 for precision) · separate 5–6 V servo supply · Raspberry Pi 5 8 GB + active cooler + 27 W PSU (embedded tier) · optional Hailo-8L AI Kit · PETG/ASA filament · acrylic/glass window · cable glands · silica gel.
+See `docs/hardware/reference_designs.md` (P009) for the verified bills of materials per tier: ESP32-S3-WROOM-1 (non-octal-PSRAM) · PCA9685 · 2 × 270° digital servos (MG996R excluded: 159° travel, 55 °C rating) or NEMA 17 + TMC2209 + belt reduction for ≈0.1° · BNO085 · BME280 · DS3231 / NEO-M9N · 6 V ≥5 A servo rail from 12 V · 2–3 W dew heater · ASA + PMMA enclosure · Raspberry Pi 5 + Active Cooler + 27 W PSU · optional AI HAT+ (box only).

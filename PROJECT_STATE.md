@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Current stage | A — Re-foundation & requirements (P001–P010) |
-| Last completed phase | P008 — Architecture decision records |
-| Next phase | P009 — Hardware reference designs |
+| Last completed phase | P009 — Hardware reference designs |
+| Next phase | P010 — Gate R — requirements and architecture review |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Blockers | None for Stage A. Open hardware item: P003 acceptance run needs the B0268 connected |
@@ -22,3 +22,4 @@
 | P006 | Competitive analysis | DONE | 2026-10-04 |
 | P007 | System architecture | DONE | 2026-10-04 |
 | P008 | Architecture decision records | DONE | 2026-10-04 |
+| P009 | Hardware reference designs | DONE | 2026-10-04 |

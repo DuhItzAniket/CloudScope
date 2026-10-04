@@ -1,8 +1,8 @@
 # CloudScope — Software Requirements Specification (SRS)
 
-Version 1.2 · Phases P005, P006, P008 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`, `docs/research/P006_competitive_analysis.md`
+Version 1.3 · Phases P005, P006, P008, P009 · 2026-10-04 · Source: `use_cases.md` (P004), `docs/PLAN.md`, `docs/research/P006_competitive_analysis.md`
 
-**Revision history:** v1.0 (P005) initial, 138 requirements. v1.1 (P006) adds 10 requirements and tightens FR-REC-02 after the competitive analysis (FR-CAM-12, FR-DSP-11, FR-REC-10/11/12, FR-SEQ-06, FR-CTL-12/13, FR-REM-09/10). v1.2 (P008) changes FR-PLT-01 to Raspberry Pi OS on Debian 13 "Trixie" with Qt ≥ 6.8 (ADR-001): Bookworm ships Qt 6.4, below the minimum.
+**Revision history:** v1.0 (P005) initial, 138 requirements. v1.1 (P006) adds 10 requirements and tightens FR-REC-02 after the competitive analysis (FR-CAM-12, FR-DSP-11, FR-REC-10/11/12, FR-SEQ-06, FR-CTL-12/13, FR-REM-09/10). v1.2 (P008) changes FR-PLT-01 to Raspberry Pi OS on Debian 13 "Trixie" with Qt ≥ 6.8 (ADR-001): Bookworm ships Qt 6.4, below the minimum. v1.3 (P009) updates FR-FW-02 for current parts (MPU-6050 reported obsolete; Uno R4 Minima as reference) and adds hardware constraints C6/C7.
 
 ## 1. Introduction
 
@@ -124,7 +124,7 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | ID | Requirement | Pri | Ver | Phase |
 |---|---|---|---|---|
 | FR-FW-01 | ESP32 firmware shall implement CSDP, servo/PWM output, IMU reading with on-board orientation fusion (or BNO08x quaternions), auxiliary sensors, a hardware watchdog and persistent configuration. | M | T | P050–P053 |
-| FR-FW-02 | Arduino Uno firmware shall implement the CSDP-Lite subset: servos, raw MPU-6050 data, heartbeat, e-stop. | S | T | P054 |
+| FR-FW-02 | Arduino Uno firmware (R4 Minima reference, R3 supported) shall implement the CSDP-Lite subset: servos, heartbeat, e-stop, and IMU data where the board allows (BNO085 UART-RVC on R4, legacy MPU-6050 on R3). | S | T | P054 |
 | FR-FW-03 | Firmware shall report protocol version and capabilities in its handshake; the host shall refuse to drive firmware with an incompatible protocol version. | M | T | P049 |
 | FR-FW-04 | ESP32 firmware shall support over-the-air updates. | C | D | P050 |
 | FR-FW-05 | Firmware and host protocol code shall be generated from one shared schema. | M | I | P047 |
@@ -287,7 +287,8 @@ CloudScope is the complete sky-observation system: camera application, hardware 
 | C3 | The Arduino Uno has 2 KB of RAM | Uno is limited to CSDP-Lite (FR-FW-02) |
 | C4 | Location: Bengaluru, India (hot season, monsoon) | Enclosure and thermal requirements in P094/P095 |
 | C5 | STRATIA model availability depends on the STRATIA repository | Stage F starts after STRATIA exports a model; a contract-conformant dummy model is used for testing earlier |
-| C6 | B0268 capabilities (modes, controls) are not yet measured | Confirmed in P009 research and P020/P021 measurements |
+| C6 | B0268 (datasheet): full resolution only as MJPG (10 fps at 4656×3496), uncompressed YUY2 only up to 1024×768; 105° horizontal FOV with strong distortion; manual focus; 5 V ≤ 200 mA; −20…75 °C | Radiometric work uses YUY2 or accepts MJPEG; fisheye-type intrinsic calibration (P031); exact modes measured in P020 |
+| C7 | Thermal limits (Bengaluru, April mean daily max 34.1 °C, record 39.2 °C, plus solar gain): Pi 5 0–70 °C, AI HAT+ 0–50 °C, MG996R 0–55 °C | Split sky-head/electronics-box design; low-rated parts never in the head (`docs/hardware/reference_designs.md`) |
 
 ## 5. Open questions (owner and phase)
 
