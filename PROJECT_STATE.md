@@ -7,7 +7,7 @@
 | Next phase | P019 — Device enumeration |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
-| Last CI result checked | `9b06654` (P017): all ten jobs green; coverage 94.9 % of core-library lines |
+| Last CI result checked | `7f516f5` (P018): eight of ten jobs green, coverage 96.3 % of core-library lines; *Format and static analysis* and *Sanitizers (address, undefined)* were cancelled by GitHub before they started (no runner) and are run again by the next commit |
 | Blockers | None for the simulator-based work. P019 needs the Arducam B0268 connected. Open items: P003 acceptance (B0268 24 h run); pictures that depend on the mount's pointing are not simulated yet (P018 phase document) |
 | Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
 | Hardware on the development machine | Integrated laptop camera only; Arducam B0268 not connected; no microcontroller attached |
