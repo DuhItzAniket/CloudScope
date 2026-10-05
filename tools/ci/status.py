@@ -42,6 +42,10 @@ def repository_slug(remote_url: str) -> str:
 class Api:
     """Minimal GitHub API client with conditional requests (ETag), so polling is free while nothing changes."""
 
+    # A name lookup or connection can fail for a moment during a long wait; the request is repeated.
+    RETRIES = 4
+    RETRY_PAUSE_S = 30.0
+
     def __init__(self) -> None:
         self._cache: dict[str, tuple[str, object]] = {}
         self._token = os.environ.get("GITHUB_TOKEN", "")
@@ -54,22 +58,30 @@ class Api:
             request.add_header("Authorization", f"Bearer {self._token}")
         if path in self._cache:
             request.add_header("If-None-Match", self._cache[path][0])
-        try:
-            with urllib.request.urlopen(request, timeout=30) as response:
-                data = json.load(response)
-                etag = response.headers.get("ETag")
-                if etag:
-                    self._cache[path] = (etag, data)
-                return data
-        except urllib.error.HTTPError as error:
-            if error.code == 304:
-                return self._cache[path][1]
-            if error.code in (403, 429) and error.headers.get("X-RateLimit-Remaining") == "0":
-                reset = int(error.headers.get("X-RateLimit-Reset", "0"))
-                minutes = max(0, reset - int(time.time())) // 60 + 1
-                raise SystemExit(f"GitHub API rate limit reached; try again in about {minutes} min "
-                                 "or set GITHUB_TOKEN.") from error
-            raise
+        for attempt in range(1, self.RETRIES + 1):
+            try:
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    data = json.load(response)
+                    etag = response.headers.get("ETag")
+                    if etag:
+                        self._cache[path] = (etag, data)
+                    return data
+            except urllib.error.HTTPError as error:
+                if error.code == 304:
+                    return self._cache[path][1]
+                if error.code in (403, 429) and error.headers.get("X-RateLimit-Remaining") == "0":
+                    reset = int(error.headers.get("X-RateLimit-Reset", "0"))
+                    minutes = max(0, reset - int(time.time())) // 60 + 1
+                    raise SystemExit(f"GitHub API rate limit reached; try again in about {minutes} min "
+                                     "or set GITHUB_TOKEN.") from error
+                raise
+            except (urllib.error.URLError, TimeoutError) as error:
+                # No answer at all (DNS, connection, timeout): not a result, try again shortly.
+                if attempt == self.RETRIES:
+                    raise SystemExit(f"GitHub could not be reached ({error}); the network may be down.") from error
+                print(f"  network error ({error}); trying again in {self.RETRY_PAUSE_S:.0f} s", flush=True)
+                time.sleep(self.RETRY_PAUSE_S)
+        raise AssertionError("unreachable")
 
 
 def summarise(runs: list[dict]) -> tuple[int, int, int]:

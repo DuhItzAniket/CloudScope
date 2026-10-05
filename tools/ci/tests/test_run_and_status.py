@@ -136,3 +136,50 @@ def test_annotations_are_printed_in_reading_order():
 def test_summary_counts():
     runs = [check_run("completed", "success"), check_run("completed", "failure"), check_run("in_progress")]
     assert status.summarise(runs) == (1, 1, 1)
+
+
+class FakeResponse:
+    def __init__(self, payload: dict):
+        self._payload = payload
+        self.headers = {"ETag": "abc"}
+
+    def read(self):
+        import json
+        return json.dumps(self._payload).encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_a_passing_network_failure_is_retried(monkeypatch):
+    import urllib.error
+    import urllib.request
+    attempts = []
+
+    def flaky_urlopen(request, timeout):
+        attempts.append(request.full_url)
+        if len(attempts) < 3:
+            raise urllib.error.URLError("getaddrinfo failed")
+        return FakeResponse({"total_count": 0, "check_runs": []})
+
+    monkeypatch.setattr(urllib.request, "urlopen", flaky_urlopen)
+    monkeypatch.setattr(status.Api, "RETRY_PAUSE_S", 0.0)
+    api = status.Api()
+    assert api.get("/repos/x/y/commits/abc/check-runs") == {"total_count": 0, "check_runs": []}
+    assert len(attempts) == 3
+
+
+def test_a_network_that_stays_down_ends_the_wait_with_a_message(monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    def dead_urlopen(request, timeout):
+        raise urllib.error.URLError("getaddrinfo failed")
+
+    monkeypatch.setattr(urllib.request, "urlopen", dead_urlopen)
+    monkeypatch.setattr(status.Api, "RETRY_PAUSE_S", 0.0)
+    with pytest.raises(SystemExit, match="GitHub could not be reached"):
+        status.Api().get("/repos/x/y/commits/abc/check-runs")
