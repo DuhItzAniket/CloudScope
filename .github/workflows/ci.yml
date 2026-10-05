@@ -96,7 +96,8 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: debian:trixie
-    timeout-minutes: 45
+    # clang-tidy over everything takes about 40 minutes on four cores and grows with the code.
+    timeout-minutes: 120
     env:
       LC_ALL: C.UTF-8
       DEBIAN_FRONTEND: noninteractive

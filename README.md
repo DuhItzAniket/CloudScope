@@ -4,7 +4,7 @@
 
 **CloudScope is an open sky-observation system**: a professional camera application, a hardware control system for a pan-tilt sky camera, manual and autonomous operating modes, remote access, and on-device AI powered by the [STRATIA](https://github.com/DuhItzAniket/STRATIA) cloud-understanding model.
 
-> **Status: Stage B (engineering foundation) in progress.** The build system and the first part of the core library exist; the camera application starts in Stage C. See [`PROJECT_STATE.md`](PROJECT_STATE.md).
+> **Status: Stage B (engineering foundation) is complete.** Build system, continuous integration, the foundations of the core library, the hardware interfaces and simulated devices exist and are tested; there is no camera application yet: it starts in Stage C. See [`PROJECT_STATE.md`](PROJECT_STATE.md).
 > The original AI-Day prototype is preserved, unchanged, in [`legacy/`](legacy/) and tagged [`v0.1-aiday`](https://github.com/DuhItzAniket/CloudScope/releases/tag/v0.1-aiday).
 
 ## What CloudScope does (target v1.0)
@@ -32,12 +32,12 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `docs/hardware/` | Hardware reference designs (bills of materials, wiring, power, thermal) |
 | `docs/reviews/` | Stage gate reviews |
 | `core/` | `libcloudscope-core`: all domain logic (C++20, Qt Core) |
-| `apps/info/` | `cloudscope-info`: build information, installation self-test, configuration report |
+| `apps/info/` | `cloudscope-info`: build information, installation self-test, configuration report, list of usable devices |
 | `apps/bench/` | `cloudscope-bench`: frame pipeline benchmark |
 | `tests/` | Unit tests (Catch2), contract tests for device drivers, mock devices and command-line tests; fixtures in `tests/data` |
 | `cmake/`, `CMakePresets.json`, `vcpkg.json` | Build system ([how to build](docs/dev/building.md)) |
-| `docs/dev/` | Developer guides: building, C++ conventions, threading, hardware abstraction layer, testing, quality gates, continuous integration |
-| `docs/manual/` | User documentation ([configuration and logs](docs/manual/configuration.md)) |
+| `docs/dev/` | Developer guides: building, C++ conventions, threading, hardware abstraction layer, simulators, testing, quality gates, continuous integration |
+| `docs/manual/` | User documentation ([configuration, simulated devices and logs](docs/manual/configuration.md)) |
 | `tools/build/` | Build scripts for Windows, Debian/Raspberry Pi OS and Docker |
 | `tools/ci/` | CI helpers: step runner, CI status without sign-in, licence gate, coverage report |
 | `tools/dev/` | Developer tools: formatting (`format.py`), static analysis (`tidy.py`) |

@@ -1,5 +1,7 @@
 // Runs the real cloudscope-info executable and checks its output and exit codes.
 
+#include "test_support.hpp"
+
 #include <cloudscope/common/build_info.hpp>
 
 #include <QtCore/QDir>
@@ -273,3 +275,74 @@ TEST_CASE("cloudscope-info does not open a dialog when it has no console", "[cli
     CHECK(process.exitCode() == 2);
 }
 #endif
+
+TEST_CASE("cloudscope-info --devices lists the simulated devices of the default configuration", "[cli][info][devices]")
+{
+    const Home home;
+    const RunResult result = run_info({QStringLiteral("--devices"), QStringLiteral("--json")}, &home);
+    REQUIRE(result.finished);
+    CHECK(result.exit_code == 0);
+    CHECK(result.err.empty());
+
+    const nlohmann::json report = nlohmann::json::parse(result.out);
+    CHECK_FALSE(report.contains("configuration"));  // only what was asked for
+    const nlohmann::json& devices = report.at("devices");
+    REQUIRE(devices.size() == 5);
+    CHECK(devices[0] == nlohmann::json{{"id", "sim:camera:sky"},
+                                       {"kind", "camera"},
+                                       {"name", "Simulated sky camera"},
+                                       {"driver", "sim"},
+                                       {"simulated", true}});
+    CHECK(devices[1].at("id") == "sim:mount:pan-tilt");
+    CHECK(devices[2].at("id") == "sim:imu:head");
+    CHECK(devices[3].at("id") == "sim:sensor:gps");
+    CHECK(devices[4].at("id") == "sim:sensor:environment");
+    for (const nlohmann::json& device : devices) {
+        CHECK(device.at("simulated") == true);  // never to be mistaken for hardware
+    }
+
+    const RunResult text = run_info({QStringLiteral("--devices")}, &home);
+    REQUIRE(text.finished);
+    CHECK(text.exit_code == 0);
+    // (No line ends in the expected text: they differ between Windows and Linux.)
+    CHECK_THAT(text.out, ContainsSubstring("Devices:"));
+    CHECK_THAT(text.out, ContainsSubstring("  sim:camera:sky          camera    Simulated sky camera  [simulated]"));
+    CHECK_THAT(text.out,
+               ContainsSubstring("  sim:sensor:environment  sensor    Simulated environment sensors  [simulated]"));
+    CHECK_THAT(text.out, !ContainsSubstring("Configuration in effect"));
+}
+
+TEST_CASE("cloudscope-info --devices follows the simulation settings", "[cli][info][devices][config]")
+{
+    const Home home;
+
+    Home::write(home.user_config(), "schema_version = 1\n[simulation]\nenabled = false\n");
+    const RunResult off = run_info({QStringLiteral("--devices"), QStringLiteral("--json")}, &home);
+    REQUIRE(off.finished);
+    CHECK(off.exit_code == 0);
+    CHECK(nlohmann::json::parse(off.out).at("devices").empty());
+    const RunResult off_text = run_info({QStringLiteral("--devices")}, &home);
+    REQUIRE(off_text.finished);
+    CHECK_THAT(off_text.out, ContainsSubstring("Devices: none"));
+
+    // With a folder of pictures, the replay camera appears.
+    const std::u8string folder = (cloudscope::test::data_dir() / "sky").generic_u8string();
+    const std::string with_replay =
+        "schema_version = 1\n[simulation]\nreplay_folder = \"" + std::string(folder.begin(), folder.end()) + "\"\n";
+    Home::write(home.user_config(), with_replay.c_str());
+    const RunResult replay = run_info({QStringLiteral("--devices"), QStringLiteral("--json")}, &home);
+    REQUIRE(replay.finished);
+    CHECK(replay.exit_code == 0);
+    const nlohmann::json devices = nlohmann::json::parse(replay.out).at("devices");
+    REQUIRE(devices.size() == 6);
+    CHECK(devices[1].at("id") == "sim:camera:replay");
+    CHECK(devices[1].at("simulated") == true);
+
+    // A setting outside its range is an error that names the key; no device list is printed.
+    Home::write(home.user_config(), "schema_version = 1\n[simulation]\nreplay_fps = 0\n");
+    const RunResult invalid = run_info({QStringLiteral("--devices")}, &home);
+    REQUIRE(invalid.finished);
+    CHECK(invalid.exit_code == 1);
+    CHECK_THAT(invalid.err, ContainsSubstring("simulation.replay_fps: must be at least 0.01"));
+    CHECK_THAT(invalid.out, !ContainsSubstring("Devices"));
+}

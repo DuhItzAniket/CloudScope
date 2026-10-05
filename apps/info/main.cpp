@@ -4,20 +4,25 @@
 //   cloudscope-info --self-test     additionally exercise every library
 //   cloudscope-info --show-config   additionally print the configuration in effect and where it came from
 //   cloudscope-info --config FILE   read FILE on top of the standard configuration files (may be repeated)
+//   cloudscope-info --devices       additionally list the devices CloudScope can use with this configuration
 //   cloudscope-info --json          the same as JSON
 //
-// Exit codes: 0 success, 1 a self-test check failed, the configuration is invalid or the report could not be
-// written, 2 wrong usage, 3 internal error (a bug).
+// Exit codes: 0 success, 1 a self-test check failed, the configuration is invalid, the devices could not be
+// listed or the report could not be written, 2 wrong usage, 3 internal error (a bug).
 
+#include <cloudscope/app/devices.hpp>
 #include <cloudscope/common/app_config.hpp>
 #include <cloudscope/common/build_info.hpp>
+#include <cloudscope/common/clock.hpp>
 #include <cloudscope/common/self_test.hpp>
+#include <cloudscope/hal/registry.hpp>
 
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QCoreApplication>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cstdio>
 #include <exception>
 #include <filesystem>
@@ -104,6 +109,38 @@ nlohmann::ordered_json config_json(const cloudscope::AppPaths& paths, const clou
     return root;
 }
 
+std::string devices_text(const std::vector<cloudscope::hal::DeviceInfo>& devices)
+{
+    if (devices.empty()) {
+        return "Devices: none\n";
+    }
+    std::size_t id_width = 0;
+    for (const cloudscope::hal::DeviceInfo& device : devices) {
+        id_width = std::max(id_width, device.id.size());
+    }
+    std::string out = "Devices:\n";
+    for (const cloudscope::hal::DeviceInfo& device : devices) {
+        std::string kind(cloudscope::hal::to_string(device.kind));
+        kind.resize(10, ' ');
+        out += "  " + device.id + std::string(id_width - device.id.size() + 2, ' ') + kind + device.name;
+        out += device.simulated ? "  [simulated]\n" : "\n";
+    }
+    return out;
+}
+
+nlohmann::ordered_json devices_json(const std::vector<cloudscope::hal::DeviceInfo>& devices)
+{
+    nlohmann::ordered_json list = nlohmann::ordered_json::array();
+    for (const cloudscope::hal::DeviceInfo& device : devices) {
+        list.push_back({{"id", device.id},
+                        {"kind", cloudscope::hal::to_string(device.kind)},
+                        {"name", device.name},
+                        {"driver", device.driver},
+                        {"simulated", device.simulated}});
+    }
+    return list;
+}
+
 int run(int argc, char** argv)
 {
     const QCoreApplication app(argc, argv);
@@ -129,10 +166,14 @@ int run(int argc, char** argv)
         QStringLiteral("Read this configuration file on top of the standard ones (may be repeated). "
                        "Implies --show-config."),
         QStringLiteral("file"));
+    const QCommandLineOption devices_option(
+        QStringLiteral("devices"),
+        QStringLiteral("List the devices CloudScope can use with this configuration, simulated ones included."));
     parser.addOption(json_option);
     parser.addOption(self_test_option);
     parser.addOption(show_config_option);
     parser.addOption(config_option);
+    parser.addOption(devices_option);
 
     // parse(), not process(): on Windows, process() reports errors and --help in a message box when the
     // program has no console (service, scheduled task, remote shell) and then waits for a click forever.
@@ -154,6 +195,7 @@ int run(int argc, char** argv)
 
     const bool with_self_test = parser.isSet(self_test_option);
     const bool with_config = parser.isSet(show_config_option) || parser.isSet(config_option);
+    const bool with_devices = parser.isSet(devices_option);
     const bool as_json = parser.isSet(json_option);
     bool failed = false;
 
@@ -167,7 +209,8 @@ int run(int argc, char** argv)
         text_report += self_test_text(results);
     }
 
-    if (with_config) {
+    const cloudscope::SystemClock clock;
+    if (with_config || with_devices) {
         std::vector<std::filesystem::path> extra_files;
         for (const QString& file : parser.values(config_option)) {
             extra_files.emplace_back(file.toStdU16String());
@@ -175,8 +218,23 @@ int run(int argc, char** argv)
         const cloudscope::AppPaths paths = cloudscope::standard_paths();
         const auto loaded = cloudscope::load_app_config(paths, extra_files);
         if (loaded) {
-            json_report["configuration"] = config_json(paths, *loaded);
-            text_report += config_text(paths, extra_files, *loaded);
+            if (with_config) {
+                json_report["configuration"] = config_json(paths, *loaded);
+                text_report += config_text(paths, extra_files, *loaded);
+            }
+            if (with_devices) {
+                cloudscope::hal::DeviceRegistry registry;
+                const auto added = cloudscope::add_configured_drivers(registry, loaded->effective, clock);
+                if (added) {
+                    const std::vector<cloudscope::hal::DeviceInfo> devices = registry.enumerate();
+                    json_report["devices"] = devices_json(devices);
+                    text_report += devices_text(devices);
+                } else {
+                    failed = true;
+                    json_report["devices"] = {{"error", added.error().to_string()}};
+                    write(stderr, "Device error: " + added.error().message + "\n");
+                }
+            }
         } else {
             failed = true;
             json_report["configuration"] = {{"error", loaded.error().to_string()}};

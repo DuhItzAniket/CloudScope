@@ -25,7 +25,7 @@ clang-tidy runs with these check families: `bugprone`, `cert`, `clang-analyzer`,
 
 - Fix the code first. Use `// NOLINT(check-name): reason` only for a false positive, and always with the reason.
 - clang-tidy needs Linux: use the Docker image (`docs/dev/building.md`) on Windows, with `clang-tidy` installed in it (`apt install clang-tidy`).
-- A full run takes about ten minutes on the laptop; pass file names to check only what you changed.
+- A full run takes tens of minutes (the CI job needed 35 minutes at P017, and test files are the slowest); pass file names to check only what you changed.
 
 ## Sanitizers
 

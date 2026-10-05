@@ -4,6 +4,16 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P018 — Simulators (2026-10-06)
+- Added simulated devices behind the hardware interfaces (`core/include/cloudscope/sim/`, driver `sim`): a sky camera with drifting clouds, a Sun, an exposure, gain, white-balance and noise model, automatic exposure and 11 modes in six pixel formats; a replay camera for a folder of pictures; a pan-tilt mount with speed and acceleration limits, command and telemetry latency, optional position feedback with noise and an emergency stop; an IMU; a GPS receiver; environment sensors. All share one simulated rig, so the IMU turns when the mount moves.
+- Simulated devices run on any clock: in real time on the system clock, instantly and repeatably on a manual clock. Tests can stall an axis, cut the controller link, pull the camera's cable, lose frames, take the GPS fix away or make it rain.
+- Every simulated device passes the contract tests of P017; a whole rig (camera through the frame hub to two consumers while the mount moves) runs end to end without hardware.
+- Added the `[simulation]` configuration section (`enabled`, `seed`, `replay_folder`, `replay_fps`) and `cloudscope-info --devices`, which lists the usable devices and marks simulated ones.
+- Added `AxisProfile` (motion of one axis from any state to rest at a target) and quaternion and pointing mathematics (`geometry/rotation.hpp`).
+- 67 new tests (232 on Windows, 231 on Linux, plus the benchmark test in Release); all pass under the address, undefined-behaviour and thread sanitizers.
+- Added `docs/dev/simulators.md` and the manual section *Simulated devices*; the static-analysis CI job may now run for up to 120 minutes.
+- Stage B (engineering foundation) is complete.
+
 ### P017 — HAL interfaces (2026-10-06)
 - Added the hardware abstraction layer (`core/include/cloudscope/hal/`): `ICamera`, `IMount`, `IImu`, `ISensor`, `ITransport`, `IInference`, each with a capability description discovered at run time, and a thread-safe `DeviceRegistry` with drivers (`IDriver`) and stable device ids (`<driver>:<rest>`).
 - Cameras are pulled (`read_frame`) rather than pushing from a thread of their own; setting a mode or control returns what is really in effect; devices state whether values are calibrated, positions measured, and data simulated.

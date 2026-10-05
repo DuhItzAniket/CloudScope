@@ -4,7 +4,7 @@
   "title": "CloudScope configuration (config.toml), format version 1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "logging"],
+  "required": ["schema_version", "logging", "simulation"],
   "properties": {
     "schema_version": {
       "description": "Version of the file format. CloudScope migrates older files automatically.",
@@ -44,6 +44,34 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100
+        }
+      }
+    },
+    "simulation": {
+      "description": "Simulated devices for working and testing without hardware.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "seed", "replay_folder", "replay_fps"],
+      "properties": {
+        "enabled": {
+          "description": "Offer simulated devices next to real ones. Their data is always labelled as simulated.",
+          "type": "boolean"
+        },
+        "seed": {
+          "description": "The same seed gives the same clouds and the same sensor noise.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "replay_folder": {
+          "description": "Folder of JPEG or PNG pictures shown by the replay camera in name order. Empty: no replay camera.",
+          "type": "string"
+        },
+        "replay_fps": {
+          "description": "Pictures per second of the replay camera.",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 120
         }
       }
     }

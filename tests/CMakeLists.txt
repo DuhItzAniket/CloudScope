@@ -53,8 +53,14 @@ cloudscope_add_tests(cloudscope_unit_tests
     unit/test_hal_registry.cpp
     unit/test_json_schema.cpp
     unit/test_log.cpp
+    unit/test_motion_profile.cpp
+    unit/test_rotation.cpp
     unit/test_self_test.cpp
     unit/test_signal.cpp
+    unit/test_sim_camera.cpp
+    unit/test_sim_driver.cpp
+    unit/test_sim_rig.cpp
+    unit/test_sim_sensors.cpp
     unit/test_spsc_queue.cpp
     unit/test_synthetic_sky.cpp
     unit/test_test_support.cpp

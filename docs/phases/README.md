@@ -21,5 +21,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P015](P015-static-analysis.md) | Static analysis | DONE |
 | [P016](P016-threading-event-bus.md) | Threading & event bus | DONE |
 | [P017](P017-hal-interfaces.md) | HAL interfaces | DONE |
+| [P018](P018-simulators.md) | Simulators | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).

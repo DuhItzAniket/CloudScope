@@ -30,6 +30,7 @@ Later tiers (hardware-in-the-loop, user interface) get their own executables in 
   - `data_path("sky/ccsn_cu_n001.jpg")`: a fixture from `tests/data`.
   - `wait_until(condition, timeout)`: runs the Qt event loop until the condition holds; with `QSignalSpy` (Qt Test) this covers signals, timers and queued calls. Test executables have a `QCoreApplication`.
   - `ManualClock` (core, `clock.hpp`) wherever code takes an `IClock&`: tests never sleep to make time pass.
+- Simulated devices (`cloudscope/sim/`, [`simulators.md`](simulators.md)) when the behaviour of a device matters: a camera with an exposure model and real timing, a mount with motion over time, sensors with noise; faults such as a stalled axis or a pulled cable are set on the `SimRig`. On a `ManualClock` with `camera.real_time = false` they run without waiting.
 - Mock devices in `tests/support/mock_devices.hpp` (`MockCamera`, `MockMount`, `MockImu`, `MockSensor`, `PipeTransport`, `MockInference`, `MockDriver`): for code that uses a device. They never wait and can be made to lose frames, fall silent, be unplugged or report a fault. See [`hal.md`](hal.md).
 - Tests that start the application redirect its configuration folders into a temporary home (see `Home` in `tests/integration/test_cli_info.cpp`), so a developer's own settings are never read or changed.
 

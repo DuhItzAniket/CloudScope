@@ -100,7 +100,7 @@ Code and user interface adapt to these lists: a control that is not listed is no
 2. Keep ids stable: derive them from something that survives a restart and a re-plug (serial number, USB path), not from an enumeration index.
 3. Report honestly: list only modes and controls that work, read values back after setting them, mark uncalibrated scales, set `simulated` where it applies.
 4. Run the **contract tests** on it (next section) and add tests for what only your driver does.
-5. Register the driver where the application builds its registry.
+5. Register the driver in `add_configured_drivers()` (`core/src/app/devices.cpp`), the one place where the application's drivers are named.
 
 ## Contract tests
 
@@ -114,7 +114,7 @@ TEST_CASE("the mock camera obeys the camera contract", "[hal][contract]")
 }
 ```
 
-The factory must return a new, closed device on each call (the functions use Catch2 sections, which run the test once per section). `check_mount_contract` also takes a function that lets time pass: it advances the clock a simulated mount runs on, or waits for a real one. Every implementation runs these functions: the mocks now, the simulators in P018, real drivers in the hardware-in-the-loop tests (P063). A driver that passes can replace any other behind its interface.
+The factory must return a new, closed device on each call (the functions use Catch2 sections, which run the test once per section). `check_mount_contract` also takes a function that lets time pass: it advances the clock a simulated mount runs on, or waits for a real one. Every implementation runs these functions: the mocks, the simulators, and real drivers in the hardware-in-the-loop tests (P063). A driver that passes can replace any other behind its interface.
 
 The contracts check, among other things: life-cycle and error codes of a closed device; consistent capabilities; mode selection and refusal; clamping, read-back and "automatic" for every control; frame geometry, numbering and time stamps in every mode; mount limits, motion, stop, emergency stop (including across re-opening) and closing during a move; unit quaternions; one plausible reading per listed quantity; byte order and completeness across threads; tensor names, shapes and input checking.
 
@@ -122,7 +122,7 @@ The contracts check, among other things: life-cycle and error codes of a closed 
 
 `tests/support/mock_devices.hpp` has the smallest implementations that obey the contracts: `MockCamera`, `MockMount`, `MockImu`, `MockSensor`, `PipeTransport` (two connected in-memory ends), `MockInference`, and `MockDriver` for the registry. They never wait, take an `IClock` (use `ManualClock`), and let a test cause what is hard to cause on purpose: lost frames, a silent camera, an unplugged camera, a mount fault, a sensor without a value, a closed link.
 
-Use a **mock** to test code that uses a device (exact, instant, scripted). Use a **simulator** (P018) when the behaviour of the device itself matters: image content, motion profiles, noise, latency.
+Use a **mock** to test code that uses a device (exact, instant, scripted). Use a **simulator** ([`simulators.md`](simulators.md)) when the behaviour of the device itself matters: image content, motion profiles, noise, latency.
 
 ## Not in the interfaces yet
 

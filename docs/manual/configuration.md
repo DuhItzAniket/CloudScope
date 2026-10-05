@@ -43,8 +43,45 @@ The complete list of settings with their defaults is [`core/resources/config.def
 | `logging.directory` | `""` | Log folder; empty means the standard folder in the table above |
 | `logging.max_file_mb` | `10` | A log file is rotated when it would grow beyond this size (1 to 1024) |
 | `logging.max_files` | `5` | Log files kept: `cloudscope.log`, `cloudscope.1.log`, … (1 to 100) |
+| `simulation.enabled` | `true` | Offer simulated devices next to real ones (see below) |
+| `simulation.seed` | `1` | The same seed gives the same simulated clouds and the same sensor noise (0 to 4294967295) |
+| `simulation.replay_folder` | `""` | Folder of JPEG or PNG pictures that the replay camera shows in name order; empty means no replay camera |
+| `simulation.replay_fps` | `2.0` | Pictures per second of the replay camera (0.01 to 120) |
 
 More sections arrive with the features that need them.
+
+## Simulated devices
+
+CloudScope comes with simulated devices, so that it can be tried and tested without a camera or a mount: a sky camera with moving clouds, a pan-tilt mount, an orientation sensor, a GPS receiver and environment sensors. A second simulated camera replays your own pictures if you name a folder:
+
+```toml
+schema_version = 1
+
+[simulation]
+replay_folder = "D:/sky/2026-10-01"
+replay_fps = 1
+```
+
+Use forward slashes in the folder name (or double every backslash): a single backslash has a special meaning in TOML. The pictures must lie directly in the folder; sub-folders are not searched.
+
+Simulated devices are always marked as such: in the device list, in every picture they deliver, and in everything saved from them. They are never a measurement of the real sky. Set `enabled = false` to hide them.
+
+To see which devices CloudScope can use with your configuration:
+
+```
+cloudscope-info --devices
+```
+
+```
+Devices:
+  sim:camera:sky          camera    Simulated sky camera  [simulated]
+  sim:mount:pan-tilt      mount     Simulated pan-tilt mount  [simulated]
+  sim:imu:head            imu       Simulated IMU on the camera head  [simulated]
+  sim:sensor:gps          sensor    Simulated GPS receiver  [simulated]
+  sim:sensor:environment  sensor    Simulated environment sensors  [simulated]
+```
+
+Drivers for real cameras and controllers are added in later versions; their devices will appear in the same list.
 
 ## Mistakes are reported, not ignored
 

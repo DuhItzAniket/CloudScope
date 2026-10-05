@@ -21,3 +21,15 @@ directory = ""
 max_file_mb = 10
 # Number of log files kept: cloudscope.log plus cloudscope.1.log, cloudscope.2.log, ...
 max_files = 5
+
+[simulation]
+# Offer simulated devices (sky camera, pan-tilt mount, IMU, GPS receiver, environment sensors) next to real
+# ones. Everything they deliver is labelled as simulated.
+enabled = true
+# The same seed gives the same clouds and the same sensor noise.
+seed = 1
+# Folder of JPEG or PNG pictures that the replay camera shows in name order, again and again.
+# Empty: no replay camera.
+replay_folder = ""
+# Pictures per second of the replay camera.
+replay_fps = 2.0

@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Current stage | B — Engineering foundation (P011–P018); Stage A complete (Gate R: GO with conditions) |
-| Last completed phase | P017 — HAL interfaces |
-| Next phase | P018 — Simulators |
+| Current stage | Stages A and B complete (Gate R: GO with conditions; tag `stage-B-complete`). Next: C — Camera subsystem (P019–P032), which by the plan starts after 16 Nov 2026 |
+| Last completed phase | P018 — Simulators |
+| Next phase | P019 — Device enumeration |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
-| Last CI result checked | `9be6404` (P016 fix): all ten jobs green; coverage 94.7 % of core-library lines |
-| Blockers | None. Open item: P003 acceptance (B0268 24 h run) |
+| Last CI result checked | `9b06654` (P017): all ten jobs green; coverage 94.9 % of core-library lines |
+| Blockers | None for the simulator-based work. P019 needs the Arducam B0268 connected. Open items: P003 acceptance (B0268 24 h run); pictures that depend on the mount's pointing are not simulated yet (P018 phase document) |
 | Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
 | Hardware on the development machine | Integrated laptop camera only; Arducam B0268 not connected; no microcontroller attached |
 
@@ -33,3 +33,4 @@
 | P015 | Static analysis | DONE | 2026-10-04 |
 | P016 | Threading & event bus | DONE | 2026-10-04 |
 | P017 | HAL interfaces | DONE | 2026-10-06 |
+| P018 | Simulators | DONE | 2026-10-06 |

@@ -15,6 +15,7 @@ add_custom_target(cloudscope_git_revision
   VERBATIM)
 
 add_library(cloudscope_core STATIC
+  include/cloudscope/app/devices.hpp
   include/cloudscope/capture/frame.hpp
   include/cloudscope/capture/frame_hub.hpp
   include/cloudscope/common/app_config.hpp
@@ -31,6 +32,7 @@ add_library(cloudscope_core STATIC
   include/cloudscope/common/signal.hpp
   include/cloudscope/common/spsc_queue.hpp
   include/cloudscope/common/units.hpp
+  include/cloudscope/geometry/rotation.hpp
   include/cloudscope/hal/camera.hpp
   include/cloudscope/hal/device.hpp
   include/cloudscope/hal/inference.hpp
@@ -38,7 +40,13 @@ add_library(cloudscope_core STATIC
   include/cloudscope/hal/registry.hpp
   include/cloudscope/hal/sensors.hpp
   include/cloudscope/hal/transport.hpp
+  include/cloudscope/sim/motion_profile.hpp
+  include/cloudscope/sim/sim_camera.hpp
+  include/cloudscope/sim/sim_devices.hpp
+  include/cloudscope/sim/sim_driver.hpp
+  include/cloudscope/sim/sim_rig.hpp
   include/cloudscope/sim/synthetic_sky.hpp
+  src/app/devices.cpp
   src/capture/frame.cpp
   src/capture/frame_hub.cpp
   src/common/app_config.cpp
@@ -52,7 +60,15 @@ add_library(cloudscope_core STATIC
   src/common/self_test.cpp
   src/common/signal.cpp
   src/common/units.cpp
+  src/geometry/rotation.cpp
   src/hal/hal.cpp
+  src/sim/frame_sources.cpp
+  src/sim/motion_profile.cpp
+  src/sim/sim_camera.cpp
+  src/sim/sim_devices.cpp
+  src/sim/sim_driver.cpp
+  src/sim/sim_random.hpp
+  src/sim/sim_rig.cpp
   src/sim/synthetic_sky.cpp
   "${_git_revision_cpp}")
 add_library(CloudScope::core ALIAS cloudscope_core)
