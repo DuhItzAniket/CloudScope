@@ -30,7 +30,12 @@ Later tiers (hardware-in-the-loop, user interface) get their own executables in 
   - `data_path("sky/ccsn_cu_n001.jpg")`: a fixture from `tests/data`.
   - `wait_until(condition, timeout)`: runs the Qt event loop until the condition holds; with `QSignalSpy` (Qt Test) this covers signals, timers and queued calls. Test executables have a `QCoreApplication`.
   - `ManualClock` (core, `clock.hpp`) wherever code takes an `IClock&`: tests never sleep to make time pass.
+- Mock devices in `tests/support/mock_devices.hpp` (`MockCamera`, `MockMount`, `MockImu`, `MockSensor`, `PipeTransport`, `MockInference`, `MockDriver`): for code that uses a device. They never wait and can be made to lose frames, fall silent, be unplugged or report a fault. See [`hal.md`](hal.md).
 - Tests that start the application redirect its configuration folders into a temporary home (see `Home` in `tests/integration/test_cli_info.cpp`), so a developer's own settings are never read or changed.
+
+## Contract tests for devices
+
+The rules of the hardware interfaces are test functions in `tests/contract/hal_contract.hpp` (`check_camera_contract`, `check_mount_contract`, ...). Every implementation of an interface runs them: a mock, a simulator or a real driver that passes can stand in for any other. A new driver starts with one test case that calls the contract for its interface; what the contracts check is listed in [`hal.md`](hal.md).
 
 ## Test data
 

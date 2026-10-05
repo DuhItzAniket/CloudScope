@@ -31,6 +31,13 @@ add_library(cloudscope_core STATIC
   include/cloudscope/common/signal.hpp
   include/cloudscope/common/spsc_queue.hpp
   include/cloudscope/common/units.hpp
+  include/cloudscope/hal/camera.hpp
+  include/cloudscope/hal/device.hpp
+  include/cloudscope/hal/inference.hpp
+  include/cloudscope/hal/mount.hpp
+  include/cloudscope/hal/registry.hpp
+  include/cloudscope/hal/sensors.hpp
+  include/cloudscope/hal/transport.hpp
   include/cloudscope/sim/synthetic_sky.hpp
   src/capture/frame.cpp
   src/capture/frame_hub.cpp
@@ -45,6 +52,7 @@ add_library(cloudscope_core STATIC
   src/common/self_test.cpp
   src/common/signal.cpp
   src/common/units.cpp
+  src/hal/hal.cpp
   src/sim/synthetic_sky.cpp
   "${_git_revision_cpp}")
 add_library(CloudScope::core ALIAS cloudscope_core)

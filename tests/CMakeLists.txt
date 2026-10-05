@@ -5,17 +5,28 @@
 
 include(Catch)
 
-# Shared by all test executables: main() with a QCoreApplication, and helpers (fixtures, temporary folders,
-# waiting on the Qt event loop).
+# Shared by all test executables: main() with a QCoreApplication, helpers (fixtures, temporary folders,
+# waiting on the Qt event loop), and mock devices for code that uses the HAL.
 add_library(cloudscope_test_support STATIC
+  support/mock_devices.cpp
+  support/mock_devices.hpp
   support/qt_catch_main.cpp
   support/test_support.cpp
   support/test_support.hpp)
 target_include_directories(cloudscope_test_support PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/support")
 target_compile_definitions(cloudscope_test_support PRIVATE
   "CLOUDSCOPE_TEST_DATA_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/data\"")
-target_link_libraries(cloudscope_test_support PUBLIC Catch2::Catch2 Qt6::Core Qt6::Test)
+target_link_libraries(cloudscope_test_support PUBLIC Catch2::Catch2 Qt6::Core Qt6::Test CloudScope::core)
 cloudscope_target_defaults(cloudscope_test_support)
+
+# The rules of the HAL interfaces as test functions. Every implementation of an interface runs them:
+# mocks and simulators here, real drivers in the hardware-in-the-loop tests.
+add_library(cloudscope_hal_contract STATIC
+  contract/hal_contract.cpp
+  contract/hal_contract.hpp)
+target_include_directories(cloudscope_hal_contract PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/contract")
+target_link_libraries(cloudscope_hal_contract PUBLIC Catch2::Catch2 CloudScope::core)
+cloudscope_target_defaults(cloudscope_hal_contract)
 
 #   cloudscope_add_tests(<target> PREFIX <ctest prefix> SOURCES <files>... [LIBRARIES <targets>...])
 function(cloudscope_add_tests target)
@@ -38,6 +49,8 @@ cloudscope_add_tests(cloudscope_unit_tests
     unit/test_error_units.cpp
     unit/test_executor.cpp
     unit/test_frame.cpp
+    unit/test_hal_mocks.cpp
+    unit/test_hal_registry.cpp
     unit/test_json_schema.cpp
     unit/test_log.cpp
     unit/test_self_test.cpp
@@ -46,6 +59,7 @@ cloudscope_add_tests(cloudscope_unit_tests
     unit/test_synthetic_sky.cpp
     unit/test_test_support.cpp
   LIBRARIES
+    cloudscope_hal_contract
     nlohmann_json::nlohmann_json
     opencv_imgproc
     opencv_imgcodecs)

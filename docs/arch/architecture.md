@@ -152,7 +152,7 @@ flowchart TB
 
 | Component | Key responsibilities | SRS |
 |---|---|---|
-| HAL interfaces | Stable abstractions with capability descriptors; drivers register in a factory | FR-CTL-01 |
+| HAL interfaces | Stable abstractions with capability descriptors (`ICamera`, `IMount`, `IImu`, `ISensor`, `ITransport`, `IInference`); drivers register in a device registry; rules checked by contract tests (`docs/dev/hal.md`) | FR-CTL-01 |
 | Drivers | UVC via Media Foundation (Windows) and V4L2 (Linux); libcamera (Pi CSI); CSDP controller client; Pi 5 GPIO/I2C | FR-CAM-01…, FR-CTL-03…06 |
 | Simulators | Same interfaces as drivers; outputs labelled simulated | FR-CTL-02, NFR-DATA-03 |
 | Acquisition | Timestamps (UTC + monotonic), drop detection, read-back of controls | FR-CAM-04, FR-CAM-08 |
@@ -174,7 +174,7 @@ flowchart TB
 | Thread | Work | Never does |
 |---|---|---|
 | UI (desktop) | Rendering, input | Device I/O, file I/O, inference |
-| Acquisition (per camera) | Read frames, timestamp, push to ring buffer | Encoding, disk writes |
+| Acquisition (per camera) | Pull frames from the camera (`ICamera::read_frame`), push to the frame hub | Encoding, disk writes |
 | Recorder | Encode and write frames from its lossless queue | Block acquisition: if its queue fills, it records a drop and warns |
 | Statistics | Histogram and frame statistics on the latest frame | — |
 | Inference | Latest frame only; drops older frames | Queue frames |
@@ -268,7 +268,7 @@ These conventions match the interim logger (P003) and STRATIA's ray-map definiti
 
 | Path | Container / component |
 |---|---|
-| `core/` | `libcloudscope-core` (subfolders per component group: `devices/`, `capture/`, `recording/`, `geometry/`, `control/`, `autonomy/`, `inference/`, `catalogue/`, `common/`) |
+| `core/` | `libcloudscope-core` (subfolders per component group: `hal/` for the device interfaces, `sim/` for simulators, drivers in folders of their own, `capture/`, `recording/`, `geometry/`, `control/`, `autonomy/`, `inference/`, `catalogue/`, `common/`) |
 | `daemon/` | `cloudscoped` |
 | `apps/desktop/` | CloudScope Desktop |
 | `web/` | Web dashboard |

@@ -4,6 +4,14 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P017 — HAL interfaces (2026-10-06)
+- Added the hardware abstraction layer (`core/include/cloudscope/hal/`): `ICamera`, `IMount`, `IImu`, `ISensor`, `ITransport`, `IInference`, each with a capability description discovered at run time, and a thread-safe `DeviceRegistry` with drivers (`IDriver`) and stable device ids (`<driver>:<rest>`).
+- Cameras are pulled (`read_frame`) rather than pushing from a thread of their own; setting a mode or control returns what is really in effect; devices state whether values are calibrated, positions measured, and data simulated.
+- Added contract tests (`tests/contract/`): the rules of each interface as test functions that every implementation runs.
+- Added mock devices and a mock driver (`tests/support/mock_devices.hpp`) that pass the contracts and can lose frames, fall silent, be unplugged or report a fault on request.
+- 23 new tests (165 on Windows, 164 on Linux, plus the benchmark test in Release); all pass under the address, undefined-behaviour and thread sanitizers.
+- Added `docs/dev/hal.md`; testing guide, style guide, architecture document and README updated.
+
 ### P016 — Threading & event bus (2026-10-04)
 - Added the concurrency building blocks: `SpscQueue` (lock-free), `ThreadPool` and executors (inline, Qt), `Signal` with blocking disconnect, `EventBus`.
 - Added the frame path: `Frame`, `FramePool` (buffers allocated once and reused), `FrameHub` with per-consumer `Queue` (every frame, counted drops) or `Latest` (newest only) delivery.

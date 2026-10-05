@@ -47,6 +47,7 @@ Physical quantities carry their unit in the name unless the type already does: `
 - Structs with several fields are initialised with designated initialisers (`{.code = ..., .message = ...}`), so that fields cannot be swapped silently.
 - Range checks on floating-point input must reject NaN: write `value >= low && value <= high` and negate that, never `value < low || value > high`.
 - State which thread a class lives on in its header comment. Shared state is either immutable, owned by one thread and reached by message passing, or protected by a named mutex. The thread model is in `docs/arch/architecture.md` §4.1; the building blocks and rules are in [`threading.md`](threading.md).
+- Hardware is reached only through the interfaces in `core/include/cloudscope/hal/`; their rules and how to write a driver are in [`hal.md`](hal.md).
 - No blocking I/O on the UI thread or the acquisition thread.
 
 ## Time, logging and configuration
