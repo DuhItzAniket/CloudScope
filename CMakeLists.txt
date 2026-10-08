@@ -42,6 +42,7 @@ include(CloudScopeRuntime)
 add_subdirectory(core)
 add_subdirectory(apps/info)
 add_subdirectory(apps/bench)
+add_subdirectory(apps/camtool)
 
 if(CLOUDSCOPE_BUILD_TESTS)
   enable_testing()

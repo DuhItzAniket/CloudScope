@@ -276,9 +276,12 @@ TEST_CASE("cloudscope-info does not open a dialog when it has no console", "[cli
 }
 #endif
 
-TEST_CASE("cloudscope-info --devices lists the simulated devices of the default configuration", "[cli][info][devices]")
+TEST_CASE("cloudscope-info --devices lists the simulated devices when real cameras are switched off",
+          "[cli][info][devices]")
 {
     const Home home;
+    // The machine running the tests may have cameras; the list of simulated devices is exact only without them.
+    Home::write(home.user_config(), "schema_version = 1\n[camera]\nuvc = false\n");
     const RunResult result = run_info({QStringLiteral("--devices"), QStringLiteral("--json")}, &home);
     REQUIRE(result.finished);
     CHECK(result.exit_code == 0);
@@ -312,11 +315,34 @@ TEST_CASE("cloudscope-info --devices lists the simulated devices of the default 
     CHECK_THAT(text.out, !ContainsSubstring("Configuration in effect"));
 }
 
+TEST_CASE("cloudscope-info --devices lists real USB cameras before the simulated devices", "[cli][info][devices]")
+{
+    const Home home;  // the default configuration: [camera] uvc = true
+    const RunResult result = run_info({QStringLiteral("--devices"), QStringLiteral("--json")}, &home);
+    REQUIRE(result.finished);
+    CHECK(result.exit_code == 0);
+    const nlohmann::json devices = nlohmann::json::parse(result.out).at("devices");
+    REQUIRE(devices.size() >= 5);  // the simulated ones are always there; cameras depend on the machine
+    bool seen_simulated = false;
+    for (const nlohmann::json& device : devices) {
+        const std::string driver = device.at("driver");
+        if (driver == "uvc") {
+            CHECK_FALSE(seen_simulated);  // real devices come first
+            CHECK(device.at("simulated") == false);
+            CHECK(device.at("kind") == "camera");
+            CHECK(std::string(device.at("id")).rfind("uvc:", 0) == 0);
+        } else {
+            CHECK(driver == "sim");
+            seen_simulated = true;
+        }
+    }
+}
+
 TEST_CASE("cloudscope-info --devices follows the simulation settings", "[cli][info][devices][config]")
 {
     const Home home;
 
-    Home::write(home.user_config(), "schema_version = 1\n[simulation]\nenabled = false\n");
+    Home::write(home.user_config(), "schema_version = 1\n[camera]\nuvc = false\n[simulation]\nenabled = false\n");
     const RunResult off = run_info({QStringLiteral("--devices"), QStringLiteral("--json")}, &home);
     REQUIRE(off.finished);
     CHECK(off.exit_code == 0);
@@ -327,8 +353,8 @@ TEST_CASE("cloudscope-info --devices follows the simulation settings", "[cli][in
 
     // With a folder of pictures, the replay camera appears.
     const std::u8string folder = (cloudscope::test::data_dir() / "sky").generic_u8string();
-    const std::string with_replay =
-        "schema_version = 1\n[simulation]\nreplay_folder = \"" + std::string(folder.begin(), folder.end()) + "\"\n";
+    const std::string with_replay = "schema_version = 1\n[camera]\nuvc = false\n[simulation]\nreplay_folder = \"" +
+                                    std::string(folder.begin(), folder.end()) + "\"\n";
     Home::write(home.user_config(), with_replay.c_str());
     const RunResult replay = run_info({QStringLiteral("--devices"), QStringLiteral("--json")}, &home);
     REQUIRE(replay.finished);

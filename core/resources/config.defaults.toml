@@ -22,6 +22,10 @@ max_file_mb = 10
 # Number of log files kept: cloudscope.log plus cloudscope.1.log, cloudscope.2.log, ...
 max_files = 5
 
+[camera]
+# Offer the computer's USB video cameras and built-in webcams (UVC) as devices.
+uvc = true
+
 [simulation]
 # Offer simulated devices (sky camera, pan-tilt mount, IMU, GPS receiver, environment sensors) next to real
 # ones. Everything they deliver is labelled as simulated.

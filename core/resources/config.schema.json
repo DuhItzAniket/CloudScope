@@ -4,7 +4,7 @@
   "title": "CloudScope configuration (config.toml), format version 1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "logging", "simulation"],
+  "required": ["schema_version", "logging", "camera", "simulation"],
   "properties": {
     "schema_version": {
       "description": "Version of the file format. CloudScope migrates older files automatically.",
@@ -44,6 +44,18 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100
+        }
+      }
+    },
+    "camera": {
+      "description": "Real cameras.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uvc"],
+      "properties": {
+        "uvc": {
+          "description": "Offer the computer's USB video cameras and built-in webcams (UVC) as devices.",
+          "type": "boolean"
         }
       }
     },

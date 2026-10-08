@@ -16,8 +16,16 @@ add_custom_target(cloudscope_git_revision
 
 add_library(cloudscope_core STATIC
   include/cloudscope/app/devices.hpp
+  include/cloudscope/capture/acquisition.hpp
+  include/cloudscope/capture/calibration_frames.hpp
+  include/cloudscope/capture/recording.hpp
+  include/cloudscope/capture/solar.hpp
+  include/cloudscope/capture/video_files.hpp
+  include/cloudscope/capture/decode.hpp
+  include/cloudscope/capture/exposure.hpp
   include/cloudscope/capture/frame.hpp
   include/cloudscope/capture/frame_hub.hpp
+  include/cloudscope/capture/statistics.hpp
   include/cloudscope/common/app_config.hpp
   include/cloudscope/common/build_info.hpp
   include/cloudscope/common/clock.hpp
@@ -46,9 +54,19 @@ add_library(cloudscope_core STATIC
   include/cloudscope/sim/sim_driver.hpp
   include/cloudscope/sim/sim_rig.hpp
   include/cloudscope/sim/synthetic_sky.hpp
+  include/cloudscope/uvc/uvc_camera.hpp
+  include/cloudscope/uvc/uvc_driver.hpp
   src/app/devices.cpp
+  src/capture/acquisition.cpp
+  src/capture/calibration_frames.cpp
+  src/capture/recording.cpp
+  src/capture/solar.cpp
+  src/capture/video_files.cpp
+  src/capture/decode.cpp
+  src/capture/exposure.cpp
   src/capture/frame.cpp
   src/capture/frame_hub.cpp
+  src/capture/statistics.cpp
   src/common/app_config.cpp
   src/common/build_info.cpp
   src/common/clock.cpp
@@ -70,8 +88,19 @@ add_library(cloudscope_core STATIC
   src/sim/sim_random.hpp
   src/sim/sim_rig.cpp
   src/sim/synthetic_sky.cpp
+  src/uvc/uvc_backend.hpp
+  src/uvc/uvc_camera.cpp
+  src/uvc/uvc_driver.cpp
   "${_git_revision_cpp}")
 add_library(CloudScope::core ALIAS cloudscope_core)
+
+# One capture backend per platform: Media Foundation on Windows, Video4Linux2 elsewhere.
+if(WIN32)
+  target_sources(cloudscope_core PRIVATE src/uvc/mf_backend.cpp)
+  target_link_libraries(cloudscope_core PRIVATE mf mfplat mfreadwrite mfuuid strmiids ole32)
+else()
+  target_sources(cloudscope_core PRIVATE src/uvc/v4l2_backend.cpp)
+endif()
 add_dependencies(cloudscope_core cloudscope_git_revision)
 set_target_properties(cloudscope_core PROPERTIES OUTPUT_NAME cloudscope-core)
 
@@ -81,7 +110,8 @@ qt_add_resources(cloudscope_core "cloudscope_core_resources"
   BASE "resources"
   FILES
     resources/config.defaults.toml
-    resources/config.schema.json)
+    resources/config.schema.json
+    resources/sidecar.schema.json)
 
 target_include_directories(cloudscope_core
   PUBLIC  "${CMAKE_CURRENT_SOURCE_DIR}/include"

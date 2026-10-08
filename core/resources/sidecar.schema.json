@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DuhItzAniket/CloudScope/blob/master/core/resources/sidecar.schema.json",
+  "title": "CloudScope frame sidecar (cloudscope.frame/1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "file", "capture", "camera", "software"],
+  "properties": {
+    "schema": { "type": "string", "const": "cloudscope.frame/1" },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "format", "bytes", "sha256", "width", "height", "channels", "bit_depth"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "format": { "enum": ["png", "tiff16", "jpeg", "fits"] },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "channels": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "bit_depth": { "enum": [8, 16] }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["utc", "utc_unix_ms", "mjd", "monotonic_ns", "sequence", "time_source", "simulated"],
+      "properties": {
+        "utc": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}\\+00:00$" },
+        "utc_unix_ms": { "type": "integer" },
+        "mjd": { "type": "number" },
+        "monotonic_ns": { "type": "integer" },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "time_source": { "enum": ["host", "ntp", "gps-pps"] },
+        "simulated": { "type": "boolean" }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "mode", "controls"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "mode": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height", "format", "fps"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "format": { "type": "string" },
+            "fps": { "type": "number", "minimum": 0 }
+          }
+        },
+        "exposure_ms": { "type": "number", "minimum": 0 },
+        "gain": { "type": "number" },
+        "controls": { "type": "object" },
+        "calibration_id": { "type": "string" }
+      }
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "latitude_deg", "longitude_deg", "altitude_m"],
+      "properties": {
+        "id": { "type": "string" },
+        "latitude_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+        "altitude_m": { "type": "number" }
+      }
+    },
+    "pointing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["azimuth_deg", "elevation_deg", "source"],
+      "properties": {
+        "azimuth_deg": { "type": "number", "minimum": 0, "maximum": 360 },
+        "elevation_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "source": { "type": "string" }
+      }
+    },
+    "sun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["azimuth_deg", "elevation_deg"],
+      "properties": {
+        "azimuth_deg": { "type": "number", "minimum": 0, "maximum": 360 },
+        "elevation_deg": { "type": "number", "minimum": -90, "maximum": 90 }
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mean", "median", "std_dev", "clipped_fraction", "dark_fraction", "noise_sigma", "sharpness", "sun"],
+      "properties": {
+        "mean": { "type": "number" },
+        "median": { "type": "number" },
+        "std_dev": { "type": "number" },
+        "clipped_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "dark_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "noise_sigma": { "type": "number" },
+        "sharpness": { "type": "number" },
+        "sun": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["found"],
+          "properties": {
+            "found": { "type": "boolean" },
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "radius_px": { "type": "number" },
+            "area_px": { "type": "number" },
+            "fill": { "type": "number" }
+          }
+        }
+      }
+    },
+    "session_id": { "type": "string" },
+    "software": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "git_revision"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "git_revision": { "type": "string" }
+      }
+    }
+  }
+}

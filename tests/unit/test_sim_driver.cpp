@@ -242,6 +242,7 @@ TEST_CASE("the application's registry holds the simulators unless they are switc
 {
     const ManualClock clock(kStart);
     nlohmann::json effective = app_config_format().defaults();
+    effective["camera"]["uvc"] = false;  // this test is about the simulators; real cameras are P019's
 
     hal::DeviceRegistry registry;
     REQUIRE(outcome(add_configured_drivers(registry, effective, clock)) == "ok");
