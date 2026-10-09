@@ -221,7 +221,8 @@ TEST_CASE("the checkerboard detector finds the inner corners of a rendered board
     CHECK(detect_checkerboard(colour, kBoard));
     CHECK(detect_checkerboard(cv::Mat(480, 640, CV_8UC1, cv::Scalar(128)), kBoard).error().code == ErrorCode::NotFound);
     CHECK(detect_checkerboard(cv::Mat(), kBoard).error().code == ErrorCode::InvalidArgument);
-    CHECK(detect_checkerboard(image, BoardSpec{.columns = 2, .rows = 2}).error().code == ErrorCode::InvalidArgument);
+    CHECK(detect_checkerboard(image, BoardSpec{.columns = 2, .rows = 2, .square_mm = 25.0}).error().code ==
+          ErrorCode::InvalidArgument);
 }
 
 TEST_CASE("the capture assistant keeps views that cover new ground", "[calibration][intrinsics]")

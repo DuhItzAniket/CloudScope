@@ -284,7 +284,7 @@ struct Measurement {
     double seconds = 0.0;
     double fps = 0.0;
     std::size_t bytes = 0;  // of the last frame
-    std::optional<Error> error;
+    std::optional<Error> error = std::nullopt;
 };
 
 Measurement measure_mode(hal::ICamera& camera, const CameraMode& mode, double seconds,
@@ -1106,8 +1106,9 @@ int command_sequence(Context& context, const std::string& id, const std::optiona
     std::unique_ptr<Catalogue> catalogue;
     if (!options.session_root.empty()) {
         const std::filesystem::path root(QString::fromStdString(options.session_root).toStdU16String());
-        auto created =
-            Session::create(root, site.value_or(SiteInfo{.id = "site"}), (*camera)->info(), context.clock.now_utc());
+        auto created = Session::create(
+            root, site.value_or(SiteInfo{.id = "site", .latitude_deg = 0.0, .longitude_deg = 0.0, .altitude_m = 0.0}),
+            (*camera)->info(), context.clock.now_utc());
         if (!created) {
             print_error(created.error().to_string());
             return kExitFailed;
@@ -1127,7 +1128,7 @@ int command_sequence(Context& context, const std::string& id, const std::optiona
         print(fmt::format("Session {} in {}\n", session->info().id, session->info().folder.string()));
     }
     auto hub = std::make_shared<FrameHub>();
-    Acquisition acquisition(*camera, hub, context.clock, {.read_timeout = context.timeout});
+    Acquisition acquisition(*camera, hub, context.clock, {.pool_frames = 6, .read_timeout = context.timeout});
     if (auto started = acquisition.start(); !started) {
         print_error(started.error().to_string());
         return kExitFailed;

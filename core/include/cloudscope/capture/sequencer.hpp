@@ -48,10 +48,11 @@ struct CaptureProfile {
     std::string name = "day";
     ImageFileFormat format = ImageFileFormat::Png;
     int jpeg_quality = 92;
-    std::optional<double> exposure_ms;  // fixed exposure; empty: leave the camera's exposure control alone
-    std::optional<double> gain;         // fixed gain; empty: leave it alone
-    bool automatic_exposure = false;    // ask the camera for automatic exposure (ignored when exposure_ms is set)
-    bool keep_native_jpeg = true;       // MJPEG frames into JPEG files are stored as the camera sent them
+    std::optional<double> exposure_ms =
+        std::nullopt;                           // fixed exposure; empty: leave the camera's exposure control alone
+    std::optional<double> gain = std::nullopt;  // fixed gain; empty: leave it alone
+    bool automatic_exposure = false;  // ask the camera for automatic exposure (ignored when exposure_ms is set)
+    bool keep_native_jpeg = true;     // MJPEG frames into JPEG files are stored as the camera sent them
 };
 
 struct CapturePlan {
@@ -61,14 +62,15 @@ struct CapturePlan {
     std::uint32_t count = 1;
     std::chrono::milliseconds interval{0};
     std::vector<double> bracket_stops = {-2.0, 0.0, 2.0};  // photographic stops around the current exposure
-    std::optional<UtcTime> start_at;                       // Scheduled: when to begin
-    std::optional<UtcTime> end_at;                         // when to stop, if before `count`
-    std::optional<std::chrono::milliseconds> duration;     // how long to run at most, from the start of run()
+    std::optional<UtcTime> start_at = std::nullopt;        // Scheduled: when to begin
+    std::optional<UtcTime> end_at = std::nullopt;          // when to stop, if before `count`
+    std::optional<std::chrono::milliseconds> duration =
+        std::nullopt;  // how long to run at most, from the start of run()
     CaptureProfile day;
     CaptureProfile night{.name = "night"};
     double night_below_sun_elevation_deg = -6.0;  // night profile when the Sun is below this (civil dusk)
     // Pause (take nothing, keep waiting) while the Sun is below this; resumes when it rises above. Needs a site.
-    std::optional<double> pause_below_sun_elevation_deg;
+    std::optional<double> pause_below_sun_elevation_deg = std::nullopt;
     std::filesystem::path folder;
     // Tokens: {site} {camera} {utc} (20261009T101530_123Z) {date} (20261009) {seq} (000042) {profile} {kind}.
     std::string filename_template = "{site}_{utc}_{seq}_{profile}";
@@ -103,7 +105,7 @@ struct SequencerStats {
     std::uint32_t recoveries = 0;  // times the camera was brought back (FR-SEQ-05)
     bool paused = false;
     std::string current_profile;
-    std::optional<Error> last_error;
+    std::optional<Error> last_error = std::nullopt;
     bool stopped_by_request = false;
     bool stopped_by_disk_guard = false;
     bool stopped_by_failures = false;  // max_consecutive_failures reached, or the camera could not be recovered
@@ -166,8 +168,8 @@ private:
     std::shared_ptr<hal::ICamera> camera_;
     std::shared_ptr<FrameHub> hub_;
     const IClock& clock_;
-    std::optional<SiteInfo> site_;
-    std::optional<PointingInfo> pointing_;
+    std::optional<SiteInfo> site_ = std::nullopt;
+    std::optional<PointingInfo> pointing_ = std::nullopt;
     std::string calibration_id_;
     std::string session_id_;
     std::function<void(const CapturedPicture&)> on_picture_;

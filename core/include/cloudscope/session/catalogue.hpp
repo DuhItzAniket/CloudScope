@@ -40,12 +40,12 @@ struct FrameEntry {
     std::string sha256;
     int width = 0;
     int height = 0;
-    std::optional<double> exposure_ms;
-    std::optional<double> gain;
-    std::optional<double> mean;
-    std::optional<double> clipped_fraction;
-    std::optional<double> sun_elevation_deg;
-    std::optional<double> sun_azimuth_deg;
+    std::optional<double> exposure_ms = std::nullopt;
+    std::optional<double> gain = std::nullopt;
+    std::optional<double> mean = std::nullopt;
+    std::optional<double> clipped_fraction = std::nullopt;
+    std::optional<double> sun_elevation_deg = std::nullopt;
+    std::optional<double> sun_azimuth_deg = std::nullopt;
     std::string profile;
     bool simulated = false;
 };
@@ -57,16 +57,16 @@ struct FrameEntry {
                                                             std::string session_id);
 
 struct FrameQuery {
-    std::optional<std::string> session_id;
-    std::optional<UtcTime> from;  // inclusive
-    std::optional<UtcTime> to;    // exclusive
+    std::optional<std::string> session_id = std::nullopt;
+    std::optional<UtcTime> from = std::nullopt;  // inclusive
+    std::optional<UtcTime> to = std::nullopt;    // exclusive
     std::size_t limit = 1000;
     bool newest_first = false;
 };
 
 struct RetentionPolicy {
-    std::optional<std::uintmax_t> max_bytes;    // keep the newest pictures up to this many bytes
-    std::optional<std::chrono::hours> max_age;  // remove pictures older than this
+    std::optional<std::uintmax_t> max_bytes = std::nullopt;    // keep the newest pictures up to this many bytes
+    std::optional<std::chrono::hours> max_age = std::nullopt;  // remove pictures older than this
 };
 
 struct RetentionResult {

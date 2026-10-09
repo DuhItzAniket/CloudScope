@@ -57,12 +57,12 @@ struct CaptureRecord {
     std::string camera_id;
     std::string camera_name;
     std::map<std::string, hal::ControlSetting> controls;  // by control name ("exposure", ...), as read back
-    std::optional<double> exposure_ms;                    // the effective exposure, if the camera has the control
-    std::optional<double> gain;
-    std::optional<SiteInfo> site;
-    std::optional<PointingInfo> pointing;
-    std::optional<SunInfo> sun;
-    std::optional<FrameStatistics> statistics;
+    std::optional<double> exposure_ms = std::nullopt;     // the effective exposure, if the camera has the control
+    std::optional<double> gain = std::nullopt;
+    std::optional<SiteInfo> site = std::nullopt;
+    std::optional<PointingInfo> pointing = std::nullopt;
+    std::optional<SunInfo> sun = std::nullopt;
+    std::optional<FrameStatistics> statistics = std::nullopt;
     std::string calibration_id;  // of the dark/flat/intrinsic calibration applied or to apply; empty if none
     std::string session_id;
 };
@@ -116,10 +116,10 @@ struct SidecarSummary {
     UtcTime utc{};
     std::uint64_t sequence = 0;
     bool simulated = false;
-    std::optional<double> exposure_ms;
-    std::optional<SiteInfo> site;
-    std::optional<PointingInfo> pointing;
-    std::optional<SunInfo> sun;
+    std::optional<double> exposure_ms = std::nullopt;
+    std::optional<SiteInfo> site = std::nullopt;
+    std::optional<PointingInfo> pointing = std::nullopt;
+    std::optional<SunInfo> sun = std::nullopt;
     int width = 0;
     int height = 0;
 };

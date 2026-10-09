@@ -33,7 +33,7 @@ struct SessionInfo {
     std::string camera_id;
     std::string camera_name;
     UtcTime started{};
-    std::optional<UtcTime> ended;
+    std::optional<UtcTime> ended = std::nullopt;
     std::uint32_t frames = 0;  // pictures recorded through record_picture()
     std::uint64_t bytes = 0;   // of those pictures
     std::string notes;
