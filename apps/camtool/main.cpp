@@ -451,7 +451,7 @@ Expected<double> mean_luma(hal::ICamera& camera, Frame& frame, int skip, int cou
     if (taken == 0) {
         return fail(ErrorCode::Timeout, "no frames arrived");
     }
-    return sum / taken;
+    return sum / static_cast<double>(taken);
 }
 
 int command_exposure_test(Context& context, const std::string& id, const std::optional<CameraMode>& wanted,
@@ -580,7 +580,7 @@ Expected<StreamSummary> run_stream(Context& context, hal::ICamera& camera, const
                 "{:>6.0f} s  {:6.1f} fps (recent {:5.1f})  frames {:>7}  lost {:>4}  timeouts {:>3}  misses {:>3}  "
                 "latency {:5.1f}/{:5.1f} ms  decode {:5.1f} ms  luma {:5.1f}  clipped {:5.2f}%  rss {:6.1f} MiB\n",
                 std::chrono::duration<double>(SteadyClock::now() - start).count(), s.fps, s.recent_fps, s.frames,
-                s.lost, s.timeouts, s.pool_misses, s.latency_mean.count() / 1000.0, s.latency_max.count() / 1000.0,
+                s.lost, s.timeouts, s.pool_misses, static_cast<double>(s.latency_mean.count()) / 1000.0, static_cast<double>(s.latency_max.count()) / 1000.0,
                 summary.decoded ? decode_sum_ms / static_cast<double>(summary.decoded) : 0.0, summary.last.mean,
                 summary.last.clipped_fraction * 100.0, resident_mib()));
         }
@@ -619,8 +619,8 @@ int command_stream(Context& context, const std::string& id, const std::optional<
         "\nResult: {} frames in {:.1f} s = {:.2f} fps; lost {}, timeouts {}, pool misses {}, errors {}; latency "
         "mean {:.1f} ms, max {:.1f} ms; decode {:.2f} ms per frame; last frame {} bytes, luma {:.1f}, clipped "
         "{:.2f}%, noise {:.1f}, sun {}\n",
-        s.frames, s.elapsed.count() / 1000.0, s.fps, s.lost, s.timeouts, s.pool_misses, s.errors,
-        s.latency_mean.count() / 1000.0, s.latency_max.count() / 1000.0, summary->decode_ms_mean, summary->last_bytes,
+        s.frames, static_cast<double>(s.elapsed.count()) / 1000.0, s.fps, s.lost, s.timeouts, s.pool_misses, s.errors,
+        static_cast<double>(s.latency_mean.count()) / 1000.0, static_cast<double>(s.latency_max.count()) / 1000.0, summary->decode_ms_mean, summary->last_bytes,
         summary->last.mean, summary->last.clipped_fraction * 100.0, summary->last.noise_sigma,
         summary->last.sun.found ? fmt::format("at ({:.0f}, {:.0f}) r={:.0f} px", summary->last.sun.x,
                                               summary->last.sun.y, summary->last.sun.radius_px)
@@ -668,9 +668,9 @@ int command_soak(Context& context, const std::string& id, const std::optional<Ca
         "\nSoak result: {} frames in {:.1f} min = {:.2f} fps (nominal {:g}); lost {} ({:.3f}%), timeouts {}, pool "
         "misses {}, errors {}; latency mean {:.1f} ms, max {:.1f} ms; resident memory {:.1f} -> {:.1f} MiB ({:+.1f}); "
         "decode {:.2f} ms per frame.\n",
-        s.frames, s.elapsed.count() / 60000.0, s.fps, mode->fps, s.lost,
+        s.frames, static_cast<double>(s.elapsed.count()) / 60000.0, s.fps, mode->fps, s.lost,
         s.frames + s.lost > 0 ? 100.0 * static_cast<double>(s.lost) / static_cast<double>(s.frames + s.lost) : 0.0,
-        s.timeouts, s.pool_misses, s.errors, s.latency_mean.count() / 1000.0, s.latency_max.count() / 1000.0, rss_start,
+        s.timeouts, s.pool_misses, s.errors, static_cast<double>(s.latency_mean.count()) / 1000.0, static_cast<double>(s.latency_max.count()) / 1000.0, rss_start,
         rss_end, rss_end - rss_start, summary->decode_ms_mean);
     print(verdict);
     if (!report_file.empty()) {
