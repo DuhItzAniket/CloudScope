@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Current stage | Stage C — Camera subsystem (P019–P032) in progress: P019–P031 done on 2026-10-09 with the Arducam B0268 on the development laptop; P032 (soak) running. Stages A and B complete (tag `stage-B-complete`) |
-| Last completed phase | P031 — Intrinsic calibration tool |
-| Next phase | P032 — Camera soak test |
+| Current stage | Stage C — Camera subsystem (P019–P032) complete on the laptop as of 2026-10-09 (P032 PARTIAL: the 24 h and Raspberry Pi 5 soak are owner items). Next: Stage D — Desktop application, P033 App shell. Stages A and B complete (tag `stage-B-complete`) |
+| Last completed phase | P032 — Camera soak test (PARTIAL) |
+| Next phase | P033 — App shell |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Last CI result checked | `7f606a2` (P018, tag `stage-B-complete`): all ten jobs green; coverage 96.3 % of core-library lines. (The two runs before it lost jobs to GitHub's Actions incident of 5 Oct 2026, not to failures.) |
@@ -47,3 +47,4 @@
 | P029 | Capture sequencer | DONE | 2026-10-09 |
 | P030 | Sessions & catalogue | DONE | 2026-10-09 |
 | P031 | Intrinsic calibration tool | DONE | 2026-10-09 |
+| P032 | Camera soak test | PARTIAL | 2026-10-09 |

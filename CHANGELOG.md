@@ -4,6 +4,10 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P032 — Camera soak test (2026-10-09, PARTIAL)
+- One-hour soak of the Arducam B0268 at 1920x1080 MJPEG through the acquisition, decode and statistics path (Release build): 101,122 frames at 28.1 fps, 4 lost (0.004 %), no timeouts, errors or pool misses, latency 0.3 ms mean / 1.6 ms max, resident memory flat (+0.7 MiB over the hour), decode 4.4 ms per frame. Report in `docs/hardware/b0268_soak.md`. The 24 h and Raspberry Pi 5 parts of the exit criterion are not run (no Pi; owner's time).
+- Stage C (camera subsystem) complete on the laptop: 285 tests in Release, 284 in Debug, all passing; sources formatted with clang-format 19; portability fixes for GCC's warning set (shadowed member names, float promotion, missing includes).
+
 ### P031 — Intrinsic calibration tool (2026-10-09)
 - Added intrinsic calibration (`calibration/intrinsics.hpp`): checkerboard detection, a capture assistant that keeps the views that cover new parts of the image, OpenCV fisheye and pinhole fits, reprojection error, pixel ↔ ray, and the camera-model file (schema `cloudscope.camera_model/1`) that STRATIA's camera models read.
 - `cloudscope-camtool calibrate` runs the assistant on a live camera or on a folder of pictures. OpenCV's `calib3d` module joins the dependencies.
