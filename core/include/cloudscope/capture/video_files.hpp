@@ -26,7 +26,7 @@
 
 namespace cloudscope {
 
-enum class SerColour : std::int32_t { Mono = 0, Rgb = 100, Bgr = 101 };
+enum class SerColour : std::uint8_t { Mono = 0, Rgb = 100, Bgr = 101 };  // stored as int32 in the file
 
 struct SerHeader {
     SerColour colour = SerColour::Mono;

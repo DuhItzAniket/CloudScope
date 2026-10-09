@@ -96,7 +96,7 @@ public:
     [[nodiscard]] Expected<std::int64_t> add_frame(const FrameEntry& frame);
     // Inserts many frames in one transaction.
     [[nodiscard]] Expected<void> add_frames(const std::vector<FrameEntry>& entries);
-    [[nodiscard]] Expected<std::vector<FrameEntry>> frames(const FrameQuery& query) const;
+    [[nodiscard]] Expected<std::vector<FrameEntry>> frames(const FrameQuery& wanted) const;
     [[nodiscard]] Expected<std::optional<FrameEntry>> frame_at(const std::filesystem::path& path) const;
     [[nodiscard]] Expected<std::uint64_t> count(const std::optional<std::string>& session_id = std::nullopt) const;
     [[nodiscard]] Expected<std::uint64_t> total_bytes() const;

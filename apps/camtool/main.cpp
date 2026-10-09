@@ -158,11 +158,11 @@ std::optional<CameraMode> parse_mode(const std::string& text)
             std::string format = text.substr(end + 1);
             std::ranges::transform(format, format.begin(),
                                    [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-            constexpr std::array<PixelFormat, 6> formats = {PixelFormat::Gray8, PixelFormat::Gray16,
-                                                            PixelFormat::Bgr8,  PixelFormat::Rgb8,
-                                                            PixelFormat::Yuyv,  PixelFormat::Mjpeg};
+            constexpr std::array<PixelFormat, 6> kFormats = {PixelFormat::Gray8, PixelFormat::Gray16,
+                                                             PixelFormat::Bgr8,  PixelFormat::Rgb8,
+                                                             PixelFormat::Yuyv,  PixelFormat::Mjpeg};
             bool known = false;
-            for (const PixelFormat candidate : formats) {
+            for (const PixelFormat candidate : kFormats) {
                 if (format == to_string(candidate)) {
                     mode.format = candidate;
                     known = true;
@@ -1204,7 +1204,9 @@ int command_sequence(Context& context, const std::string& id, const std::optiona
             return kExitFailed;
         }
         bundle = std::move(*session);
-        plan->folder = bundle.session->frames_folder();
+        if (bundle.session.has_value()) {
+            plan->folder = bundle.session->frames_folder();
+        }
     }
     auto hub = std::make_shared<FrameHub>();
     Acquisition acquisition(camera, hub, context.clock, {.pool_frames = 6, .read_timeout = context.timeout});

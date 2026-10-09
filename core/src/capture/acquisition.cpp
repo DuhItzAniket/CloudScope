@@ -88,7 +88,7 @@ void Acquisition::run()
 {
     std::optional<std::uint64_t> expected;
     while (!stop_requested_.load()) {
-        std::shared_ptr<Frame> pooled = pool_->acquire();
+        const std::shared_ptr<Frame> pooled = pool_->acquire();
         Frame& target = pooled ? *pooled : *scratch_;
         const auto read = camera_->read_frame(target, options_.read_timeout);
         if (!read) {

@@ -140,7 +140,7 @@ Expected<VignettingModel> fit_vignetting(const cv::Mat& flat)
     std::vector<double> sums(kBins, 0.0);
     std::vector<double> counts(kBins, 0.0);
     for (int y = 0; y < luma.rows; ++y) {
-        const float* row = luma.ptr<float>(y);
+        const auto* row = luma.ptr<float>(y);
         for (int x = 0; x < luma.cols; ++x) {
             const double r = std::hypot(x - model.centre_x, y - model.centre_y) / half_diagonal;
             const int bin = std::min(static_cast<int>(r * kBins), kBins - 1);
@@ -165,7 +165,7 @@ Expected<VignettingModel> fit_vignetting(const cv::Mat& flat)
     double t2 = 0.0;
     double t4 = 0.0;
     for (int bin = 0; bin < kBins; ++bin) {
-        const std::size_t i = static_cast<std::size_t>(bin);
+        const auto i = static_cast<std::size_t>(bin);
         if (counts[i] <= 0.0) {
             continue;
         }
@@ -189,7 +189,7 @@ Expected<VignettingModel> fit_vignetting(const cv::Mat& flat)
     double residual = 0.0;
     double total = 0.0;
     for (int bin = 0; bin < kBins; ++bin) {
-        const std::size_t i = static_cast<std::size_t>(bin);
+        const auto i = static_cast<std::size_t>(bin);
         if (counts[i] <= 0.0) {
             continue;
         }
@@ -208,7 +208,7 @@ cv::Mat vignetting_gain(const VignettingModel& model, const cv::Size& size)
     cv::Mat gain(size, CV_32FC1);
     const double half_diagonal = 0.5 * std::hypot(size.width - 1.0, size.height - 1.0);
     for (int y = 0; y < size.height; ++y) {
-        float* row = gain.ptr<float>(y);
+        auto* row = gain.ptr<float>(y);
         for (int x = 0; x < size.width; ++x) {
             const double r = std::hypot(x - model.centre_x, y - model.centre_y) / half_diagonal;
             const double g = 1.0 + model.a * r * r + model.b * r * r * r * r;
@@ -265,8 +265,8 @@ Expected<cv::Mat> read_image(const std::filesystem::path& file)
     if (!in) {
         return fail(ErrorCode::NotFound, fmt::format("could not read {}", file.string()));
     }
-    std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    const cv::Mat image = cv::imdecode(bytes, cv::IMREAD_UNCHANGED);
+    const std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    cv::Mat image = cv::imdecode(bytes, cv::IMREAD_UNCHANGED);
     if (image.empty()) {
         return fail(ErrorCode::Parse, fmt::format("{} is not an image this build can decode", file.string()));
     }
@@ -304,7 +304,7 @@ Expected<MasterFrame> load_master(const std::filesystem::path& file)
     if (!read) {
         return fail(read.error());
     }
-    const cv::Mat stored = *read;
+    const cv::Mat& stored = *read;
     std::ifstream in(std::filesystem::path(file.native() + std::filesystem::path(".json").native()), std::ios::binary);
     if (!in) {
         return fail(ErrorCode::NotFound, fmt::format("could not read {}.json", file.string()));

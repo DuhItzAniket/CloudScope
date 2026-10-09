@@ -146,12 +146,38 @@ public:
     [[nodiscard]] SequencerStats stats() const;
 
     // The profile for a Sun elevation (night below the plan's threshold); the day profile when there is no site.
-    [[nodiscard]] const CaptureProfile& profile_for(const CapturePlan& plan,
-                                                    std::optional<double> sun_elevation_deg) const;
+    [[nodiscard]] static const CaptureProfile& profile_for(const CapturePlan& plan,
+                                                           std::optional<double> sun_elevation_deg);
 
 private:
     struct Run;
     enum class Outcome : std::uint8_t { Continue, Stopped, Ended };
+    enum class Reason : std::uint8_t { Done, Request, DiskGuard, Failures };
+
+    // Clears the running flag when a run() leaves, however it leaves.
+    class RunningGuard {
+    public:
+        explicit RunningGuard(std::atomic<bool>& flag) : flag_(flag) {}
+        ~RunningGuard() { flag_.store(false); }
+        RunningGuard(const RunningGuard&) = delete;
+        RunningGuard& operator=(const RunningGuard&) = delete;
+        RunningGuard(RunningGuard&&) = delete;
+        RunningGuard& operator=(RunningGuard&&) = delete;
+
+    private:
+        std::atomic<bool>& flag_;
+    };
+
+    [[nodiscard]] static Reason reason_of(Outcome outcome);
+    [[nodiscard]] SequencerStats finish(const Run& current, Reason reason);
+    void count_written(Run& current, const CapturedPicture& picture);
+    void count_failed(Run& current, const Error& error);
+    void settle(Run& current);
+    [[nodiscard]] const CaptureProfile& choose_profile(Run& current);
+    [[nodiscard]] std::optional<Reason> after_failure(Run& current, const Error& error);
+    [[nodiscard]] Outcome wait_for_slot(Run& current);
+    [[nodiscard]] Expected<SequencerStats> run_bracket(Run& current);
+    [[nodiscard]] Expected<SequencerStats> run_series(Run& current);
 
     [[nodiscard]] Expected<void> apply_profile(const CaptureProfile& profile);
     [[nodiscard]] Expected<CapturedPicture> capture_one(Run& current, const CaptureProfile& profile,
@@ -163,7 +189,7 @@ private:
     [[nodiscard]] Outcome wait_until(const Run& current, UtcTime time);
     [[nodiscard]] Outcome pause_for_sun(Run& current);
     [[nodiscard]] Outcome recover(Run& current);
-    [[nodiscard]] bool disk_has_room(const CapturePlan& plan);
+    [[nodiscard]] static bool disk_has_room(const CapturePlan& plan);
     void note(const Error& error);
 
     std::shared_ptr<hal::ICamera> camera_;

@@ -11,7 +11,7 @@ namespace cloudscope {
 
 double FrameStatistics::percentile(double fraction) const
 {
-    const double total = static_cast<double>(static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height));
+    const auto total = static_cast<double>(static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height));
     if (total <= 0.0) {
         return 0.0;
     }
@@ -56,7 +56,7 @@ double estimate_noise(const cv::Mat& luma)
     std::vector<int> differences;
     differences.reserve(static_cast<std::size_t>(luma.rows) * static_cast<std::size_t>(luma.cols - 1));
     for (int y = 0; y < luma.rows; ++y) {
-        const std::uint8_t* row = luma.ptr<std::uint8_t>(y);
+        const auto* row = luma.ptr<std::uint8_t>(y);
         for (int x = 1; x < luma.cols; ++x) {
             differences.push_back(std::abs(static_cast<int>(row[x]) - static_cast<int>(row[x - 1])));
         }
@@ -108,12 +108,12 @@ FrameStatistics compute_statistics(const cv::Mat& image, const StatisticsOptions
     FrameStatistics out;
     out.width = luma.cols;
     out.height = luma.rows;
-    const double total = static_cast<double>(luma.total());
+    const auto total = static_cast<double>(luma.total());
     if (total <= 0.0) {
         return out;
     }
     for (int y = 0; y < luma.rows; ++y) {
-        const std::uint8_t* row = luma.ptr<std::uint8_t>(y);
+        const auto* row = luma.ptr<std::uint8_t>(y);
         for (int x = 0; x < luma.cols; ++x) {
             ++out.histogram[row[x]];
         }
@@ -124,7 +124,7 @@ FrameStatistics compute_statistics(const cv::Mat& image, const StatisticsOptions
     std::uint64_t dark = 0;
     for (std::size_t level = 0; level < out.histogram.size(); ++level) {
         const double n = out.histogram[level];
-        const double value = static_cast<double>(level);
+        const auto value = static_cast<double>(level);
         sum += n * value;
         sum_squares += n * value * value;
         if (static_cast<int>(level) >= options.clip_threshold) {

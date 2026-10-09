@@ -33,7 +33,7 @@ private:
 
 tjhandle decoder()
 {
-    thread_local JpegDecoder instance;
+    thread_local const JpegDecoder instance;
     return instance.handle();
 }
 
@@ -50,7 +50,7 @@ std::string jpeg_error(tjhandle handle)
 
 Expected<cv::Mat> decode_mjpeg(std::span<const std::byte> data)
 {
-    const tjhandle handle = decoder();
+    void* const handle = decoder();
     if (handle == nullptr) {
         return fail(ErrorCode::Internal, "TurboJPEG decompressor could not be created");
     }
@@ -92,7 +92,7 @@ Expected<cv::Mat> wrap_uncompressed(const Frame& frame, int type)
 
 Expected<JpegInfo> jpeg_info(std::span<const std::byte> jpeg)
 {
-    const tjhandle handle = decoder();
+    void* const handle = decoder();
     if (handle == nullptr) {
         return fail(ErrorCode::Internal, "TurboJPEG decompressor could not be created");
     }

@@ -162,7 +162,12 @@ constexpr const char* kSessionColumns = "id, site_id, latitude_deg, longitude_de
                                         "started_ms, ended_ms, frames, bytes, "
                                         "notes, folder";
 
-std::atomic<int> connection_counter{0};
+// Qt SQL connections are named; every Catalogue gets its own.
+QString next_connection_name()
+{
+    static std::atomic<int> counter{0};
+    return QStringLiteral("cloudscope-catalogue-%1").arg(counter.fetch_add(1));
+}
 
 }  // namespace
 
@@ -171,6 +176,11 @@ struct Catalogue::Impl {
     QSqlDatabase db;
     std::filesystem::path file;
 
+    Impl() = default;
+    Impl(const Impl&) = delete;
+    Impl& operator=(const Impl&) = delete;
+    Impl(Impl&&) = delete;
+    Impl& operator=(Impl&&) = delete;
     ~Impl()
     {
         if (db.isValid()) {
@@ -180,7 +190,7 @@ struct Catalogue::Impl {
         }
     }
 
-    Expected<void> exec(const char* sql)
+    Expected<void> exec(const char* sql) const
     {
         QSqlQuery query(db);
         if (!query.exec(QString::fromLatin1(sql))) {
@@ -296,7 +306,7 @@ Expected<std::unique_ptr<Catalogue>> Catalogue::open(const std::filesystem::path
     std::error_code ignored;
     std::filesystem::create_directories(file.parent_path(), ignored);
     auto impl = std::make_unique<Impl>();
-    impl->connection_name = QStringLiteral("cloudscope-catalogue-%1").arg(connection_counter.fetch_add(1));
+    impl->connection_name = next_connection_name();
     impl->db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), impl->connection_name);
     impl->db.setDatabaseName(qstring(file));
     impl->file = file;

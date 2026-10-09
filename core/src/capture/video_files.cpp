@@ -51,7 +51,8 @@ T get(const char* at)
 void put_text(char* at, const std::string& text, std::size_t length)
 {
     std::memset(at, ' ', length);
-    std::memcpy(at, text.data(), std::min(text.size(), length));
+    // A fixed-width, space-padded field: no terminator on purpose.
+    std::memcpy(at, text.data(), std::min(text.size(), length));  // NOLINT(bugprone-not-null-terminated-result)
 }
 
 std::string get_text(const char* at, std::size_t length)
@@ -251,7 +252,12 @@ Expected<cv::Mat> SerReader::frame(std::uint32_t index)
     if (index >= header_.frames) {
         return fail(ErrorCode::InvalidArgument, fmt::format("frame {} of {}", index, header_.frames));
     }
-    const int type = header_.bit_depth == 16 ? CV_16UC1 : (header_.colour == SerColour::Mono ? CV_8UC1 : CV_8UC3);
+    int type = CV_8UC3;
+    if (header_.bit_depth == 16) {
+        type = CV_16UC1;
+    } else if (header_.colour == SerColour::Mono) {
+        type = CV_8UC1;
+    }
     cv::Mat image(header_.height, header_.width, type);
     in_.seekg(static_cast<std::streamoff>(kHeaderBytes + static_cast<std::uint64_t>(frame_bytes_) * index));
     in_.read(reinterpret_cast<char*>(image.data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)

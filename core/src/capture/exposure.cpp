@@ -31,8 +31,8 @@ double sun_aware_percentile(const cv::Mat& luma, const SunBlob& sun, double frac
     std::array<std::uint64_t, 256> histogram{};
     std::uint64_t counted = 0;
     for (int y = 0; y < luma.rows; ++y) {
-        const std::uint8_t* row = luma.ptr<std::uint8_t>(y);
-        const std::uint8_t* allowed = mask.ptr<std::uint8_t>(y);
+        const auto* row = luma.ptr<std::uint8_t>(y);
+        const auto* allowed = mask.ptr<std::uint8_t>(y);
         for (int x = 0; x < luma.cols; ++x) {
             if (allowed[x] != 0) {
                 ++histogram[row[x]];
@@ -137,7 +137,7 @@ cv::Mat well_exposedness(const cv::Mat& bgr32)
     cv::split(bgr32, channels);
     cv::Mat weight = cv::Mat::ones(bgr32.size(), CV_32F);
     for (const cv::Mat& channel : channels) {
-        cv::Mat centred = channel - 0.5f;
+        const cv::Mat centred = channel - 0.5f;
         cv::Mat squared;
         cv::multiply(centred, centred, squared);
         cv::Mat gaussian;
@@ -163,7 +163,7 @@ cv::Mat saturation_weight(const cv::Mat& bgr32)
     const cv::Mat mean = (channels[0] + channels[1] + channels[2]) / 3.0f;
     cv::Mat variance = cv::Mat::zeros(bgr32.size(), CV_32F);
     for (const cv::Mat& channel : channels) {
-        cv::Mat d = channel - mean;
+        const cv::Mat d = channel - mean;
         cv::Mat squared;
         cv::multiply(d, d, squared);
         variance += squared;

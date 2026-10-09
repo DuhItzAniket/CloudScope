@@ -15,6 +15,7 @@
 #include <fmt/format.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <fstream>
 #include <limits>
@@ -582,7 +583,7 @@ TEST_CASE("the disk guard, a silent camera and repeated failures end a run witho
         plan.frame_timeout = 100ms;
         plan.kind = CaptureKind::Interval;
         plan.count = 3;
-        int attempts = 0;
+        std::atomic<int> attempts{0};  // written by the run, read by the stopping thread
         rig.sequencer->set_recovery(
             [&]() -> Expected<void> {
                 ++attempts;

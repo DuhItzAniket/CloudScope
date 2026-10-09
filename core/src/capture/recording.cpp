@@ -553,7 +553,7 @@ nlohmann::json sidecar_json(const CaptureRecord& record, const WrittenFile& file
 
 Expected<std::filesystem::path> write_sidecar(const std::filesystem::path& picture, const nlohmann::json& sidecar)
 {
-    const std::filesystem::path target = with_suffix(picture, ".json");
+    std::filesystem::path target = with_suffix(picture, ".json");
     const std::filesystem::path temporary = with_suffix(picture, ".json.part");
     {
         std::ofstream out(temporary, std::ios::binary);
@@ -571,6 +571,95 @@ Expected<std::filesystem::path> write_sidecar(const std::filesystem::path& pictu
     return target;
 }
 
+namespace {
+
+std::optional<double> json_number(const nlohmann::json& node, const char* key)
+{
+    if (node.is_object() && node.contains(key) && node[key].is_number()) {
+        return node[key].get<double>();
+    }
+    return std::nullopt;
+}
+
+std::string json_text(const nlohmann::json& node, const char* key)
+{
+    if (node.is_object() && node.contains(key) && node[key].is_string()) {
+        return node[key].get<std::string>();
+    }
+    return {};
+}
+
+// The parts that differ between the two schemas: where the file name, hash, size and picture size live.
+Expected<void> read_file_part(const nlohmann::json& document, SidecarSummary& out)
+{
+    if (out.schema == "cloudscope.frame/1") {
+        const nlohmann::json& file = document.contains("file") ? document["file"] : nlohmann::json::object();
+        out.file_name = json_text(file, "name");
+        out.sha256 = json_text(file, "sha256");
+        out.bytes = static_cast<std::uint64_t>(json_number(file, "bytes").value_or(0.0));
+        out.width = static_cast<int>(json_number(file, "width").value_or(0.0));
+        out.height = static_cast<int>(json_number(file, "height").value_or(0.0));
+        if (document.contains("camera")) {
+            out.exposure_ms = json_number(document["camera"], "exposure_ms");
+        }
+        return {};
+    }
+    if (out.schema == "cloudscope.sky_logger.frame/1") {
+        out.file_name = json_text(document, "file");
+        out.sha256 = json_text(document, "sha256");
+        out.bytes = static_cast<std::uint64_t>(json_number(document, "bytes").value_or(0.0));
+        if (document.contains("image")) {
+            out.width = static_cast<int>(json_number(document["image"], "width").value_or(0.0));
+            out.height = static_cast<int>(json_number(document["image"], "height").value_or(0.0));
+        }
+        // The interim logger stored the driver's raw read-back, not milliseconds: left empty on purpose.
+        return {};
+    }
+    return fail(ErrorCode::Unsupported, fmt::format("unknown sidecar schema '{}'", out.schema));
+}
+
+// Site, pointing and Sun have the same shape in both schemas, except the site's coordinate names.
+void read_place_part(const nlohmann::json& document, SidecarSummary& out)
+{
+    if (document.contains("site") && document["site"].is_object()) {
+        const nlohmann::json& site = document["site"];
+        auto latitude = json_number(site, "latitude_deg");
+        if (!latitude.has_value()) {
+            latitude = json_number(site, "latitude");
+        }
+        auto longitude = json_number(site, "longitude_deg");
+        if (!longitude.has_value()) {
+            longitude = json_number(site, "longitude");
+        }
+        if (latitude.has_value() && longitude.has_value()) {
+            out.site = SiteInfo{.id = json_text(site, "id"),
+                                .latitude_deg = latitude.value(),
+                                .longitude_deg = longitude.value(),
+                                .altitude_m = json_number(site, "altitude_m").value_or(0.0)};
+        }
+    }
+    if (document.contains("pointing") && document["pointing"].is_object()) {
+        const nlohmann::json& pointing = document["pointing"];
+        const auto azimuth = json_number(pointing, "azimuth_deg");
+        const auto elevation = json_number(pointing, "elevation_deg");
+        if (azimuth.has_value() && elevation.has_value()) {
+            out.pointing = PointingInfo{.azimuth_deg = azimuth.value(),
+                                        .elevation_deg = elevation.value(),
+                                        .source = json_text(pointing, "source")};
+        }
+    }
+    if (document.contains("sun") && document["sun"].is_object()) {
+        const nlohmann::json& sun = document["sun"];
+        const auto azimuth = json_number(sun, "azimuth_deg");
+        const auto elevation = json_number(sun, "elevation_deg");
+        if (azimuth.has_value() && elevation.has_value()) {
+            out.sun = SunInfo{.azimuth_deg = azimuth.value(), .elevation_deg = elevation.value()};
+        }
+    }
+}
+
+}  // namespace
+
 Expected<SidecarSummary> read_sidecar(const nlohmann::json& document)
 {
     if (!document.is_object() || !document.contains("schema") || !document["schema"].is_string()) {
@@ -578,83 +667,24 @@ Expected<SidecarSummary> read_sidecar(const nlohmann::json& document)
     }
     SidecarSummary out;
     out.schema = document["schema"].get<std::string>();
-    const auto number = [](const nlohmann::json& node, const char* key) -> std::optional<double> {
-        if (node.is_object() && node.contains(key) && node[key].is_number()) {
-            return node[key].get<double>();
-        }
-        return std::nullopt;
-    };
-    const auto text = [](const nlohmann::json& node, const char* key) -> std::string {
-        if (node.is_object() && node.contains(key) && node[key].is_string()) {
-            return node[key].get<std::string>();
-        }
-        return {};
-    };
     const nlohmann::json& capture = document.contains("capture") ? document["capture"] : nlohmann::json::object();
-    const std::string utc_text = text(capture, "utc");
+    const std::string utc_text = json_text(capture, "utc");
     const auto utc = parse_iso8601(utc_text);
     if (!utc) {
         return fail(ErrorCode::Parse,
                     fmt::format("sidecar capture.utc '{}' is not an ISO 8601 time with offset", utc_text));
     }
     out.utc = *utc;
-    if (const auto sequence = number(capture, "sequence")) {
-        out.sequence = static_cast<std::uint64_t>(std::max(0.0, *sequence));
+    if (const auto sequence = json_number(capture, "sequence"); sequence.has_value()) {
+        out.sequence = static_cast<std::uint64_t>(std::max(0.0, sequence.value()));
     }
     if (capture.contains("simulated") && capture["simulated"].is_boolean()) {
         out.simulated = capture["simulated"].get<bool>();
     }
-    if (out.schema == "cloudscope.frame/1") {
-        const nlohmann::json& file = document.contains("file") ? document["file"] : nlohmann::json::object();
-        out.file_name = text(file, "name");
-        out.sha256 = text(file, "sha256");
-        out.bytes = static_cast<std::uint64_t>(number(file, "bytes").value_or(0.0));
-        out.width = static_cast<int>(number(file, "width").value_or(0.0));
-        out.height = static_cast<int>(number(file, "height").value_or(0.0));
-        if (document.contains("camera")) {
-            out.exposure_ms = number(document["camera"], "exposure_ms");
-        }
-    } else if (out.schema == "cloudscope.sky_logger.frame/1") {
-        out.file_name = text(document, "file");
-        out.sha256 = text(document, "sha256");
-        out.bytes = static_cast<std::uint64_t>(number(document, "bytes").value_or(0.0));
-        if (document.contains("image")) {
-            out.width = static_cast<int>(number(document["image"], "width").value_or(0.0));
-            out.height = static_cast<int>(number(document["image"], "height").value_or(0.0));
-        }
-        // The interim logger stored the driver's raw read-back, not milliseconds: left empty on purpose.
-    } else {
-        return fail(ErrorCode::Unsupported, fmt::format("unknown sidecar schema '{}'", out.schema));
+    if (auto file = read_file_part(document, out); !file) {
+        return fail(file.error());
     }
-    if (document.contains("site") && document["site"].is_object()) {
-        const nlohmann::json& site = document["site"];
-        const auto latitude = number(site, "latitude_deg") ? number(site, "latitude_deg") : number(site, "latitude");
-        const auto longitude =
-            number(site, "longitude_deg") ? number(site, "longitude_deg") : number(site, "longitude");
-        if (latitude && longitude) {
-            out.site = SiteInfo{.id = text(site, "id"),
-                                .latitude_deg = *latitude,
-                                .longitude_deg = *longitude,
-                                .altitude_m = number(site, "altitude_m").value_or(0.0)};
-        }
-    }
-    if (document.contains("pointing") && document["pointing"].is_object()) {
-        const nlohmann::json& pointing = document["pointing"];
-        const auto azimuth = number(pointing, "azimuth_deg");
-        const auto elevation = number(pointing, "elevation_deg");
-        if (azimuth && elevation) {
-            out.pointing =
-                PointingInfo{.azimuth_deg = *azimuth, .elevation_deg = *elevation, .source = text(pointing, "source")};
-        }
-    }
-    if (document.contains("sun") && document["sun"].is_object()) {
-        const nlohmann::json& sun = document["sun"];
-        const auto azimuth = number(sun, "azimuth_deg");
-        const auto elevation = number(sun, "elevation_deg");
-        if (azimuth && elevation) {
-            out.sun = SunInfo{.azimuth_deg = *azimuth, .elevation_deg = *elevation};
-        }
-    }
+    read_place_part(document, out);
     return out;
 }
 

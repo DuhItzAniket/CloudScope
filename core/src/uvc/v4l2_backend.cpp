@@ -32,9 +32,12 @@
 #include <fstream>
 #include <optional>
 #include <string>
+#include <system_error>
 #include <utility>
 
 namespace cloudscope::uvc {
+
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access): the V4L2 ioctl structs are C unions by kernel design
 
 namespace {
 
@@ -58,7 +61,8 @@ int xioctl(int fd, unsigned long request, void* argument)
 
 Unexpected errno_error(ErrorCode code, const std::string& what)
 {
-    return fail(code, fmt::format("{} ({})", what, std::strerror(errno)));
+    return fail(code,
+                fmt::format("{} ({})", what, std::generic_category().message(errno)));  // not strerror: shared buffer
 }
 
 std::optional<PixelFormat> format_of(std::uint32_t fourcc)
@@ -110,15 +114,31 @@ struct ControlBinding {
 };
 
 constexpr std::array<ControlBinding, 9> kBindings = {{
-    {CameraControl::Exposure, V4L2_CID_EXPOSURE_ABSOLUTE, V4L2_CID_EXPOSURE_AUTO, 0.1, "ms"},  // 100 us units
-    {CameraControl::Gain, V4L2_CID_GAIN, V4L2_CID_AUTOGAIN, 1.0, ""},
-    {CameraControl::WhiteBalance, V4L2_CID_WHITE_BALANCE_TEMPERATURE, V4L2_CID_AUTO_WHITE_BALANCE, 1.0, "K"},
-    {CameraControl::Brightness, V4L2_CID_BRIGHTNESS, V4L2_CID_AUTOBRIGHTNESS, 1.0, ""},
-    {CameraControl::Contrast, V4L2_CID_CONTRAST, 0, 1.0, ""},
-    {CameraControl::Saturation, V4L2_CID_SATURATION, 0, 1.0, ""},
-    {CameraControl::Gamma, V4L2_CID_GAMMA, 0, 1.0, ""},
-    {CameraControl::Sharpness, V4L2_CID_SHARPNESS, 0, 1.0, ""},
-    {CameraControl::Focus, V4L2_CID_FOCUS_ABSOLUTE, V4L2_CID_FOCUS_AUTO, 1.0, ""},
+    {.control = CameraControl::Exposure,
+     .id = V4L2_CID_EXPOSURE_ABSOLUTE,
+     .auto_id = V4L2_CID_EXPOSURE_AUTO,
+     .scale = 0.1,
+     .unit = "ms"},  // 100 us units
+    {.control = CameraControl::Gain, .id = V4L2_CID_GAIN, .auto_id = V4L2_CID_AUTOGAIN, .scale = 1.0, .unit = ""},
+    {.control = CameraControl::WhiteBalance,
+     .id = V4L2_CID_WHITE_BALANCE_TEMPERATURE,
+     .auto_id = V4L2_CID_AUTO_WHITE_BALANCE,
+     .scale = 1.0,
+     .unit = "K"},
+    {.control = CameraControl::Brightness,
+     .id = V4L2_CID_BRIGHTNESS,
+     .auto_id = V4L2_CID_AUTOBRIGHTNESS,
+     .scale = 1.0,
+     .unit = ""},
+    {.control = CameraControl::Contrast, .id = V4L2_CID_CONTRAST, .auto_id = 0, .scale = 1.0, .unit = ""},
+    {.control = CameraControl::Saturation, .id = V4L2_CID_SATURATION, .auto_id = 0, .scale = 1.0, .unit = ""},
+    {.control = CameraControl::Gamma, .id = V4L2_CID_GAMMA, .auto_id = 0, .scale = 1.0, .unit = ""},
+    {.control = CameraControl::Sharpness, .id = V4L2_CID_SHARPNESS, .auto_id = 0, .scale = 1.0, .unit = ""},
+    {.control = CameraControl::Focus,
+     .id = V4L2_CID_FOCUS_ABSOLUTE,
+     .auto_id = V4L2_CID_FOCUS_AUTO,
+     .scale = 1.0,
+     .unit = ""},
 }};
 
 const ControlBinding* binding_of(CameraControl control)
@@ -166,6 +186,10 @@ public:
     {
     }
     ~V4l2Backend() override { V4l2Backend::close(); }
+    V4l2Backend(const V4l2Backend&) = delete;
+    V4l2Backend& operator=(const V4l2Backend&) = delete;
+    V4l2Backend(V4l2Backend&&) = delete;
+    V4l2Backend& operator=(V4l2Backend&&) = delete;
 
     Expected<void> open() override;
     void close() override;
@@ -467,7 +491,7 @@ Expected<void> V4l2Backend::start()
 
 void V4l2Backend::unmap()
 {
-    for (MappedBuffer& buffer : buffers_) {
+    for (const MappedBuffer& buffer : buffers_) {
         if (buffer.start != nullptr) {
             munmap(buffer.start, buffer.length);
         }
@@ -554,7 +578,7 @@ Expected<std::vector<UvcDeviceDescriptor>> enumerate_platform_cameras()
     std::error_code error;
     for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator("/dev", error)) {
         const std::string name = entry.path().filename().string();
-        if (name.rfind("video", 0) != 0) {
+        if (!name.starts_with("video")) {
             continue;
         }
         const int fd = ::open(entry.path().c_str(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
@@ -595,5 +619,7 @@ std::unique_ptr<IUvcBackend> make_platform_backend(const UvcDeviceDescriptor& de
 {
     return std::make_unique<V4l2Backend>(descriptor, clock);
 }
+
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 }  // namespace cloudscope::uvc
