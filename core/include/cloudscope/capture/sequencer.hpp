@@ -154,14 +154,15 @@ private:
     enum class Outcome : std::uint8_t { Continue, Stopped, Ended };
 
     [[nodiscard]] Expected<void> apply_profile(const CaptureProfile& profile);
-    [[nodiscard]] Expected<CapturedPicture> capture_one(Run& run, const CaptureProfile& profile, std::uint32_t sequence,
+    [[nodiscard]] Expected<CapturedPicture> capture_one(Run& current, const CaptureProfile& profile,
+                                                        std::uint32_t sequence,
                                                         std::optional<double> fixed_exposure_ms);
-    [[nodiscard]] FramePtr next_frame(Run& run);
+    [[nodiscard]] FramePtr next_frame(Run& current);
     [[nodiscard]] std::optional<double> sun_elevation_now() const;
-    [[nodiscard]] bool ended(const Run& run) const;  // end_at or duration reached
-    [[nodiscard]] Outcome wait_until(const Run& run, UtcTime time);
-    [[nodiscard]] Outcome pause_for_sun(Run& run);
-    [[nodiscard]] Outcome recover(Run& run);
+    [[nodiscard]] bool ended(const Run& current) const;  // end_at or duration reached
+    [[nodiscard]] Outcome wait_until(const Run& current, UtcTime time);
+    [[nodiscard]] Outcome pause_for_sun(Run& current);
+    [[nodiscard]] Outcome recover(Run& current);
     [[nodiscard]] bool disk_has_room(const CapturePlan& plan);
     void note(const Error& error);
 

@@ -3,6 +3,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <catch2/catch_session.hpp>
+#include <opencv2/core.hpp>
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -37,9 +38,25 @@ void report_crt_assertions_on_stderr()
 
 }  // namespace
 
+// OpenCV's parallel loops run on its own worker pool (Intel TBB on Debian), which is not built with the thread
+// sanitizer: the sanitizer cannot see the pool's synchronisation and reports the workers' disjoint writes as races
+// with the thread that reads the result. Under the sanitizer OpenCV therefore runs single-threaded; CloudScope's
+// own threads stay fully checked.
+void single_threaded_opencv_under_tsan()
+{
+#if defined(__SANITIZE_THREAD__)
+    cv::setNumThreads(0);
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+    cv::setNumThreads(0);
+#endif
+#endif
+}
+
 int main(int argc, char** argv)
 {
     report_crt_assertions_on_stderr();
+    single_threaded_opencv_under_tsan();
     const QCoreApplication app(argc, argv);
     return Catch::Session().run(argc, argv);
 }

@@ -218,7 +218,7 @@ TEST_CASE("keogram and star trails summarise a sequence", "[capture][keogram]")
     CHECK(maximum == 200.0);
 
     std::vector<cv::Mat> mixed = frames;
-    mixed.push_back(cv::Mat(24, 32, CV_8UC3));
+    mixed.emplace_back(24, 32, CV_8UC3);
     CHECK_FALSE(star_trails(mixed));
     CHECK_FALSE(keogram(mixed));
     const auto colour = keogram(frames_with_moving_bar(4, CV_8UC3));

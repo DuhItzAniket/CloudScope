@@ -73,7 +73,7 @@ std::vector<std::pair<cv::Vec3d, cv::Vec3d>> poses()
 // Views of the board seen through a model, with a little noise on the corners.
 std::vector<DetectedBoard> synthetic_views(const CameraModel& model, double noise_px)
 {
-    std::mt19937 random(7);
+    std::mt19937 random(7);  // NOLINT(cert-msc32-c,cert-msc51-cpp): a fixed seed keeps the test repeatable
     std::normal_distribution<double> noise(0.0, std::max(noise_px, 1e-6));  // sigma 0 is not allowed
     const std::vector<cv::Point3f> object = board_points(kBoard);
     std::vector<DetectedBoard> views;

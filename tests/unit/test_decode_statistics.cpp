@@ -100,14 +100,14 @@ TEST_CASE("MJPEG frames decode to the picture that was encoded", "[capture][deco
 TEST_CASE("uncompressed formats decode with the right channels and depths", "[capture][decode]")
 {
     const cv::Mat picture = test_picture(32, 16);
-    const auto bgr = frame_of(bytes_of(picture), PixelFormat::Bgr8, 32, 16, 32 * 3);
+    const auto bgr = frame_of(bytes_of(picture), PixelFormat::Bgr8, 32, 16, 96);
     const auto decoded_bgr = decode_native(*bgr);
     REQUIRE(outcome(decoded_bgr) == "ok");
     CHECK(cv::norm(*decoded_bgr, picture, cv::NORM_INF) == 0.0);
 
     cv::Mat rgb;
     cv::cvtColor(picture, rgb, cv::COLOR_BGR2RGB);
-    const auto decoded_rgb = decode_native(*frame_of(bytes_of(rgb), PixelFormat::Rgb8, 32, 16, 32 * 3));
+    const auto decoded_rgb = decode_native(*frame_of(bytes_of(rgb), PixelFormat::Rgb8, 32, 16, 96));
     REQUIRE(outcome(decoded_rgb) == "ok");
     CHECK(cv::norm(*decoded_rgb, picture, cv::NORM_INF) == 0.0);
 
@@ -122,10 +122,10 @@ TEST_CASE("uncompressed formats decode with the right channels and depths", "[ca
 
     cv::Mat gray16;
     gray.convertTo(gray16, CV_16U, 256.0);
-    const auto decoded16 = decode_native(*frame_of(bytes_of(gray16), PixelFormat::Gray16, 32, 16, 32 * 2));
+    const auto decoded16 = decode_native(*frame_of(bytes_of(gray16), PixelFormat::Gray16, 32, 16, 64));
     REQUIRE(outcome(decoded16) == "ok");
     CHECK(decoded16->type() == CV_16UC1);
-    const auto down = decode_gray8(*frame_of(bytes_of(gray16), PixelFormat::Gray16, 32, 16, 32 * 2));
+    const auto down = decode_gray8(*frame_of(bytes_of(gray16), PixelFormat::Gray16, 32, 16, 64));
     REQUIRE(outcome(down) == "ok");
     CHECK(cv::countNonZero(*down != gray) == 0);
 
@@ -140,7 +140,7 @@ TEST_CASE("uncompressed formats decode with the right channels and depths", "[ca
             expected.at<std::uint8_t>(y, x) = cv::saturate_cast<std::uint8_t>(1.164 * (luma - 16));
         }
     }
-    const auto decoded_yuyv = decode_bgr8(*frame_of(bytes_of(yuyv), PixelFormat::Yuyv, 32, 16, 32 * 2));
+    const auto decoded_yuyv = decode_bgr8(*frame_of(bytes_of(yuyv), PixelFormat::Yuyv, 32, 16, 64));
     REQUIRE(outcome(decoded_yuyv) == "ok");
     cv::Mat back;
     cv::cvtColor(*decoded_yuyv, back, cv::COLOR_BGR2GRAY);

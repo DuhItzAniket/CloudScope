@@ -18,7 +18,6 @@
 using namespace cloudscope;
 using namespace cloudscope::test;
 using Catch::Matchers::WithinAbs;
-using Catch::Matchers::WithinRel;
 
 namespace {
 
@@ -87,6 +86,7 @@ TEST_CASE("the sky controller clips fewer cloud pixels than the simulated camera
     const hal::CameraMode mode = caps.modes.front();
     REQUIRE(outcome(source->prepare(mode)) == "ok");
     std::vector<hal::ControlSetting> settings;
+    settings.reserve(caps.controls.size());
     for (const hal::ControlInfo& info : caps.controls) {
         settings.push_back({.value = info.default_value, .automatic = false});
     }
@@ -220,7 +220,8 @@ TEST_CASE("dark and flat masters correct offset and vignetting, and the flat get
     CHECK(after < before * 0.25);
     CHECK_THAT(cv::mean(*corrected)[0], WithinAbs(120.0, 3.0));
 
-    const auto model = fit_vignetting(*corrected.and_then([&](cv::Mat) { return Expected<cv::Mat>(flats.front()); }));
+    const auto model =
+        fit_vignetting(*corrected.and_then([&](const cv::Mat&) { return Expected<cv::Mat>(flats.front()); }));
     REQUIRE(outcome(model) == "ok");
     CHECK_THAT(model->a, WithinAbs(-0.4, 0.08));  // the dark offset pulls the fit a little; the shape is recovered
     CHECK(model->rms_residual < 0.05);

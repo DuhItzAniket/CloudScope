@@ -35,11 +35,19 @@ const hal::DeviceInfo kCamera{.id = "sim:camera:sky",
                               .driver = "sim",
                               .simulated = true};
 
+// An absolute picture path that exists on no disk: the catalogue stores paths as text, so the test uses the same
+// spelling the catalogue does (absolute, normalised) on every platform.
+std::filesystem::path picture_path(const std::string& session, std::uint64_t sequence)
+{
+    return std::filesystem::absolute(std::filesystem::path("data") / session / fmt::format("{}.jpg", sequence))
+        .lexically_normal();
+}
+
 FrameEntry entry(const std::string& session, UtcTime utc, std::uint64_t sequence, std::uint64_t bytes = 1000)
 {
     FrameEntry frame;
     frame.session_id = session;
-    frame.path = std::filesystem::path(fmt::format("C:/data/{}/{}.jpg", session, sequence));
+    frame.path = picture_path(session, sequence);
     frame.utc = utc;
     frame.mjd = modified_julian_date(utc);
     frame.sequence = sequence;
@@ -120,7 +128,7 @@ TEST_CASE("a session has its folder layout and a manifest that reads back", "[se
     REQUIRE(outcome(opened) == "ok");
     CHECK(opened->info().id == session.info().id);
     CHECK(opened->info().frames == 5);
-    CHECK(opened->info().bytes == 5 * 1234);
+    CHECK(opened->info().bytes == static_cast<std::uint64_t>(5) * 1234);
     CHECK(opened->info().notes == "first light");
     CHECK(opened->info().ended == started + 1h);
     CHECK(opened->info().site.latitude_deg == 12.97);
@@ -186,7 +194,7 @@ TEST_CASE("the catalogue stores sessions and frames and answers time queries", "
     const FrameEntry& frame = middle->front();
     CHECK(frame.sequence == 1);
     CHECK(frame.utc == t0 + 1s);
-    CHECK(frame.path == std::filesystem::path("C:/data/20261009T100000Z-blr-roof/1.jpg"));
+    CHECK(frame.path == picture_path(session.id, 1));
     CHECK(frame.exposure_ms.value() == 15.625);
     CHECK_FALSE(frame.gain);
     CHECK(frame.mean.value() == 120.5);
@@ -203,7 +211,7 @@ TEST_CASE("the catalogue stores sessions and frames and answers time queries", "
     // The same path again replaces the row.
     REQUIRE(catalogue.add_frame(entry(session.id, t0 + 1s, 1, 9999)));
     CHECK(catalogue.count().value() == 3);
-    const auto replaced = catalogue.frame_at("C:/data/20261009T100000Z-blr-roof/1.jpg");
+    const auto replaced = catalogue.frame_at(picture_path(session.id, 1));
     REQUIRE(outcome(replaced) == "ok");
     REQUIRE(replaced->has_value());
     CHECK((*replaced)->bytes == 9999);
@@ -347,7 +355,7 @@ TEST_CASE("a folder of pictures is indexed from its sidecars", "[session][catalo
     for (std::uint64_t i = 0; i < 4; ++i) {
         (void)write_test_picture(folder, fmt::format("p{}", i), t0 + std::chrono::seconds(i), i);
     }
-    workspace.write("session/frames/notes.json", "{\"schema\": \"something.else/1\"}");
+    workspace.write("session/frames/notes.json", R"({"schema": "something.else/1"})");
     workspace.write("session/frames/orphan.png.json", "{}");
     auto opened = Catalogue::open(workspace.path("idx.sqlite"));
     REQUIRE(outcome(opened) == "ok");

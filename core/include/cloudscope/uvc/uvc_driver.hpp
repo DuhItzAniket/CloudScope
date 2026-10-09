@@ -43,7 +43,7 @@ public:
     [[nodiscard]] Expected<std::shared_ptr<hal::IDevice>> create(std::string_view id) override;
 
     // The cameras of the last enumeration, with their platform details.
-    [[nodiscard]] Expected<std::vector<UvcCameraEntry>> entries();
+    [[nodiscard]] static Expected<std::vector<UvcCameraEntry>> entries();
 
 private:
     explicit UvcDriver(const IClock& clock) : clock_(clock) {}

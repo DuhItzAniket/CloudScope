@@ -97,7 +97,8 @@ std::shared_ptr<uvc::UvcDriver> driver_with_a_camera(const IClock& clock, std::s
         return nullptr;
     }
     // Prefer an external camera (the laptop's own webcam has the vendor id of the laptop maker).
-    const auto external = std::ranges::find_if(cameras, [](const DeviceInfo& c) { return c.id.find("uvc:04f2") != 0; });
+    const auto external =
+        std::ranges::find_if(cameras, [](const DeviceInfo& c) { return !c.id.starts_with("uvc:04f2"); });
     id = (external != cameras.end() ? *external : cameras.front()).id;
     return driver;
 }
@@ -152,7 +153,7 @@ TEST_CASE("a real UVC camera streams numbered frames of the chosen mode", "[.][h
         CHECK(frame.info().height == mode.height);
         CHECK(frame.info().format == mode.format);
         CHECK_FALSE(frame.info().simulated);
-        CHECK(frame.data().size() > 0);
+        CHECK_FALSE(frame.data().empty());
         if (received > 0) {
             CHECK(frame.info().sequence > previous);
         }

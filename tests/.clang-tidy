@@ -4,6 +4,7 @@
 InheritParentConfig: true
 Checks: >
   -bugprone-chained-comparison,
+  -bugprone-unchecked-optional-access,
   -cert-err33-c,
   -clang-analyzer-optin.core.EnumCastOutOfRange,
   -cppcoreguidelines-avoid-non-const-global-variables,

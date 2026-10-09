@@ -64,11 +64,11 @@ Expected<std::shared_ptr<hal::IDevice>> UvcDriver::create(std::string_view id)
     }
     for (const UvcCameraEntry& entry : *found) {
         if (entry.info.id == id) {
-            UvcDeviceDescriptor descriptor{.path = entry.path,
-                                           .name = entry.info.name,
-                                           .vendor_id = entry.vendor_id,
-                                           .product_id = entry.product_id,
-                                           .serial = entry.serial};
+            const UvcDeviceDescriptor descriptor{.path = entry.path,
+                                                 .name = entry.info.name,
+                                                 .vendor_id = entry.vendor_id,
+                                                 .product_id = entry.product_id,
+                                                 .serial = entry.serial};
             return std::make_shared<UvcCamera>(entry.info, make_platform_backend(descriptor, clock_));
         }
     }

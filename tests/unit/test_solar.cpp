@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <array>
 #include <string_view>
 
 using namespace cloudscope;
@@ -27,14 +28,20 @@ struct Reference {
 };
 
 // Reference values from pvlib 0.11 `solarposition.get_solarposition` (NREL SPA), three sites and four dates.
-constexpr Reference kReferences[] = {
-    {"2026-03-20T12:00:00Z", 12.97, 77.59, 13.885, 266.688},  {"2026-06-21T06:30:00Z", 12.97, 77.59, 78.366, 25.112},
-    {"2026-10-09T10:00:00Z", 12.97, 77.59, 35.995, 252.092},  {"2026-12-21T23:00:00Z", 12.97, 77.59, -29.668, 109.788},
-    {"2026-03-20T12:00:00Z", 53.15, 8.17, 36.543, 187.864},   {"2026-06-21T06:30:00Z", 53.15, 8.17, 27.567, 87.045},
-    {"2026-10-09T10:00:00Z", 53.15, 8.17, 28.442, 158.808},   {"2026-12-21T23:00:00Z", 53.15, 8.17, -59.894, 348.230},
-    {"2026-03-20T12:00:00Z", -33.9, 151.2, -45.526, 226.706}, {"2026-06-21T06:30:00Z", -33.9, 151.2, 3.451, 301.375},
-    {"2026-10-09T10:00:00Z", -33.9, 151.2, -23.840, 243.738}, {"2026-12-21T23:00:00Z", -33.9, 151.2, 50.840, 86.201},
-};
+constexpr std::array<Reference, 12> kReferences = {{
+    {.time = "2026-03-20T12:00:00Z", .latitude = 12.97, .longitude = 77.59, .elevation = 13.885, .azimuth = 266.688},
+    {.time = "2026-06-21T06:30:00Z", .latitude = 12.97, .longitude = 77.59, .elevation = 78.366, .azimuth = 25.112},
+    {.time = "2026-10-09T10:00:00Z", .latitude = 12.97, .longitude = 77.59, .elevation = 35.995, .azimuth = 252.092},
+    {.time = "2026-12-21T23:00:00Z", .latitude = 12.97, .longitude = 77.59, .elevation = -29.668, .azimuth = 109.788},
+    {.time = "2026-03-20T12:00:00Z", .latitude = 53.15, .longitude = 8.17, .elevation = 36.543, .azimuth = 187.864},
+    {.time = "2026-06-21T06:30:00Z", .latitude = 53.15, .longitude = 8.17, .elevation = 27.567, .azimuth = 87.045},
+    {.time = "2026-10-09T10:00:00Z", .latitude = 53.15, .longitude = 8.17, .elevation = 28.442, .azimuth = 158.808},
+    {.time = "2026-12-21T23:00:00Z", .latitude = 53.15, .longitude = 8.17, .elevation = -59.894, .azimuth = 348.230},
+    {.time = "2026-03-20T12:00:00Z", .latitude = -33.9, .longitude = 151.2, .elevation = -45.526, .azimuth = 226.706},
+    {.time = "2026-06-21T06:30:00Z", .latitude = -33.9, .longitude = 151.2, .elevation = 3.451, .azimuth = 301.375},
+    {.time = "2026-10-09T10:00:00Z", .latitude = -33.9, .longitude = 151.2, .elevation = -23.840, .azimuth = 243.738},
+    {.time = "2026-12-21T23:00:00Z", .latitude = -33.9, .longitude = 151.2, .elevation = 50.840, .azimuth = 86.201},
+}};
 
 }  // namespace
 

@@ -50,6 +50,21 @@ QString path_text(const std::filesystem::path& path)
     return qstring(absolute);
 }
 
+// The catalogue's format name for a picture's extension.
+std::string format_name(const std::string& extension)
+{
+    if (extension == ".png") {
+        return "png";
+    }
+    if (extension == ".jpg" || extension == ".jpeg") {
+        return "jpeg";
+    }
+    if (extension == ".fits") {
+        return "fits";
+    }
+    return "tiff16";
+}
+
 QVariant optional_variant(const std::optional<double>& value)
 {
     return value ? QVariant(*value) : QVariant(QMetaType(QMetaType::Double));
@@ -187,11 +202,7 @@ FrameEntry frame_entry(const CapturedPicture& picture, std::string session_id)
     frame.utc = picture.record.info.captured.utc;
     frame.mjd = modified_julian_date(frame.utc);
     frame.sequence = picture.record.info.sequence;
-    const std::string extension = picture.file.path.extension().string();
-    frame.format = extension == ".png"    ? "png"
-                   : extension == ".jpg"  ? "jpeg"
-                   : extension == ".fits" ? "fits"
-                                          : "tiff16";
+    frame.format = format_name(picture.file.path.extension().string());
     frame.bytes = picture.file.bytes;
     frame.sha256 = picture.file.sha256;
     frame.width = picture.file.width;
@@ -233,28 +244,23 @@ Expected<FrameEntry> frame_entry_from_sidecar(const std::filesystem::path& sidec
     std::filesystem::path picture = sidecar;
     picture.replace_extension();
     if (!summary->file_name.empty()) {
-        picture = sidecar.parent_path() /
-                  std::filesystem::path(reinterpret_cast<const char8_t*>(
-                      summary->file_name.c_str()));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        picture = sidecar.parent_path() / path_of(QString::fromUtf8(summary->file_name.data(),
+                                                                    static_cast<qsizetype>(summary->file_name.size())));
     }
     std::error_code error;
     frame.path = std::filesystem::absolute(picture, error);
     frame.utc = summary->utc;
     frame.mjd = modified_julian_date(frame.utc);
     frame.sequence = summary->sequence;
-    const std::string extension = picture.extension().string();
-    frame.format = extension == ".png"                             ? "png"
-                   : (extension == ".jpg" || extension == ".jpeg") ? "jpeg"
-                   : extension == ".fits"                          ? "fits"
-                                                                   : "tiff16";
+    frame.format = format_name(picture.extension().string());
     frame.bytes = summary->bytes;
     frame.sha256 = summary->sha256;
     frame.width = summary->width;
     frame.height = summary->height;
     frame.exposure_ms = summary->exposure_ms;
-    if (summary->sun) {
-        frame.sun_elevation_deg = summary->sun->elevation_deg;
-        frame.sun_azimuth_deg = summary->sun->azimuth_deg;
+    if (const std::optional<SunInfo>& sun = summary->sun; sun.has_value()) {
+        frame.sun_elevation_deg = sun->elevation_deg;
+        frame.sun_azimuth_deg = sun->azimuth_deg;
     }
     if (document.contains("statistics") && document["statistics"].is_object()) {
         const nlohmann::json& statistics = document["statistics"];

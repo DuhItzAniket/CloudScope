@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import json
 import concurrent.futures
 import os
 import re
@@ -33,6 +34,14 @@ def source_files(repo: Path = REPO) -> list[Path]:
     for directory in SOURCE_DIRS:
         files += [path for path in (repo / directory).rglob("*.cpp") if path.is_file()]
     return sorted(files)
+
+
+def compiled_sources(build: Path, repo: Path = REPO) -> list[Path]:
+    """The sources of source_files() that the configured build compiles: a Windows-only backend is not analysed on
+    Linux (its headers do not exist there), and the other way round."""
+    with open(build / "compile_commands.json", encoding="utf-8") as handle:
+        compiled = {Path(entry["file"]).resolve() for entry in json.load(handle)}
+    return [path for path in source_files(repo) if path.resolve() in compiled]
 
 
 def parse_findings(output: str, repo: Path = REPO) -> set[tuple[str, int, int, str, str]]:
@@ -74,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     if not (build / "compile_commands.json").is_file():
         print(f"{build / 'compile_commands.json'} not found: configure and build first", file=sys.stderr)
         return 2
-    sources = [path.resolve() for path in args.files] or source_files()
+    sources = [path.resolve() for path in args.files] or compiled_sources(build)
 
     findings: set[tuple[str, int, int, str, str]] = set()
     broken: list[str] = []
