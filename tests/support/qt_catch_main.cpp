@@ -40,7 +40,7 @@ void report_crt_assertions_on_stderr()
 // sanitizer: the sanitizer cannot see the pool's synchronisation and reports the workers' disjoint writes as races
 // with the thread that reads the result. Under the sanitizer OpenCV therefore runs single-threaded; CloudScope's
 // own threads stay fully checked.
-static void single_threaded_opencv_under_tsan()
+void single_threaded_opencv_under_tsan()
 {
 #if defined(__SANITIZE_THREAD__)
     cv::setNumThreads(0);
