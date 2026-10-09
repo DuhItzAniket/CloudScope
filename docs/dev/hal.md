@@ -34,7 +34,16 @@ Errors use the codes of `error.hpp` with the same meaning everywhere:
 
 ## Device ids and the registry
 
-A device id is `<driver>:<rest>`, for example `sim:camera:sky` or, later, `uvc:0c45:6366:1`. Ids stay the same across restarts and re-plugging, so they can be stored in configuration and profiles.
+A device id is `<driver>:<rest>`, for example `sim:camera:sky` or `uvc:0c45:636d:1`. Ids stay the same across restarts and re-plugging, so they can be stored in configuration and profiles.
+
+Drivers in the tree:
+
+| Driver | Ids | Devices | Platforms | Since |
+|---|---|---|---|---|
+| `uvc` | `uvc:<vendor>:<product>:<n>` (USB ids in hex, `n` counts equal cameras from 1) | USB Video Class cameras through Media Foundation (Windows) or V4L2 (Linux); modes, exposure/gain/white-balance/brightness controls read back from the driver, MJPEG and YUYV streams | Windows, Linux | P019 |
+| `sim` | `sim:camera:sky`, `sim:camera:replay`, `sim:mount:pan-tilt`, `sim:imu:head`, `sim:sensor:gps`, `sim:sensor:environment` | Simulated rig (`docs/dev/simulators.md`) | all | P018 |
+
+`add_configured_drivers()` adds the UVC driver when `[camera] uvc = true` (the default) and the simulator when `[simulation] enabled`; real cameras are listed before simulated ones. The measured behaviour of the Arducam B0268 is in `docs/hardware/b0268_measured.md`.
 
 ```cpp
 hal::DeviceRegistry registry;

@@ -27,4 +27,5 @@ $SUDO apt-get install -y --no-install-recommends \
     ninja-build \
     nlohmann-json3-dev \
     pkgconf \
-    qt6-base-dev
+    qt6-base-dev \
+    libqt6sql6-sqlite

@@ -19,6 +19,18 @@ Every Catch2 test case is one CTest entry, named `<tier>.<test name>` and run in
 
 Later tiers (hardware-in-the-loop, user interface) get their own executables in their phases.
 
+Some tests are hidden from the default run (Catch2 tag `[.]`) and are run by hand with their tag:
+
+| Tag | Needs | Example |
+|---|---|---|
+| `[hardware]` | A real camera connected (the Arducam B0268 for the UVC tests) | `cloudscope-unit-tests.exe "[hardware]"` |
+| `[slow]` | About a minute (the 1,000-picture sequencer run of P029) | `cloudscope-unit-tests.exe "[slow]"` |
+
+On Windows, Debug builds of the C runtime would report a failed assertion (an out-of-range index, an empty
+`std::optional` dereferenced) with a message box that waits for a click, which under ctest means a silent 60 s
+timeout. The test executables redirect those reports to stderr and abort instead (`tests/support/qt_catch_main.cpp`),
+so the failure reads as what it is.
+
 ## Writing a test
 
 - Framework: **Catch2 v3**. Test names are plain sentences that state the behaviour ("an existing backup is never overwritten"); no square brackets or semicolons in names. Tags in the second argument: `[component][topic]`.

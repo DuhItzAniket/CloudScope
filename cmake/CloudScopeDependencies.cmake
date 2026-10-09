@@ -3,8 +3,8 @@
 # Providers: vcpkg (vcpkg.json) on Windows, distribution packages (tools/build/install-deps-debian.sh) on Linux.
 # Minimum versions are the ones Debian 13 / Raspberry Pi OS ships, so code must build against those.
 #
-#   Qt6::Core                    Qt >= 6.8 (ADR-001)
-#   opencv_core, opencv_imgproc, opencv_imgcodecs
+#   Qt6::Core, Qt6::Sql          Qt >= 6.8 (ADR-001); Sql with the QSQLITE plugin for the frame catalogue (P030)
+#   opencv_core, opencv_imgproc, opencv_imgcodecs, opencv_calib3d
 #   spdlog::spdlog, fmt::fmt
 #   tomlplusplus::tomlplusplus
 #   nlohmann_json::nlohmann_json
@@ -14,8 +14,8 @@
 #   Catch2::Catch2, Qt6::Test    only when CLOUDSCOPE_BUILD_TESTS is ON
 
 find_package(Threads REQUIRED)
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core)
-find_package(OpenCV 4.10 REQUIRED COMPONENTS core imgproc imgcodecs)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Sql)
+find_package(OpenCV 4.10 REQUIRED COMPONENTS core imgproc imgcodecs calib3d)
 find_package(spdlog 1.15 CONFIG REQUIRED)
 find_package(fmt 10.1 CONFIG REQUIRED)
 find_package(tomlplusplus 3.4 CONFIG REQUIRED)

@@ -54,12 +54,15 @@ cloudscope_add_tests(cloudscope_unit_tests
     unit/test_frame.cpp
     unit/test_hal_mocks.cpp
     unit/test_hal_registry.cpp
+    unit/test_intrinsics.cpp
     unit/test_json_schema.cpp
     unit/test_log.cpp
     unit/test_motion_profile.cpp
     unit/test_recording.cpp
     unit/test_rotation.cpp
     unit/test_self_test.cpp
+    unit/test_sequencer.cpp
+    unit/test_session_catalogue.cpp
     unit/test_signal.cpp
     unit/test_sim_camera.cpp
     unit/test_sim_driver.cpp
@@ -76,7 +79,8 @@ cloudscope_add_tests(cloudscope_unit_tests
     nlohmann_json::nlohmann_json
     CloudScope::cfitsio
     opencv_imgproc
-    opencv_imgcodecs)
+    opencv_imgcodecs
+    opencv_calib3d)
 
 cloudscope_add_tests(cloudscope_cli_tests
   PREFIX "cli."

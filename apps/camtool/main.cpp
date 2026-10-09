@@ -22,6 +22,7 @@
 // Exit codes: 0 success, 1 the command failed or a check was not met, 2 wrong usage, 3 internal error.
 
 #include <cloudscope/app/devices.hpp>
+#include <cloudscope/calibration/intrinsics.hpp>
 #include <cloudscope/capture/acquisition.hpp>
 #include <cloudscope/capture/calibration_frames.hpp>
 #include <cloudscope/capture/decode.hpp>
@@ -29,15 +30,21 @@
 #include <cloudscope/capture/frame.hpp>
 #include <cloudscope/capture/frame_hub.hpp>
 #include <cloudscope/capture/statistics.hpp>
+#include <cloudscope/capture/video_files.hpp>
 #include <cloudscope/common/app_config.hpp>
 #include <cloudscope/common/clock.hpp>
 #include <cloudscope/hal/camera.hpp>
+#include <cloudscope/capture/sequencer.hpp>
+#include <cloudscope/capture/solar.hpp>
 #include <cloudscope/hal/registry.hpp>
+#include <cloudscope/session/catalogue.hpp>
+#include <cloudscope/session/session.hpp>
 
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QCoreApplication>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <opencv2/core/utils/logger.hpp>
 #include <opencv2/imgcodecs.hpp>
 
@@ -950,13 +957,366 @@ int command_master(Context& context, const std::string& id, const std::optional<
     return kExitOk;
 }
 
+struct SequenceOptions {
+    CaptureKind kind = CaptureKind::Single;
+    std::uint32_t count = 1;
+    std::chrono::milliseconds interval{0};
+    std::string format = "png";
+    std::string night_format;
+    std::optional<double> night_exposure_ms;
+    double night_below_deg = -6.0;
+    std::vector<double> stops = {-2.0, 0.0, 2.0};
+    std::string start;
+    std::string end;
+    std::string site;  // "LAT,LON,ALT[,ID]"
+    std::string folder;
+    std::string filename_template = "{site}_{utc}_{seq}_{profile}";
+    double min_free_mib = 512.0;
+    std::string session_root;  // when set, pictures go into a new session under this root and into its catalogue
+};
+
+std::optional<SiteInfo> parse_site(const std::string& text)
+{
+    if (text.empty()) {
+        return std::nullopt;
+    }
+    std::vector<std::string> parts;
+    std::size_t start = 0;
+    while (start <= text.size()) {
+        const std::size_t comma = text.find(',', start);
+        parts.push_back(text.substr(start, comma == std::string::npos ? std::string::npos : comma - start));
+        if (comma == std::string::npos) {
+            break;
+        }
+        start = comma + 1;
+    }
+    if (parts.size() < 3) {
+        return std::nullopt;
+    }
+    try {
+        SiteInfo site;
+        site.latitude_deg = std::stod(parts[0]);
+        site.longitude_deg = std::stod(parts[1]);
+        site.altitude_m = std::stod(parts[2]);
+        site.id = parts.size() > 3 ? parts[3] : "site";
+        return site;
+    } catch (const std::exception&) {
+        return std::nullopt;
+    }
+}
+
+// record (one picture) and sequence (any plan): the camera streams through an acquisition thread and the
+// sequencer consumes its hub, as the application will.
+int command_sequence(Context& context, const std::string& id, const std::optional<CameraMode>& wanted, const SequenceOptions& options)
+{
+    if (options.folder.empty()) {
+        print_error("--out FOLDER is required");
+        return kExitUsage;
+    }
+    CapturePlan plan;
+    plan.kind = options.kind;
+    plan.count = options.count;
+    plan.interval = options.interval;
+    plan.bracket_stops = options.stops;
+    plan.folder = std::filesystem::path(QString::fromStdString(options.folder).toStdU16String());
+    plan.filename_template = options.filename_template;
+    plan.night_below_sun_elevation_deg = options.night_below_deg;
+    plan.min_free_bytes = static_cast<std::uintmax_t>(std::max(options.min_free_mib, 0.0) * 1024.0 * 1024.0);
+    const auto day_format = image_format_from_string(options.format);
+    if (!day_format) {
+        print_error(day_format.error().to_string());
+        return kExitUsage;
+    }
+    plan.day.format = *day_format;
+    plan.night.format = *day_format;
+    if (!options.night_format.empty()) {
+        const auto night_format = image_format_from_string(options.night_format);
+        if (!night_format) {
+            print_error(night_format.error().to_string());
+            return kExitUsage;
+        }
+        plan.night.format = *night_format;
+    }
+    plan.night.exposure_ms = options.night_exposure_ms;
+    if (!options.start.empty()) {
+        const auto start = parse_iso8601(options.start);
+        if (!start) {
+            print_error("--start must be ISO 8601 with an offset, e.g. 2026-10-10T00:30:00Z");
+            return kExitUsage;
+        }
+        plan.start_at = *start;
+    }
+    if (!options.end.empty()) {
+        const auto end = parse_iso8601(options.end);
+        if (!end) {
+            print_error("--end must be ISO 8601 with an offset");
+            return kExitUsage;
+        }
+        plan.end_at = *end;
+    }
+    if (auto valid = validate(plan); !valid) {
+        print_error(valid.error().to_string());
+        return kExitUsage;
+    }
+    const std::optional<SiteInfo> site = parse_site(options.site);
+    if (!options.site.empty() && !site) {
+        print_error("--site must be LAT,LON,ALT[,ID]");
+        return kExitUsage;
+    }
+
+    const auto camera = open_camera(context, id);
+    if (!camera) {
+        print_error(camera.error().to_string());
+        return kExitFailed;
+    }
+    const auto capabilities = (*camera)->capabilities();
+    if (!capabilities) {
+        print_error(capabilities.error().to_string());
+        return kExitFailed;
+    }
+    const std::optional<CameraMode> mode = match_mode(*capabilities, wanted);
+    if (!mode) {
+        print_error("no listed mode matches the request");
+        return kExitUsage;
+    }
+    if (auto set = (*camera)->set_mode(*mode); !set) {
+        print_error(set.error().to_string());
+        return kExitFailed;
+    }
+    std::optional<Session> session;
+    std::unique_ptr<Catalogue> catalogue;
+    if (!options.session_root.empty()) {
+        const std::filesystem::path root(QString::fromStdString(options.session_root).toStdU16String());
+        auto created = Session::create(root, site.value_or(SiteInfo{.id = "site"}), (*camera)->info(), context.clock.now_utc());
+        if (!created) {
+            print_error(created.error().to_string());
+            return kExitFailed;
+        }
+        session = std::move(*created);
+        plan.folder = session->frames_folder();
+        auto opened = Catalogue::open(root / "catalogue.sqlite");
+        if (!opened) {
+            print_error(opened.error().to_string());
+            return kExitFailed;
+        }
+        catalogue = std::move(*opened);
+        if (auto added = catalogue->add_session(session->info()); !added) {
+            print_error(added.error().to_string());
+            return kExitFailed;
+        }
+        print(fmt::format("Session {} in {}\n", session->info().id, session->info().folder.string()));
+    }
+    auto hub = std::make_shared<FrameHub>();
+    Acquisition acquisition(*camera, hub, context.clock, {.read_timeout = context.timeout});
+    if (auto started = acquisition.start(); !started) {
+        print_error(started.error().to_string());
+        return kExitFailed;
+    }
+    Sequencer sequencer(*camera, hub, context.clock);
+    sequencer.set_site(site);
+    if (session) {
+        sequencer.set_session_id(session->info().id);
+    }
+    // FR-SEQ-05: after a camera failure, reopen it and restart the acquisition on the same hub.
+    sequencer.set_recovery([&]() -> Expected<void> {
+        acquisition.stop();
+        (*camera)->close();
+        if (auto reopened = (*camera)->open(); !reopened) {
+            return reopened;
+        }
+        if (auto set = (*camera)->set_mode(*mode); !set) {
+            return fail(set.error());
+        }
+        return acquisition.start();
+    });
+    plan.frame_timeout = std::max(context.timeout, std::chrono::milliseconds(500));
+    if (site) {
+        const SunPosition sun = sun_position(context.clock.now_utc(), site->latitude_deg, site->longitude_deg);
+        print(fmt::format("Site {} ({:.2f}, {:.2f}): Sun elevation {:.1f} deg, azimuth {:.1f} deg, {}; night profile below {:.1f} deg\n",
+                          site->id, site->latitude_deg, site->longitude_deg, sun.elevation_deg, sun.azimuth_deg,
+                          to_string(sky_period(sun.elevation_deg)), plan.night_below_sun_elevation_deg));
+    }
+    print(fmt::format("{} in {} -> {}\n", to_string(plan.kind), mode_text(*mode), options.folder));
+    const SteadyClock::time_point started = SteadyClock::now();
+    sequencer.set_on_picture([&](const CapturedPicture& picture) {
+        if (session) {
+            (void)session->record_picture(picture.file);
+            if (auto added = catalogue->add_frame(frame_entry(picture, session->info().id)); !added) {
+                print_error(added.error().to_string());
+            }
+        }
+        const double seconds = std::chrono::duration<double>(SteadyClock::now() - started).count();
+        print(fmt::format("{:7.1f} s  {}  {:>9} bytes  profile {}  exposure {}  luma {:.1f}  clipped {:.2f}%\n", seconds,
+                          picture.file.path.filename().string(), picture.file.bytes, picture.profile,
+                          picture.record.exposure_ms ? fmt::format("{:.3g} ms", *picture.record.exposure_ms) : std::string("n/a"),
+                          picture.record.statistics ? picture.record.statistics->mean : 0.0,
+                          picture.record.statistics ? picture.record.statistics->clipped_fraction * 100.0 : 0.0));
+    });
+    const auto stats = sequencer.run(plan);
+    acquisition.stop();
+    (*camera)->stop();
+    if (session) {
+        if (auto closed = session->close(context.clock.now_utc()); !closed) {
+            print_error(closed.error().to_string());
+        }
+        if (auto updated = catalogue->add_session(session->info()); !updated) {
+            print_error(updated.error().to_string());
+        }
+        print(fmt::format("Session closed: {} pictures catalogued in {}\n", session->info().frames, catalogue->file().string()));
+    }
+    if (!stats) {
+        print_error(stats.error().to_string());
+        return kExitFailed;
+    }
+    const AcquisitionStats acquired = acquisition.stats();
+    print(fmt::format("\nResult: {} pictures written ({:.1f} MiB), {} failed, {} settling frames skipped, {} profile switch(es), "
+                      "{:.1f} s; acquisition {} frames, {} lost, {} timeouts{}{}\n",
+                      stats->written, static_cast<double>(stats->bytes) / (1024.0 * 1024.0), stats->failed, stats->skipped,
+                      stats->profile_switches, static_cast<double>(stats->elapsed.count()) / 1000.0, acquired.frames, acquired.lost,
+                      acquired.timeouts, stats->stopped_by_disk_guard ? "; stopped by the disk guard" : "",
+                      stats->stopped_by_request ? "; stopped on request" : ""));
+    if (stats->last_error) {
+        print("Last error: " + stats->last_error->to_string() + "\n");
+    }
+    return stats->written > 0 && stats->failed == 0 && !stats->stopped_by_disk_guard ? kExitOk : kExitFailed;
+}
+
+struct CalibrateOptions {
+    BoardSpec board;
+    LensModel lens = LensModel::Fisheye;
+    int views = 15;
+    double seconds = 120.0;
+    std::string from_folder;  // pictures on disk instead of the camera
+    std::string out_file;
+};
+
+// The intrinsic calibration assistant: detects the checkerboard in live frames (or in pictures of a folder),
+// keeps the views that cover new parts of the image, fits the model and writes the camera-model file.
+int command_calibrate(Context& context, const std::string& id, const std::optional<CameraMode>& wanted, const CalibrateOptions& options)
+{
+    if (options.out_file.empty()) {
+        print_error("--out FILE.json is required");
+        return kExitUsage;
+    }
+    std::optional<CaptureAssistant> assistant;
+    std::string camera_id = id;
+    std::string camera_name;
+    const auto consider = [&](const cv::Mat& image, const std::string& source) {
+        const auto detected = detect_checkerboard(image, options.board);
+        if (!detected) {
+            print(fmt::format("  {}: no board\n", source));
+            return;
+        }
+        if (!assistant) {
+            assistant.emplace(detected->image_size, 4);
+        }
+        std::string reason;
+        const bool kept = assistant->accept(*detected, &reason);
+        print(fmt::format("  {}: board found, {} ({}); views {} coverage {:.0f}%\n", source, kept ? "kept" : "skipped", reason,
+                          assistant->views(), assistant->coverage() * 100.0));
+    };
+
+    if (!options.from_folder.empty()) {
+        const std::filesystem::path folder(QString::fromStdString(options.from_folder).toStdU16String());
+        const auto files = picture_files(folder);
+        if (!files) {
+            print_error(files.error().to_string());
+            return kExitFailed;
+        }
+        camera_id = id.empty() ? "folder" : id;
+        for (const std::filesystem::path& file : *files) {
+            const auto image = read_image(file);
+            if (!image) {
+                print_error(image.error().to_string());
+                continue;
+            }
+            consider(*image, file.filename().string());
+        }
+    } else {
+        const auto camera = open_camera(context, id);
+        if (!camera) {
+            print_error(camera.error().to_string());
+            return kExitFailed;
+        }
+        camera_name = (*camera)->info().name;
+        const auto capabilities = (*camera)->capabilities();
+        if (!capabilities) {
+            print_error(capabilities.error().to_string());
+            return kExitFailed;
+        }
+        const std::optional<CameraMode> mode = match_mode(*capabilities, wanted);
+        if (!mode) {
+            print_error("no listed mode matches the request");
+            return kExitUsage;
+        }
+        if (auto set = (*camera)->set_mode(*mode); !set) {
+            print_error(set.error().to_string());
+            return kExitFailed;
+        }
+        if (auto started = (*camera)->start(); !started) {
+            print_error(started.error().to_string());
+            return kExitFailed;
+        }
+        print(fmt::format("Show the {}x{} board ({} mm squares) to the camera; move it to the edges and tilt it. {} views wanted, "
+                          "{:.0f} s at most.\n",
+                          options.board.columns, options.board.rows, options.board.square_mm, options.views, options.seconds));
+        Frame frame(frame_buffer_bytes(mode->format, mode->width, mode->height));
+        const SteadyClock::time_point deadline = SteadyClock::now() + std::chrono::milliseconds(static_cast<long long>(options.seconds * 1000.0));
+        SteadyClock::time_point next_look = SteadyClock::now();
+        while (SteadyClock::now() < deadline && (!assistant || assistant->views() < options.views)) {
+            if (auto read = (*camera)->read_frame(frame, context.timeout); !read) {
+                if (read.error().code != ErrorCode::Timeout) {
+                    print_error(read.error().to_string());
+                    break;
+                }
+                continue;
+            }
+            if (SteadyClock::now() < next_look) {
+                continue;  // a look every second: the operator needs time to move the board
+            }
+            next_look = SteadyClock::now() + 1s;
+            const auto image = decode_gray8(frame);
+            if (!image) {
+                continue;
+            }
+            consider(*image, fmt::format("frame {}", frame.info().sequence));
+        }
+        (*camera)->stop();
+    }
+
+    if (!assistant || assistant->views() < 3) {
+        print_error("fewer than three usable views: no calibration");
+        return kExitFailed;
+    }
+    const auto fitted = fit_intrinsics(assistant->accepted(), options.board, options.lens);
+    if (!fitted) {
+        print_error(fitted.error().to_string());
+        return kExitFailed;
+    }
+    CameraModel model = *fitted;
+    model.camera_id = camera_id;
+    model.camera_name = camera_name;
+    model.calibrated = context.clock.now_utc();
+    model.calibration_id = "intrinsics-" + format_file_stamp(model.calibrated).substr(0, 15) + "Z";
+    const std::filesystem::path out(QString::fromStdString(options.out_file).toStdU16String());
+    if (auto saved = save_camera_model(model, out); !saved) {
+        print_error(saved.error().to_string());
+        return kExitFailed;
+    }
+    print(fmt::format("\n{} model from {} views: fx {:.2f} fy {:.2f} cx {:.2f} cy {:.2f}, distortion [{}], rms {:.3f} px, coverage {:.0f}% -> {}\n",
+                      to_string(model.model), model.views, model.fx, model.fy, model.cx, model.cy, fmt::join(model.distortion, ", "),
+                      model.rms_px, assistant->coverage() * 100.0, options.out_file));
+    return model.rms_px < 1.0 ? kExitOk : kExitFailed;
+}
+
 int run(QCoreApplication& app)
 {
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("CloudScope camera tool"));
     parser.addHelpOption();
     parser.addPositionalArgument(QStringLiteral("command"),
-                                 QStringLiteral("list | caps | measure | stream | set | exposure-test | decode-bench | soak"));
+                                 QStringLiteral("list | caps | measure | stream | set | exposure-test | decode-bench | soak | "
+                                                "ae-test | dark | flat | record | sequence | calibrate"));
     parser.addPositionalArgument(QStringLiteral("arguments"), QStringLiteral("camera id and command arguments"),
                                  QStringLiteral("[id] [name=value ...]"));
     const QCommandLineOption config_option({QStringLiteral("c"), QStringLiteral("config")},
@@ -986,8 +1346,57 @@ int run(QCoreApplication& app)
                                         QStringLiteral("FILE"));
     const QCommandLineOption dark_option(QStringLiteral("dark"), QStringLiteral("Dark master to subtract (flat)."),
                                          QStringLiteral("FILE"));
+    const QCommandLineOption kind_option(QStringLiteral("kind"),
+                                         QStringLiteral("Sequence: single | burst | interval | bracket | scheduled (default interval)."),
+                                         QStringLiteral("KIND"), QStringLiteral("interval"));
+    const QCommandLineOption count_option(QStringLiteral("count"),
+                                          QStringLiteral("Sequence: pictures to take (0 = until stopped or --end)."),
+                                          QStringLiteral("N"), QStringLiteral("10"));
+    const QCommandLineOption interval_option(QStringLiteral("interval"), QStringLiteral("Sequence: milliseconds between pictures."),
+                                             QStringLiteral("MS"), QStringLiteral("1000"));
+    const QCommandLineOption format_option(QStringLiteral("format"), QStringLiteral("Picture format: png | tiff16 | jpeg | fits."),
+                                           QStringLiteral("FORMAT"), QStringLiteral("png"));
+    const QCommandLineOption night_format_option(QStringLiteral("night-format"),
+                                                 QStringLiteral("Picture format of the night profile (default: same)."),
+                                                 QStringLiteral("FORMAT"));
+    const QCommandLineOption night_exposure_option(QStringLiteral("night-exposure"),
+                                                   QStringLiteral("Fixed exposure in ms for the night profile."),
+                                                   QStringLiteral("MS"));
+    const QCommandLineOption night_below_option(QStringLiteral("night-below"),
+                                                QStringLiteral("Sun elevation (deg) below which the night profile applies (default -6)."),
+                                                QStringLiteral("DEG"), QStringLiteral("-6"));
+    const QCommandLineOption stops_option(QStringLiteral("stops"), QStringLiteral("Bracket stops, comma separated (default -2,0,2)."),
+                                          QStringLiteral("LIST"), QStringLiteral("-2,0,2"));
+    const QCommandLineOption start_option(QStringLiteral("start"), QStringLiteral("Scheduled: start time, ISO 8601 with offset."),
+                                          QStringLiteral("TIME"));
+    const QCommandLineOption end_option(QStringLiteral("end"), QStringLiteral("Sequence: end time, ISO 8601 with offset."),
+                                        QStringLiteral("TIME"));
+    const QCommandLineOption site_option(QStringLiteral("site"), QStringLiteral("Site as LAT,LON,ALT[,ID] for the Sun position."),
+                                         QStringLiteral("SITE"));
+    const QCommandLineOption template_option(QStringLiteral("template"),
+                                             QStringLiteral("File name template (default {site}_{utc}_{seq}_{profile})."),
+                                             QStringLiteral("T"), QStringLiteral("{site}_{utc}_{seq}_{profile}"));
+    const QCommandLineOption min_free_option(QStringLiteral("min-free"),
+                                             QStringLiteral("Disk guard: stop below this many MiB free (default 512)."),
+                                             QStringLiteral("MIB"), QStringLiteral("512"));
+    const QCommandLineOption session_option(QStringLiteral("session"),
+                                            QStringLiteral("Record into a new session under ROOT (folder layout + catalogue)."),
+                                            QStringLiteral("ROOT"));
+    const QCommandLineOption board_option(QStringLiteral("board"), QStringLiteral("Calibrate: inner corners as CxR (default 9x6)."),
+                                          QStringLiteral("CxR"), QStringLiteral("9x6"));
+    const QCommandLineOption square_option(QStringLiteral("square"), QStringLiteral("Calibrate: square side in mm (default 25)."),
+                                           QStringLiteral("MM"), QStringLiteral("25"));
+    const QCommandLineOption lens_option(QStringLiteral("lens"), QStringLiteral("Calibrate: fisheye | pinhole (default fisheye)."),
+                                         QStringLiteral("LENS"), QStringLiteral("fisheye"));
+    const QCommandLineOption views_option(QStringLiteral("views"), QStringLiteral("Calibrate: views to collect (default 15)."),
+                                          QStringLiteral("N"), QStringLiteral("15"));
+    const QCommandLineOption from_option(QStringLiteral("from"), QStringLiteral("Calibrate: use the pictures of FOLDER instead of a camera."),
+                                         QStringLiteral("FOLDER"));
     parser.addOptions({config_option, timeout_option, mode_option, seconds_option, minutes_option, values_option,
-                       repeat_option, report_option, frames_option, out_option, dark_option});
+                       repeat_option, report_option, frames_option, out_option, dark_option, kind_option, count_option,
+                       interval_option, format_option, night_format_option, night_exposure_option, night_below_option,
+                       stops_option, start_option, end_option, site_option, template_option, min_free_option,
+                       session_option, board_option, square_option, lens_option, views_option, from_option});
     parser.process(app);
 
     const QStringList positional = parser.positionalArguments();
@@ -1015,7 +1424,7 @@ int run(QCoreApplication& app)
             return kExitUsage;
         }
     }
-    const bool needs_id = command != "list" && command != "decode-bench";
+    const bool needs_id = command != "list" && command != "decode-bench" && !(command == "calibrate" && parser.isSet(from_option));
     if (needs_id && id.empty()) {
         print_error("this command needs a camera id (see: list)");
         return kExitUsage;
@@ -1054,6 +1463,66 @@ int run(QCoreApplication& app)
     if (command == "dark" || command == "flat") {
         return command_master(context, id, mode, std::max(parser.value(frames_option).toInt(), 2), utf8(parser.value(out_option)),
                               utf8(parser.value(dark_option)), command == "flat");
+    }
+    if (command == "record" || command == "sequence") {
+        SequenceOptions options;
+        if (command == "record") {
+            options.kind = CaptureKind::Single;
+        } else {
+            const auto kind = capture_kind_from_string(utf8(parser.value(kind_option)));
+            if (!kind) {
+                print_error(kind.error().to_string());
+                return kExitUsage;
+            }
+            options.kind = *kind;
+        }
+        options.count = static_cast<std::uint32_t>(std::max(parser.value(count_option).toInt(), 0));
+        options.interval = std::chrono::milliseconds(std::max(parser.value(interval_option).toInt(), 0));
+        options.format = utf8(parser.value(format_option));
+        options.night_format = utf8(parser.value(night_format_option));
+        if (parser.isSet(night_exposure_option)) {
+            options.night_exposure_ms = parser.value(night_exposure_option).toDouble();
+        }
+        options.night_below_deg = parser.value(night_below_option).toDouble();
+        options.stops = parse_values(utf8(parser.value(stops_option)));
+        options.start = utf8(parser.value(start_option));
+        options.end = utf8(parser.value(end_option));
+        options.site = utf8(parser.value(site_option));
+        options.folder = utf8(parser.value(out_option));
+        options.filename_template = utf8(parser.value(template_option));
+        options.min_free_mib = parser.value(min_free_option).toDouble();
+        options.session_root = utf8(parser.value(session_option));
+        if (options.folder.empty() && options.session_root.empty()) {
+            print_error("--out FOLDER or --session ROOT is required");
+            return kExitUsage;
+        }
+        if (options.folder.empty()) {
+            options.folder = options.session_root;  // replaced by the session's frames folder
+        }
+        return command_sequence(context, id, mode, options);
+    }
+    if (command == "calibrate") {
+        CalibrateOptions options;
+        const std::string board = utf8(parser.value(board_option));
+        const std::size_t x = board.find('x');
+        if (x == std::string::npos) {
+            print_error("--board must look like 9x6");
+            return kExitUsage;
+        }
+        options.board.columns = std::atoi(board.substr(0, x).c_str());
+        options.board.rows = std::atoi(board.substr(x + 1).c_str());
+        options.board.square_mm = parser.value(square_option).toDouble();
+        const auto lens = lens_model_from_string(utf8(parser.value(lens_option)));
+        if (!lens) {
+            print_error(lens.error().to_string());
+            return kExitUsage;
+        }
+        options.lens = *lens;
+        options.views = std::max(parser.value(views_option).toInt(), 3);
+        options.seconds = parser.isSet(seconds_option) ? parser.value(seconds_option).toDouble() : 120.0;
+        options.from_folder = utf8(parser.value(from_option));
+        options.out_file = utf8(parser.value(out_option));
+        return command_calibrate(context, id, mode, options);
     }
     print_error("unknown command '" + command + "'");
     return kExitUsage;

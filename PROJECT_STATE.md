@@ -2,15 +2,15 @@
 
 | Field | Value |
 |---|---|
-| Current stage | Stages A and B complete (Gate R: GO with conditions; tag `stage-B-complete`). Next: C — Camera subsystem (P019–P032), which by the plan starts after 16 Nov 2026 |
-| Last completed phase | P018 — Simulators |
-| Next phase | P019 — Device enumeration |
+| Current stage | Stage C — Camera subsystem (P019–P032) in progress: P019–P031 done on 2026-10-09 with the Arducam B0268 on the development laptop; P032 (soak) running. Stages A and B complete (tag `stage-B-complete`) |
+| Last completed phase | P031 — Intrinsic calibration tool |
+| Next phase | P032 — Camera soak test |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Last CI result checked | `7f606a2` (P018, tag `stage-B-complete`): all ten jobs green; coverage 96.3 % of core-library lines. (The two runs before it lost jobs to GitHub's Actions incident of 5 Oct 2026, not to failures.) |
-| Blockers | None for the simulator-based work. P019 needs the Arducam B0268 connected. Open items: P003 acceptance (B0268 24 h run); pictures that depend on the mount's pointing are not simulated yet (P018 phase document) |
+| Blockers | None for the code. Owner items from Stage C: daylight `ae-test` of the B0268 (P025), real dark/flat masters (P026), a FITS and a 16-bit SER opened in Siril/SER Player (P027/P028), a printed checkerboard for the B0268's intrinsic calibration (P031), the Linux/Raspberry Pi run of the V4L2 backend (P019, P032), EXIF GPS privacy in `legacy/B0268`, the B0268 logging run for STRATIA P041 |
 | Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
-| Hardware on the development machine | Integrated laptop camera only; Arducam B0268 not connected; no microcontroller attached |
+| Hardware on the development machine | Arducam B0268 (`uvc:0c45:636d:1`) and the integrated laptop camera, both on USB; no microcontroller attached; no Raspberry Pi |
 
 ## Phase log
 
@@ -34,3 +34,16 @@
 | P016 | Threading & event bus | DONE | 2026-10-04 |
 | P017 | HAL interfaces | DONE | 2026-10-06 |
 | P018 | Simulators | DONE | 2026-10-06 |
+| P019 | Device enumeration | DONE | 2026-10-09 |
+| P020 | Modes | DONE | 2026-10-09 |
+| P021 | Camera controls | DONE | 2026-10-09 |
+| P022 | Acquisition pipeline | DONE | 2026-10-09 |
+| P023 | Decode & colour | DONE | 2026-10-09 |
+| P024 | Frame statistics | DONE | 2026-10-09 |
+| P025 | Sky auto-exposure + HDR | DONE | 2026-10-09 |
+| P026 | Calibration frames | DONE | 2026-10-09 |
+| P027 | Recording I | DONE | 2026-10-09 |
+| P028 | Recording II | DONE | 2026-10-09 |
+| P029 | Capture sequencer | DONE | 2026-10-09 |
+| P030 | Sessions & catalogue | DONE | 2026-10-09 |
+| P031 | Intrinsic calibration tool | DONE | 2026-10-09 |

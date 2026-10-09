@@ -34,6 +34,7 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `core/` | `libcloudscope-core`: all domain logic (C++20, Qt Core) |
 | `apps/info/` | `cloudscope-info`: build information, installation self-test, configuration report, list of usable devices |
 | `apps/bench/` | `cloudscope-bench`: frame pipeline benchmark |
+| `apps/camtool/` | `cloudscope-camtool`: cameras from the command line: list, measure, stream, record, capture plans, soak test, calibration (`docs/manual/camera_tool.md`) |
 | `tests/` | Unit tests (Catch2), contract tests for device drivers, mock devices and command-line tests; fixtures in `tests/data` |
 | `cmake/`, `CMakePresets.json`, `vcpkg.json` | Build system ([how to build](docs/dev/building.md)) |
 | `docs/dev/` | Developer guides: building, C++ conventions, threading, hardware abstraction layer, simulators, testing, quality gates, continuous integration |

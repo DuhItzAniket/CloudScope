@@ -16,11 +16,15 @@ add_custom_target(cloudscope_git_revision
 
 add_library(cloudscope_core STATIC
   include/cloudscope/app/devices.hpp
+  include/cloudscope/calibration/intrinsics.hpp
   include/cloudscope/capture/acquisition.hpp
   include/cloudscope/capture/calibration_frames.hpp
   include/cloudscope/capture/recording.hpp
+  include/cloudscope/capture/sequencer.hpp
   include/cloudscope/capture/solar.hpp
   include/cloudscope/capture/video_files.hpp
+  include/cloudscope/session/catalogue.hpp
+  include/cloudscope/session/session.hpp
   include/cloudscope/capture/decode.hpp
   include/cloudscope/capture/exposure.hpp
   include/cloudscope/capture/frame.hpp
@@ -57,11 +61,15 @@ add_library(cloudscope_core STATIC
   include/cloudscope/uvc/uvc_camera.hpp
   include/cloudscope/uvc/uvc_driver.hpp
   src/app/devices.cpp
+  src/calibration/intrinsics.cpp
   src/capture/acquisition.cpp
   src/capture/calibration_frames.cpp
   src/capture/recording.cpp
+  src/capture/sequencer.cpp
   src/capture/solar.cpp
   src/capture/video_files.cpp
+  src/session/catalogue.cpp
+  src/session/session.cpp
   src/capture/decode.cpp
   src/capture/exposure.cpp
   src/capture/frame.cpp
@@ -109,8 +117,10 @@ qt_add_resources(cloudscope_core "cloudscope_core_resources"
   PREFIX "/cloudscope"
   BASE "resources"
   FILES
+    resources/camera_model.schema.json
     resources/config.defaults.toml
     resources/config.schema.json
+    resources/session.schema.json
     resources/sidecar.schema.json)
 
 target_include_directories(cloudscope_core
@@ -131,7 +141,8 @@ target_link_libraries(cloudscope_core
     opencv_core
     Threads::Threads
   PRIVATE
-    opencv_imgproc opencv_imgcodecs
+    Qt6::Sql
+    opencv_imgproc opencv_imgcodecs opencv_calib3d
     tomlplusplus::tomlplusplus
     CloudScope::cfitsio
     CloudScope::turbojpeg)
