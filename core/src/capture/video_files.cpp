@@ -68,7 +68,9 @@ std::array<char, kHeaderBytes> encode_header(const SerHeader& header)
     std::memcpy(bytes.data(), kFileId.data(), kFileId.size());
     put<std::int32_t>(bytes.data() + 14, 0);  // LuID
     put<std::int32_t>(bytes.data() + 18, static_cast<std::int32_t>(header.colour));
-    put<std::int32_t>(bytes.data() + 22, header.little_endian ? 1 : 0);
+    // De-facto convention (Siril, SER Player, FireCapture): 0 means little-endian data. The specification says
+    // the opposite; following it would make every 16-bit file come out byte-swapped in those programs.
+    put<std::int32_t>(bytes.data() + 22, header.little_endian ? 0 : 1);
     put<std::int32_t>(bytes.data() + 26, header.width);
     put<std::int32_t>(bytes.data() + 30, header.height);
     put<std::int32_t>(bytes.data() + 34, header.bit_depth);
@@ -208,7 +210,7 @@ Expected<void> SerReader::open(const std::filesystem::path& file)
     }
     header_ = {};
     header_.colour = static_cast<SerColour>(get<std::int32_t>(bytes.data() + 18));
-    header_.little_endian = get<std::int32_t>(bytes.data() + 22) != 0;
+    header_.little_endian = get<std::int32_t>(bytes.data() + 22) == 0;  // de-facto meaning, see the header
     header_.width = get<std::int32_t>(bytes.data() + 26);
     header_.height = get<std::int32_t>(bytes.data() + 30);
     header_.bit_depth = get<std::int32_t>(bytes.data() + 34);

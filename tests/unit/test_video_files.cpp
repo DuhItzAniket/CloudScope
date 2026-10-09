@@ -102,13 +102,18 @@ TEST_CASE("SER files round-trip frames, header and UTC trailer", "[capture][ser]
             CHECK(cv::norm(*frame, frames[i], cv::NORM_INF) == 0.0);
         }
 
-        // Rewrite the file as big-endian: clear the flag and swap every 16-bit word of the frame data.
+        // The file says 0 in the "LittleEndian" field: what Siril, SER Player and FireCapture write for
+        // little-endian data (the opposite of the specification's wording).
         std::vector<char> bytes(std::filesystem::file_size(file));
         {
             std::ifstream in(file, std::ios::binary);
             in.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
         }
+        CHECK(bytes[22] == 0);
+        CHECK(bytes[23] == 0);
+        // Rewrite the file as big-endian: set the field to 1 and swap every 16-bit word of the frame data.
         std::memset(bytes.data() + 22, 0, 4);
+        bytes[22] = 1;
         for (std::size_t i = 178; i + 1 < 178 + 3 * 32 * 24 * 2; i += 2) {
             std::swap(bytes[i], bytes[i + 1]);
         }

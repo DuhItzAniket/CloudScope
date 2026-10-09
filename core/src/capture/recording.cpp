@@ -1,6 +1,7 @@
 #include "cloudscope/capture/recording.hpp"
 
 #include "cloudscope/capture/calibration_frames.hpp"
+#include "cloudscope/capture/decode.hpp"
 #include "cloudscope/common/build_info.hpp"
 
 #include <QtCore/QCryptographicHash>
@@ -99,6 +100,28 @@ namespace {
 std::filesystem::path with_suffix(const std::filesystem::path& file, const char* suffix)
 {
     return std::filesystem::path(file.native() + std::filesystem::path(suffix).native());
+}
+
+// "frame.png" -> "frame.part.png": the extension stays, so encoders that look at it still work.
+std::filesystem::path partial_name(const std::filesystem::path& file)
+{
+    return file.parent_path() / (file.stem().native() + std::filesystem::path(".part").native() + file.extension().native());
+}
+
+// Moves a finished temporary file into place, replacing what was there.
+Expected<void> move_into_place(const std::filesystem::path& temporary, const std::filesystem::path& target)
+{
+    std::error_code error;
+    std::filesystem::rename(temporary, target, error);
+    if (error) {
+        std::filesystem::remove(target, error);
+        std::filesystem::rename(temporary, target, error);
+        if (error) {
+            std::filesystem::remove(temporary, error);
+            return fail(ErrorCode::Io, fmt::format("could not move {} into place", temporary.string()));
+        }
+    }
+    return {};
 }
 
 std::string fits_message(int status)
@@ -280,6 +303,7 @@ Expected<void> write_fits(const cv::Mat& image, const std::filesystem::path& fil
         write_key_double(fits.file(), "OBSGEO-H", record.site->altitude_m, "[m] altitude of the site", status);
         write_key_double(fits.file(), "SITELAT", record.site->latitude_deg, "[deg] site latitude", status);
         write_key_double(fits.file(), "SITELONG", record.site->longitude_deg, "[deg] site longitude, east positive", status);
+        write_key_double(fits.file(), "SITEELEV", record.site->altitude_m, "[m] site elevation above sea level", status);
         write_key_string(fits.file(), "SITEID", record.site->id, "site identifier", status);
     }
     if (record.pointing) {
@@ -302,8 +326,9 @@ Expected<void> write_fits(const cv::Mat& image, const std::filesystem::path& fil
         write_key_string(fits.file(), "SESSION", record.session_id, "CloudScope session", status);
     }
     const BuildInfo& build = build_info();
-    write_key_string(fits.file(), "CREATOR", fmt::format("CloudScope {} ({})", build.version, build.git_revision),
+    write_key_string(fits.file(), "SWCREATE", fmt::format("CloudScope {} ({})", build.version, build.git_revision),
                      "software that wrote the file", status);
+    write_key_string(fits.file(), "CREATOR", fmt::format("CloudScope {}", build.version), "software that wrote the file", status);
     write_key_string(fits.file(), "BUNIT", "ADU", "camera data numbers (8-bit data scaled by 257)", status);
     if (status != 0) {
         return fail(ErrorCode::Io, fmt::format("could not write the FITS header: {}", fits_message(status)));
@@ -326,10 +351,11 @@ Expected<WrittenFile> write_picture(const cv::Mat& image, ImageFileFormat format
     written.channels = image.channels();
     std::error_code ignored;
     std::filesystem::create_directories(file.parent_path(), ignored);
+    const std::filesystem::path partial = partial_name(file);
     switch (format) {
     case ImageFileFormat::Png: {
         written.bit_depth = image.depth() == CV_16U ? 16 : 8;
-        if (auto done = write_image(file, image); !done) {
+        if (auto done = write_image(partial, image); !done) {
             return fail(done.error());
         }
         break;
@@ -342,7 +368,7 @@ Expected<WrittenFile> write_picture(const cv::Mat& image, ImageFileFormat format
             wide = image;
         }
         written.bit_depth = 16;
-        if (auto done = write_image(file, wide); !done) {
+        if (auto done = write_image(partial, wide); !done) {
             return fail(done.error());
         }
         break;
@@ -356,26 +382,63 @@ Expected<WrittenFile> write_picture(const cv::Mat& image, ImageFileFormat format
         if (!cv::imencode(".jpg", image, encoded, {cv::IMWRITE_JPEG_QUALITY, std::clamp(jpeg_quality, 1, 100)})) {
             return fail(ErrorCode::Io, "JPEG encoding failed");
         }
-        std::ofstream out(file, std::ios::binary);
+        std::ofstream out(partial, std::ios::binary);
         if (!out.write(reinterpret_cast<const char*>(encoded.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
                        static_cast<std::streamsize>(encoded.size()))) {
-            return fail(ErrorCode::Io, fmt::format("could not write {}", file.string()));
+            return fail(ErrorCode::Io, fmt::format("could not write {}", partial.string()));
         }
         break;
     }
     case ImageFileFormat::Fits: {
         written.bit_depth = 16;
-        if (auto done = write_fits(image, file, record); !done) {
+        if (auto done = write_fits(image, partial, record); !done) {
             return fail(done.error());
         }
         break;
     }
+    }
+    if (auto moved = move_into_place(partial, file); !moved) {
+        return fail(moved.error());
     }
     std::error_code error;
     written.bytes = std::filesystem::file_size(file, error);
     if (error) {
         return fail(ErrorCode::Io, fmt::format("could not read back the size of {}", file.string()));
     }
+    auto hash = file_sha256(file);
+    if (!hash) {
+        return fail(hash.error());
+    }
+    written.sha256 = *hash;
+    return written;
+}
+
+Expected<WrittenFile> write_jpeg_bytes(std::span<const std::byte> jpeg, const std::filesystem::path& file)
+{
+    const auto info = jpeg_info(jpeg);
+    if (!info) {
+        return fail(ErrorCode::InvalidArgument, "the frame is not a JPEG");
+    }
+    std::error_code ignored;
+    std::filesystem::create_directories(file.parent_path(), ignored);
+    const std::filesystem::path partial = partial_name(file);
+    {
+        std::ofstream out(partial, std::ios::binary | std::ios::trunc);
+        if (!out.write(reinterpret_cast<const char*>(jpeg.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                       static_cast<std::streamsize>(jpeg.size()))) {
+            return fail(ErrorCode::Io, fmt::format("could not write {}", partial.string()));
+        }
+    }
+    if (auto moved = move_into_place(partial, file); !moved) {
+        return fail(moved.error());
+    }
+    WrittenFile written;
+    written.path = file;
+    written.bytes = jpeg.size();
+    written.width = info->width;
+    written.height = info->height;
+    written.channels = 3;
+    written.bit_depth = 8;
     auto hash = file_sha256(file);
     if (!hash) {
         return fail(hash.error());
@@ -484,16 +547,94 @@ Expected<std::filesystem::path> write_sidecar(const std::filesystem::path& pictu
             return fail(ErrorCode::Io, fmt::format("could not write {}", temporary.string()));
         }
     }
-    std::error_code error;
-    std::filesystem::rename(temporary, target, error);
-    if (error) {
-        std::filesystem::remove(target, error);
-        std::filesystem::rename(temporary, target, error);
-        if (error) {
-            return fail(ErrorCode::Io, fmt::format("could not move {} into place", temporary.string()));
-        }
+    if (auto moved = move_into_place(temporary, target); !moved) {
+        return fail(moved.error());
     }
     return target;
+}
+
+Expected<SidecarSummary> read_sidecar(const nlohmann::json& document)
+{
+    if (!document.is_object() || !document.contains("schema") || !document["schema"].is_string()) {
+        return fail(ErrorCode::Parse, "not a CloudScope sidecar: no schema");
+    }
+    SidecarSummary out;
+    out.schema = document["schema"].get<std::string>();
+    const auto number = [](const nlohmann::json& node, const char* key) -> std::optional<double> {
+        if (node.is_object() && node.contains(key) && node[key].is_number()) {
+            return node[key].get<double>();
+        }
+        return std::nullopt;
+    };
+    const auto text = [](const nlohmann::json& node, const char* key) -> std::string {
+        if (node.is_object() && node.contains(key) && node[key].is_string()) {
+            return node[key].get<std::string>();
+        }
+        return {};
+    };
+    const nlohmann::json& capture = document.contains("capture") ? document["capture"] : nlohmann::json::object();
+    const std::string utc_text = text(capture, "utc");
+    const auto utc = parse_iso8601(utc_text);
+    if (!utc) {
+        return fail(ErrorCode::Parse, fmt::format("sidecar capture.utc '{}' is not an ISO 8601 time with offset", utc_text));
+    }
+    out.utc = *utc;
+    if (const auto sequence = number(capture, "sequence")) {
+        out.sequence = static_cast<std::uint64_t>(std::max(0.0, *sequence));
+    }
+    if (capture.contains("simulated") && capture["simulated"].is_boolean()) {
+        out.simulated = capture["simulated"].get<bool>();
+    }
+    if (out.schema == "cloudscope.frame/1") {
+        const nlohmann::json& file = document.contains("file") ? document["file"] : nlohmann::json::object();
+        out.file_name = text(file, "name");
+        out.sha256 = text(file, "sha256");
+        out.bytes = static_cast<std::uint64_t>(number(file, "bytes").value_or(0.0));
+        out.width = static_cast<int>(number(file, "width").value_or(0.0));
+        out.height = static_cast<int>(number(file, "height").value_or(0.0));
+        if (document.contains("camera")) {
+            out.exposure_ms = number(document["camera"], "exposure_ms");
+        }
+    } else if (out.schema == "cloudscope.sky_logger.frame/1") {
+        out.file_name = text(document, "file");
+        out.sha256 = text(document, "sha256");
+        out.bytes = static_cast<std::uint64_t>(number(document, "bytes").value_or(0.0));
+        if (document.contains("image")) {
+            out.width = static_cast<int>(number(document["image"], "width").value_or(0.0));
+            out.height = static_cast<int>(number(document["image"], "height").value_or(0.0));
+        }
+        // The interim logger stored the driver's raw read-back, not milliseconds: left empty on purpose.
+    } else {
+        return fail(ErrorCode::Unsupported, fmt::format("unknown sidecar schema '{}'", out.schema));
+    }
+    if (document.contains("site") && document["site"].is_object()) {
+        const nlohmann::json& site = document["site"];
+        const auto latitude = number(site, "latitude_deg") ? number(site, "latitude_deg") : number(site, "latitude");
+        const auto longitude = number(site, "longitude_deg") ? number(site, "longitude_deg") : number(site, "longitude");
+        if (latitude && longitude) {
+            out.site = SiteInfo{.id = text(site, "id"),
+                                .latitude_deg = *latitude,
+                                .longitude_deg = *longitude,
+                                .altitude_m = number(site, "altitude_m").value_or(0.0)};
+        }
+    }
+    if (document.contains("pointing") && document["pointing"].is_object()) {
+        const nlohmann::json& pointing = document["pointing"];
+        const auto azimuth = number(pointing, "azimuth_deg");
+        const auto elevation = number(pointing, "elevation_deg");
+        if (azimuth && elevation) {
+            out.pointing = PointingInfo{.azimuth_deg = *azimuth, .elevation_deg = *elevation, .source = text(pointing, "source")};
+        }
+    }
+    if (document.contains("sun") && document["sun"].is_object()) {
+        const nlohmann::json& sun = document["sun"];
+        const auto azimuth = number(sun, "azimuth_deg");
+        const auto elevation = number(sun, "elevation_deg");
+        if (azimuth && elevation) {
+            out.sun = SunInfo{.azimuth_deg = *azimuth, .elevation_deg = *elevation};
+        }
+    }
+    return out;
 }
 
 const JsonSchema& sidecar_schema()

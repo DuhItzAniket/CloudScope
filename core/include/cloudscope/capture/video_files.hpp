@@ -3,8 +3,10 @@
 //
 // SER (version 3) is the raw-frame video format astronomy software reads (SER Player, Siril, PIPP, AutoStakkert):
 // a 178-byte header, the frames as they come from the camera (8- or 16-bit mono, 8-bit BGR), and a trailer with
-// one UTC timestamp per frame. The header's endianness field has been written both ways by different programs;
-// CloudScope writes little-endian data and marks it so, and reads whatever a file declares.
+// one UTC timestamp per frame. The header's "LittleEndian" field is used the opposite way from its specification
+// by the programs that matter (FireCapture, Siril, SER Player, GoQat: 0 = little-endian data, 1 = big-endian);
+// CloudScope writes little-endian data with the field set to 0 as they expect, and reads the field the same way
+// (`SerHeader::little_endian` is the meaning, not the stored number).
 //
 // A keogram is the centre column of every frame laid side by side over time; star trails are the per-pixel maximum
 // over frames. Both are made from a sequence in memory or from a folder of pictures.
@@ -28,7 +30,7 @@ enum class SerColour : std::int32_t { Mono = 0, Rgb = 100, Bgr = 101 };
 
 struct SerHeader {
     SerColour colour = SerColour::Mono;
-    bool little_endian = true;
+    bool little_endian = true;  // byte order of 16-bit data; stored as 0 (!) in the file, see above
     int width = 0;
     int height = 0;
     int bit_depth = 8;  // per plane: 8 or 16

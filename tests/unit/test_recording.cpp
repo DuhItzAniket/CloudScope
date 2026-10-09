@@ -98,6 +98,8 @@ TEST_CASE("the FITS file carries the agreed keywords and reads back upright", "[
     CHECK_THAT(std::stod(keys.at("OBSGEO-H")), WithinAbs(920.0, 1e-9));
     CHECK_THAT(std::stod(keys.at("SITELAT")), WithinAbs(12.97, 1e-9));
     CHECK_THAT(std::stod(keys.at("SITELONG")), WithinAbs(77.59, 1e-9));
+    CHECK_THAT(std::stod(keys.at("SITEELEV")), WithinAbs(920.0, 1e-9));
+    CHECK(keys.at("SWCREATE").rfind("CloudScope ", 0) == 0);
     CHECK_THAT(std::stod(keys.at("CENTALT")), WithinAbs(90.0, 1e-9));
     CHECK_THAT(std::stod(keys.at("CENTAZ")), WithinAbs(0.0, 1e-9));
     CHECK(keys.at("ROWORDER") == "BOTTOM-UP");
@@ -161,6 +163,11 @@ TEST_CASE("PNG, TIFF-16 and JPEG pictures are written and hashed", "[capture][re
         REQUIRE(hash);
         CHECK(*hash == written->sha256);
         CHECK(written->bytes == std::filesystem::file_size(written->path));
+        CHECK_FALSE(std::filesystem::exists(workspace.path("a.part.png")));
+        // Writing again replaces the file.
+        const auto again = write_picture(picture, ImageFileFormat::Png, workspace.path("a.png"), record);
+        REQUIRE(again);
+        CHECK(again->sha256 == written->sha256);
     }
     SECTION("TIFF-16 widens 8-bit data by 257")
     {
@@ -273,6 +280,67 @@ TEST_CASE("the sidecar validates against its schema and says what was captured",
         CHECK_FALSE(minimal.contains("site"));
         CHECK_FALSE(minimal["camera"].contains("exposure_ms"));
     }
+}
+
+TEST_CASE("sidecars of both schemas are read back", "[capture][recording]")
+{
+    const TempWorkspace workspace;
+    const CaptureRecord record = test_record();
+    const auto written = write_picture(test_picture(), ImageFileFormat::Png, workspace.path("r/frame.png"), record);
+    REQUIRE(written);
+    const auto ours = read_sidecar(sidecar_json(record, *written, ImageFileFormat::Png));
+    REQUIRE(ours);
+    CHECK(ours->schema == "cloudscope.frame/1");
+    CHECK(ours->file_name == "frame.png");
+    CHECK(ours->sha256 == written->sha256);
+    CHECK(ours->bytes == written->bytes);
+    CHECK(ours->utc == record.info.captured.utc);
+    CHECK(ours->sequence == 42);
+    CHECK(ours->simulated);
+    CHECK(ours->exposure_ms.value() == 15.625);
+    REQUIRE(ours->site);
+    CHECK(ours->site->id == "blr-roof");
+    REQUIRE(ours->pointing);
+    CHECK(ours->pointing->source == "declared_by_operator");
+    REQUIRE(ours->sun);
+    CHECK(ours->width == 64);
+
+    // The interim logger's layout (tools/sky_logger, schema cloudscope.sky_logger.frame/1).
+    const nlohmann::json legacy = {
+        {"schema", "cloudscope.sky_logger.frame/1"},
+        {"file", "blr-roof_20261004T121500_250Z.jpg"},
+        {"sha256", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},
+        {"bytes", 123456},
+        {"encoding", {{"format", "jpg"}, {"jpeg_quality", 92}}},
+        {"capture", {{"utc", "2026-10-04T12:15:00.250+00:00"}, {"utc_unix", 1791108900.25}, {"sequence", 7},
+                     {"time_source", "host clock (not GPS-disciplined)"}}},
+        {"site", {{"id", "blr-roof"}, {"latitude", 12.97}, {"longitude", 77.59}, {"altitude_m", 920.0}}},
+        {"pointing", {{"source", "declared_by_operator"}, {"description", "zenith"}, {"azimuth_deg", 0.0}, {"elevation_deg", 90.0}}},
+        {"camera", {{"index", 1}, {"backend", "dshow"}}},
+        {"image", {{"width", 4656}, {"height", 3496}, {"channels", 3}}},
+        {"sun", {{"azimuth_deg", 180.5}, {"elevation_deg", 72.6}}},
+    };
+    const auto old = read_sidecar(legacy);
+    REQUIRE(old);
+    CHECK(old->schema == "cloudscope.sky_logger.frame/1");
+    CHECK(old->file_name == "blr-roof_20261004T121500_250Z.jpg");
+    CHECK(old->bytes == 123456);
+    CHECK(old->utc == at("2026-10-04T12:15:00.250Z"));
+    CHECK(old->sequence == 7);
+    CHECK_FALSE(old->simulated);
+    CHECK_FALSE(old->exposure_ms);
+    REQUIRE(old->site);
+    CHECK(old->site->latitude_deg == 12.97);
+    CHECK(old->site->altitude_m == 920.0);
+    REQUIRE(old->pointing);
+    CHECK(old->pointing->elevation_deg == 90.0);
+    REQUIRE(old->sun);
+    CHECK(old->sun->elevation_deg == 72.6);
+    CHECK(old->width == 4656);
+
+    CHECK_FALSE(read_sidecar(nlohmann::json{{"schema", "somebody.else/1"}, {"capture", {{"utc", "2026-10-04T12:15:00Z"}}}}));
+    CHECK_FALSE(read_sidecar(nlohmann::json{{"schema", "cloudscope.frame/1"}}));  // no time
+    CHECK_FALSE(read_sidecar(nlohmann::json::array()));
 }
 
 TEST_CASE("time and hash helpers", "[capture][recording]")

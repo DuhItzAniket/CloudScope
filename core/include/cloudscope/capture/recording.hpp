@@ -21,10 +21,12 @@
 #include <nlohmann/json.hpp>
 #include <opencv2/core.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -83,10 +85,15 @@ struct WrittenFile {
 
 // Writes `image` (8-bit 1/3 channels, or 16-bit 1 channel; 16-bit 3 channels for TIFF/FITS) as `format` to `file`.
 // JPEG takes 8-bit only; TIFF16 and FITS widen 8-bit data to 16 bits (x257) so that the file's scale is honest.
-// The record supplies the FITS keywords. An existing file is overwritten.
+// The record supplies the FITS keywords. Files are written to `<name>.part<ext>` and renamed into place, so a
+// reader never sees a half-written picture; an existing file is replaced.
 [[nodiscard]] Expected<WrittenFile> write_picture(const cv::Mat& image, ImageFileFormat format,
                                                   const std::filesystem::path& file, const CaptureRecord& record,
                                                   int jpeg_quality = 92);
+
+// Stores a JPEG as the camera sent it (an MJPEG frame), without decoding: the lossless, fastest way to keep what
+// a UVC camera produced. InvalidArgument if the bytes are not a JPEG.
+[[nodiscard]] Expected<WrittenFile> write_jpeg_bytes(std::span<const std::byte> jpeg, const std::filesystem::path& file);
 
 // The sidecar document for a written picture.
 [[nodiscard]] nlohmann::json sidecar_json(const CaptureRecord& record, const WrittenFile& file, ImageFileFormat format);
@@ -96,6 +103,26 @@ struct WrittenFile {
 
 // The sidecar schema compiled from the resources; valid for the whole program.
 [[nodiscard]] const JsonSchema& sidecar_schema();
+
+// What a sidecar says, whichever schema wrote it: "cloudscope.frame/1" (this module) or the interim logger's
+// "cloudscope.sky_logger.frame/1" (tools/sky_logger, FR-REC-08). Fields a document does not have stay empty.
+struct SidecarSummary {
+    std::string schema;
+    std::string file_name;
+    std::string sha256;
+    std::uint64_t bytes = 0;
+    UtcTime utc{};
+    std::uint64_t sequence = 0;
+    bool simulated = false;
+    std::optional<double> exposure_ms;
+    std::optional<SiteInfo> site;
+    std::optional<PointingInfo> pointing;
+    std::optional<SunInfo> sun;
+    int width = 0;
+    int height = 0;
+};
+// Parse for a document of neither schema or without the fields both schemas require.
+[[nodiscard]] Expected<SidecarSummary> read_sidecar(const nlohmann::json& document);
 
 // DATE-OBS as FITS 4.0 wants it: "2026-10-09T10:15:30.123" (UTC, no offset suffix; TIMESYS says the scale).
 [[nodiscard]] std::string fits_date_obs(UtcTime time);
