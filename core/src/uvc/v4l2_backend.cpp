@@ -24,6 +24,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cmath>
 #include <cstring>
@@ -108,7 +109,7 @@ struct ControlBinding {
     const char* unit;
 };
 
-const ControlBinding kBindings[] = {
+constexpr std::array<ControlBinding, 9> kBindings = {{
     {CameraControl::Exposure, V4L2_CID_EXPOSURE_ABSOLUTE, V4L2_CID_EXPOSURE_AUTO, 0.1, "ms"},  // 100 us units
     {CameraControl::Gain, V4L2_CID_GAIN, V4L2_CID_AUTOGAIN, 1.0, ""},
     {CameraControl::WhiteBalance, V4L2_CID_WHITE_BALANCE_TEMPERATURE, V4L2_CID_AUTO_WHITE_BALANCE, 1.0, "K"},
@@ -118,7 +119,7 @@ const ControlBinding kBindings[] = {
     {CameraControl::Gamma, V4L2_CID_GAMMA, 0, 1.0, ""},
     {CameraControl::Sharpness, V4L2_CID_SHARPNESS, 0, 1.0, ""},
     {CameraControl::Focus, V4L2_CID_FOCUS_ABSOLUTE, V4L2_CID_FOCUS_AUTO, 1.0, ""},
-};
+}};
 
 const ControlBinding* binding_of(CameraControl control)
 {
@@ -576,7 +577,7 @@ Expected<std::vector<UvcDeviceDescriptor>> enumerate_platform_cameras()
         descriptor.name =
             reinterpret_cast<const char*>(capability.card);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         const std::filesystem::path sysfs = std::filesystem::path("/sys/class/video4linux") / name / "device";
-        for (const std::filesystem::path base : {sysfs / "..", sysfs}) {
+        for (const std::filesystem::path& base : {sysfs / "..", sysfs}) {
             if (const auto vendor = sysfs_hex(base / "idVendor")) {
                 descriptor.vendor_id = *vendor;
                 descriptor.product_id = sysfs_hex(base / "idProduct").value_or(0);
