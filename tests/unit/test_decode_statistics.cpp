@@ -25,8 +25,8 @@ cv::Mat test_picture(int width = 96, int height = 64)
     cv::Mat image(height, width, CV_8UC3);
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            image.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<std::uint8_t>(x * 255 / width),
-                                                  static_cast<std::uint8_t>(y * 255 / height), 128);
+            image.at<cv::Vec3b>(y, x) =
+                cv::Vec3b(static_cast<std::uint8_t>(x * 255 / width), static_cast<std::uint8_t>(y * 255 / height), 128);
         }
     }
     return image;
@@ -38,7 +38,12 @@ std::unique_ptr<Frame> frame_of(const std::vector<std::byte>& bytes, PixelFormat
     auto frame = std::make_unique<Frame>(std::max<std::size_t>(bytes.size(), 16));
     std::memcpy(frame->buffer().data(), bytes.data(), bytes.size());
     frame->set_size(bytes.size());
-    frame->info() = {.sequence = 1, .captured = {}, .width = width, .height = height, .format = format, .stride = stride,
+    frame->info() = {.sequence = 1,
+                     .captured = {},
+                     .width = width,
+                     .height = height,
+                     .format = format,
+                     .stride = stride,
                      .simulated = true};
     return frame;
 }

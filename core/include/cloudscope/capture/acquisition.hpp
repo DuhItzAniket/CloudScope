@@ -39,8 +39,8 @@ struct AcquisitionStats {
     std::uint64_t timeouts = 0;     // read_frame() timeouts (the stream is alive but slow)
     std::uint64_t errors = 0;       // read errors other than timeout; the last one ends acquisition
     std::optional<Error> last_error;
-    double fps = 0.0;                       // over the whole run
-    double recent_fps = 0.0;                // over the last second of running time
+    double fps = 0.0;                           // over the whole run
+    double recent_fps = 0.0;                    // over the last second of running time
     std::chrono::microseconds latency_mean{0};  // from the frame's arrival (camera clock) to its publication
     std::chrono::microseconds latency_max{0};
     std::chrono::milliseconds elapsed{0};

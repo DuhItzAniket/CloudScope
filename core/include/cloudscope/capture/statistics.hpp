@@ -39,10 +39,10 @@ struct FrameStatistics {
 };
 
 struct StatisticsOptions {
-    int clip_threshold = 250;      // luma at or above which a pixel counts as clipped
-    int dark_threshold = 5;        // luma at or below which a pixel counts as dark
-    double min_sun_area_px = 20;   // smaller clipped blobs are not reported as the Sun
-    double min_sun_fill = 0.45;    // blobs that fill their bounding box less than this are not a disc
+    int clip_threshold = 250;     // luma at or above which a pixel counts as clipped
+    int dark_threshold = 5;       // luma at or below which a pixel counts as dark
+    double min_sun_area_px = 20;  // smaller clipped blobs are not reported as the Sun
+    double min_sun_fill = 0.45;   // blobs that fill their bounding box less than this are not a disc
 };
 
 // `image` is CV_8UC1 (luma) or CV_8UC3 (BGR).

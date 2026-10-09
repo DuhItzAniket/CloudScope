@@ -73,8 +73,8 @@ Expected<cv::Mat> decode_mjpeg(std::span<const std::byte> data)
 Expected<cv::Mat> wrap_uncompressed(const Frame& frame, int type)
 {
     const FrameInfo& info = frame.info();
-    const std::size_t stride = info.stride != 0 ? info.stride
-                                                : static_cast<std::size_t>(info.width) * bytes_per_pixel(info.format);
+    const std::size_t stride =
+        info.stride != 0 ? info.stride : static_cast<std::size_t>(info.width) * bytes_per_pixel(info.format);
     const std::size_t needed = stride * static_cast<std::size_t>(info.height);
     if (info.width <= 0 || info.height <= 0 || frame.data().size() < needed) {
         return fail(ErrorCode::InvalidArgument,
@@ -98,8 +98,8 @@ Expected<JpegInfo> jpeg_info(std::span<const std::byte> jpeg)
     }
     JpegInfo info;
     int colourspace = 0;
-    if (tjDecompressHeader3(handle, bytes_of(jpeg), static_cast<unsigned long>(jpeg.size()), &info.width,
-                            &info.height, &info.subsampling, &colourspace) != 0) {
+    if (tjDecompressHeader3(handle, bytes_of(jpeg), static_cast<unsigned long>(jpeg.size()), &info.width, &info.height,
+                            &info.subsampling, &colourspace) != 0) {
         return fail(ErrorCode::Parse, fmt::format("not a JPEG: {}", jpeg_error(handle)));
     }
     return info;

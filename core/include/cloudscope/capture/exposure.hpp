@@ -57,8 +57,8 @@ private:
 };
 
 // Exposures for a bracket around `base_ms` in photographic stops (2 ** stop), clipped to the limits.
-[[nodiscard]] std::vector<double> bracket_exposures(double base_ms, const std::vector<double>& stops,
-                                                     double min_ms, double max_ms);
+[[nodiscard]] std::vector<double> bracket_exposures(double base_ms, const std::vector<double>& stops, double min_ms,
+                                                    double max_ms);
 
 struct FusionWeights {
     double contrast = 1.0;
@@ -72,6 +72,7 @@ struct FusionWeights {
                                     int pyramid_levels = 0);
 
 // Fraction of pixels at or above `clip_level` outside the Sun's disc: the number the controller is judged by.
-[[nodiscard]] double clipped_outside_sun(const cv::Mat& luma, const SunBlob& sun, double sun_margin, int clip_level = 250);
+[[nodiscard]] double clipped_outside_sun(const cv::Mat& luma, const SunBlob& sun, double sun_margin,
+                                         int clip_level = 250);
 
 }  // namespace cloudscope

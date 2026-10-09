@@ -74,7 +74,8 @@ ExposureDecision SkyExposureController::update(const cv::Mat& image, double expo
     const cv::Mat luma = luma_of(image);
     const FrameStatistics stats = compute_statistics(luma);
     const double level = sun_aware_percentile(luma, stats.sun, settings_.target_percentile, settings_.sun_margin);
-    ExposureDecision decision{.exposure_ms = exposure_ms, .gain = gain, .metered_level = level, .changed = false, .reason = ""};
+    ExposureDecision decision{
+        .exposure_ms = exposure_ms, .gain = gain, .metered_level = level, .changed = false, .reason = ""};
     const double error = settings_.target_level - level;
     if (std::abs(error) <= settings_.dead_band) {
         decision.reason = "within the dead band";

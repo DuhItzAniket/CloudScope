@@ -53,7 +53,8 @@ struct FrameEntry {
 // The entry for a picture the sequencer just wrote.
 [[nodiscard]] FrameEntry frame_entry(const CapturedPicture& picture, std::string session_id);
 // The entry for a picture from its sidecar (`<picture>.json`); either sidecar schema.
-[[nodiscard]] Expected<FrameEntry> frame_entry_from_sidecar(const std::filesystem::path& sidecar, std::string session_id);
+[[nodiscard]] Expected<FrameEntry> frame_entry_from_sidecar(const std::filesystem::path& sidecar,
+                                                            std::string session_id);
 
 struct FrameQuery {
     std::optional<std::string> session_id;
@@ -64,8 +65,8 @@ struct FrameQuery {
 };
 
 struct RetentionPolicy {
-    std::optional<std::uintmax_t> max_bytes;     // keep the newest pictures up to this many bytes
-    std::optional<std::chrono::hours> max_age;   // remove pictures older than this
+    std::optional<std::uintmax_t> max_bytes;    // keep the newest pictures up to this many bytes
+    std::optional<std::chrono::hours> max_age;  // remove pictures older than this
 };
 
 struct RetentionResult {
@@ -87,14 +88,14 @@ public:
     [[nodiscard]] const std::filesystem::path& file() const;
 
     // Inserts or updates a session (by id).
-    [[nodiscard]] Expected<void> add_session(const SessionInfo& session);
+    [[nodiscard]] Expected<void> add_session(const SessionInfo& info);
     [[nodiscard]] Expected<std::vector<SessionInfo>> sessions() const;
     [[nodiscard]] Expected<std::optional<SessionInfo>> session(const std::string& id) const;
 
     // Inserts a frame and returns its id; a path already catalogued is replaced.
     [[nodiscard]] Expected<std::int64_t> add_frame(const FrameEntry& frame);
     // Inserts many frames in one transaction.
-    [[nodiscard]] Expected<void> add_frames(const std::vector<FrameEntry>& frames);
+    [[nodiscard]] Expected<void> add_frames(const std::vector<FrameEntry>& entries);
     [[nodiscard]] Expected<std::vector<FrameEntry>> frames(const FrameQuery& query) const;
     [[nodiscard]] Expected<std::optional<FrameEntry>> frame_at(const std::filesystem::path& path) const;
     [[nodiscard]] Expected<std::uint64_t> count(const std::optional<std::string>& session_id = std::nullopt) const;
@@ -102,10 +103,12 @@ public:
 
     // Removes the oldest pictures (file, sidecar, row) until the policy holds. With `delete_files` false only
     // the rows go (for a catalogue that mirrors files kept elsewhere).
-    [[nodiscard]] Expected<RetentionResult> apply_retention(const RetentionPolicy& policy, UtcTime now, bool delete_files = true);
+    [[nodiscard]] Expected<RetentionResult> apply_retention(const RetentionPolicy& policy, UtcTime now,
+                                                            bool delete_files = true);
 
     // Adds every picture of a folder that has a sidecar and is not catalogued yet; returns how many were added.
-    [[nodiscard]] Expected<std::uint32_t> index_folder(const std::filesystem::path& folder, const std::string& session_id);
+    [[nodiscard]] Expected<std::uint32_t> index_folder(const std::filesystem::path& folder,
+                                                       const std::string& session_id);
 
 private:
     struct Impl;

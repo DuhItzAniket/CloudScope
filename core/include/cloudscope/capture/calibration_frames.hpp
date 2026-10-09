@@ -30,11 +30,12 @@ struct MasterFrame {
 [[nodiscard]] Expected<MasterFrame> average_frames(const std::vector<cv::Mat>& frames);
 
 // Gain map from a flat master and (optionally) a dark master: CV_32F, mean 1.0, clipped to [floor, ceiling].
-[[nodiscard]] Expected<cv::Mat> gain_map(const MasterFrame& flat, const MasterFrame* dark = nullptr,
-                                         double floor = 0.2, double ceiling = 5.0);
+[[nodiscard]] Expected<cv::Mat> gain_map(const MasterFrame& flat, const MasterFrame* dark = nullptr, double floor = 0.2,
+                                         double ceiling = 5.0);
 
 // (picture - dark) * gain, back in the picture's depth, saturated. Either correction may be absent (empty Mat).
-[[nodiscard]] Expected<cv::Mat> apply_calibration(const cv::Mat& picture, const cv::Mat& dark_mean, const cv::Mat& gain);
+[[nodiscard]] Expected<cv::Mat> apply_calibration(const cv::Mat& picture, const cv::Mat& dark_mean,
+                                                  const cv::Mat& gain);
 
 struct VignettingModel {
     double a = 0.0;  // coefficient of r^2 (r = distance from the centre over half the diagonal, 0..1)

@@ -304,8 +304,8 @@ void V4l2Backend::read_controls()
         if (binding.auto_id != 0) {
             v4l2_queryctrl auto_query{};
             auto_query.id = binding.auto_id;
-            has_auto = xioctl(fd_, VIDIOC_QUERYCTRL, &auto_query) == 0 &&
-                       (auto_query.flags & V4L2_CTRL_FLAG_DISABLED) == 0;
+            has_auto =
+                xioctl(fd_, VIDIOC_QUERYCTRL, &auto_query) == 0 && (auto_query.flags & V4L2_CTRL_FLAG_DISABLED) == 0;
         }
         ControlInfo info;
         info.control = binding.control;
@@ -398,7 +398,8 @@ Expected<ControlState> V4l2Backend::set_control(CameraControl control, ControlSe
     if (!want_auto) {
         v4l2_control value{};
         value.id = binding->id;
-        value.value = static_cast<std::int32_t>(std::lround(hal::nearest_setting(*info, setting.value) / binding->scale));
+        value.value =
+            static_cast<std::int32_t>(std::lround(hal::nearest_setting(*info, setting.value) / binding->scale));
         if (xioctl(fd_, VIDIOC_S_CTRL, &value) < 0) {
             return errno_error(ErrorCode::Io, fmt::format("control '{}' could not be set", to_string(control)));
         }
@@ -572,7 +573,8 @@ Expected<std::vector<UvcDeviceDescriptor>> enumerate_platform_cameras()
         }
         UvcDeviceDescriptor descriptor;
         descriptor.path = entry.path().string();
-        descriptor.name = reinterpret_cast<const char*>(capability.card);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        descriptor.name =
+            reinterpret_cast<const char*>(capability.card);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         const std::filesystem::path sysfs = std::filesystem::path("/sys/class/video4linux") / name / "device";
         for (const std::filesystem::path base : {sysfs / "..", sysfs}) {
             if (const auto vendor = sysfs_hex(base / "idVendor")) {

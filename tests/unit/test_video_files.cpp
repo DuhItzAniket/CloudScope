@@ -49,7 +49,8 @@ TEST_CASE("SER files round-trip frames, header and UTC trailer", "[capture][ser]
         SerWriter writer;
         REQUIRE(writer.open(file, 32, 24, CV_8UC3, "Owner", "Arducam B0268", "fisheye"));
         for (int i = 0; i < 5; ++i) {
-            REQUIRE(writer.append(frames[static_cast<std::size_t>(i)], at("2026-10-09T10:00:00Z") + std::chrono::milliseconds(33 * i)));
+            REQUIRE(writer.append(frames[static_cast<std::size_t>(i)],
+                                  at("2026-10-09T10:00:00Z") + std::chrono::milliseconds(33 * i)));
         }
         REQUIRE(writer.close());
         CHECK(writer.frames() == 5);
@@ -90,7 +91,8 @@ TEST_CASE("SER files round-trip frames, header and UTC trailer", "[capture][ser]
         SerWriter writer;
         REQUIRE(writer.open(file, 32, 24, CV_16UC1, "", "", ""));
         for (int i = 0; i < 3; ++i) {
-            REQUIRE(writer.append(frames[static_cast<std::size_t>(i)], at("2026-10-09T22:00:00Z") + std::chrono::seconds(i)));
+            REQUIRE(writer.append(frames[static_cast<std::size_t>(i)],
+                                  at("2026-10-09T22:00:00Z") + std::chrono::seconds(i)));
         }
         REQUIRE(writer.close());
         SerReader reader;

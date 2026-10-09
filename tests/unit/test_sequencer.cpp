@@ -58,9 +58,8 @@ struct Rig {
         REQUIRE(outcome(camera->open()) == "ok");
         const auto caps = camera->capabilities();
         REQUIRE(outcome(caps) == "ok");
-        const auto mode = std::ranges::find_if(caps->modes, [&](const hal::CameraMode& m) {
-            return m.width == 640 && m.format == format;
-        });
+        const auto mode = std::ranges::find_if(
+            caps->modes, [&](const hal::CameraMode& m) { return m.width == 640 && m.format == format; });
         REQUIRE(mode != caps->modes.end());
         REQUIRE(outcome(camera->set_mode(*mode)) == "ok");
         acquisition = std::make_unique<Acquisition>(camera, hub, clock);
@@ -68,12 +67,10 @@ struct Rig {
             REQUIRE(outcome(acquisition->start()) == "ok");
         }
         sequencer = std::make_unique<Sequencer>(camera, hub, clock);
-        sequencer->set_site(SiteInfo{.id = "blr-roof", .latitude_deg = 12.97, .longitude_deg = 77.59, .altitude_m = 920.0});
+        sequencer->set_site(
+            SiteInfo{.id = "blr-roof", .latitude_deg = 12.97, .longitude_deg = 77.59, .altitude_m = 920.0});
     }
-    ~Rig()
-    {
-        acquisition->stop();
-    }
+    ~Rig() { acquisition->stop(); }
     Rig(const Rig&) = delete;
     Rig& operator=(const Rig&) = delete;
     Rig(Rig&&) = delete;
@@ -118,8 +115,10 @@ TEST_CASE("file name templates expand their tokens and refuse unknown ones", "[c
                                 .profile = "day",
                                 .kind = "interval"};
     CHECK(expand_filename("{utc}_{seq}_{profile}", fields).value() == "20261009T101530_123Z_000042_day");
-    CHECK(expand_filename("{site}_{utc}_{seq}_{profile}", fields).value() == "blr-roof_20261009T101530_123Z_000042_day");
-    CHECK(expand_filename("{site}/{date}/{camera}-{kind}", fields).value() == "blr-roof/20261009/uvc-0c45-636d-1-interval");
+    CHECK(expand_filename("{site}_{utc}_{seq}_{profile}", fields).value() ==
+          "blr-roof_20261009T101530_123Z_000042_day");
+    CHECK(expand_filename("{site}/{date}/{camera}-{kind}", fields).value() ==
+          "blr-roof/20261009/uvc-0c45-636d-1-interval");
     CHECK(expand_filename("plain", fields).value() == "plain");
     CHECK(expand_filename("{seq}", FilenameFields{}).value() == "000000");
     CHECK(expand_filename("{site}", FilenameFields{}).value() == "site");
@@ -199,8 +198,9 @@ void run_interval(std::uint32_t count)
     REQUIRE(outcome(stats) == "ok");
     const std::string last_error = stats->last_error ? stats->last_error->to_string() : std::string("no error");
     INFO(last_error);
-    WARN(fmt::format("{} pictures in {} ms", count,
-                     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count()));
+    WARN(fmt::format(
+        "{} pictures in {} ms", count,
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count()));
     CHECK(stats->written == count);
     CHECK(stats->failed == 0);
     CHECK(stats->profile_switches == 0);
@@ -399,7 +399,8 @@ TEST_CASE("a bracket takes one picture per stop around the current exposure", "[
 {
     const TempWorkspace workspace;
     Rig rig(PixelFormat::Bgr8);
-    REQUIRE(outcome(rig.camera->set_control(hal::CameraControl::Exposure, {.value = 10.0, .automatic = false})) == "ok");
+    REQUIRE(outcome(rig.camera->set_control(hal::CameraControl::Exposure, {.value = 10.0, .automatic = false})) ==
+            "ok");
     CapturePlan plan;
     plan.kind = CaptureKind::Bracket;
     plan.bracket_stops = {-2.0, 0.0, 2.0};

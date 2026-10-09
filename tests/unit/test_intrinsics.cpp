@@ -80,9 +80,11 @@ std::vector<DetectedBoard> synthetic_views(const CameraModel& model, double nois
     for (const auto& [rotation, translation] : poses()) {
         std::vector<cv::Point2f> image_points;
         if (model.model == LensModel::Fisheye) {
-            cv::fisheye::projectPoints(object, image_points, cv::Mat(rotation), cv::Mat(translation), model.camera_matrix(), model.distortion_vector());
+            cv::fisheye::projectPoints(object, image_points, cv::Mat(rotation), cv::Mat(translation),
+                                       model.camera_matrix(), model.distortion_vector());
         } else {
-            cv::projectPoints(object, cv::Mat(rotation), cv::Mat(translation), model.camera_matrix(), model.distortion_vector(), image_points);
+            cv::projectPoints(object, cv::Mat(rotation), cv::Mat(translation), model.camera_matrix(),
+                              model.distortion_vector(), image_points);
         }
         bool inside = true;
         for (cv::Point2f& point : image_points) {
@@ -108,18 +110,21 @@ std::pair<cv::Mat, std::vector<cv::Point2f>> rendered_board(const cv::Mat& homog
     for (int row = 0; row <= kBoard.rows; ++row) {
         for (int column = 0; column <= kBoard.columns; ++column) {
             if ((row + column) % 2 == 0) {
-                cv::rectangle(flat, cv::Rect(margin + column * square, margin + row * square, square, square), cv::Scalar(20), cv::FILLED);
+                cv::rectangle(flat, cv::Rect(margin + column * square, margin + row * square, square, square),
+                              cv::Scalar(20), cv::FILLED);
             }
         }
     }
     std::vector<cv::Point2f> flat_corners;
     for (int row = 1; row <= kBoard.rows; ++row) {
         for (int column = 1; column <= kBoard.columns; ++column) {
-            flat_corners.emplace_back(static_cast<float>(margin + column * square), static_cast<float>(margin + row * square));
+            flat_corners.emplace_back(static_cast<float>(margin + column * square),
+                                      static_cast<float>(margin + row * square));
         }
     }
     cv::Mat warped;
-    cv::warpPerspective(flat, warped, homography, cv::Size(640, 480), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(180));
+    cv::warpPerspective(flat, warped, homography, cv::Size(640, 480), cv::INTER_LINEAR, cv::BORDER_CONSTANT,
+                        cv::Scalar(180));
     cv::GaussianBlur(warped, warped, cv::Size(3, 3), 0.7);
     std::vector<cv::Point2f> corners;
     cv::perspectiveTransform(flat_corners, corners, homography);
@@ -135,7 +140,8 @@ TEST_CASE("a fisheye model is recovered from synthetic views with sub-pixel repr
     REQUIRE(views.size() >= 8);
     const auto fitted = fit_intrinsics(views, kBoard, LensModel::Fisheye);
     REQUIRE(outcome(fitted) == "ok");
-    INFO("rms " << fitted->rms_px << " fx " << fitted->fx << " fy " << fitted->fy << " cx " << fitted->cx << " cy " << fitted->cy);
+    INFO("rms " << fitted->rms_px << " fx " << fitted->fx << " fy " << fitted->fy << " cx " << fitted->cx << " cy "
+                << fitted->cy);
     CHECK(fitted->rms_px < 0.5);
     CHECK_THAT(fitted->fx, WithinRel(truth.fx, 0.01));
     CHECK_THAT(fitted->fy, WithinRel(truth.fy, 0.01));
@@ -152,7 +158,8 @@ TEST_CASE("a fisheye model is recovered from synthetic views with sub-pixel repr
     }
     // A pixel maps to a ray and back: everywhere on the true model, and within the part of the image the views
     // covered on the fitted one (the fitted polynomial is not trusted beyond the corners it has seen).
-    for (const cv::Point2d pixel : {cv::Point2d(320, 240), cv::Point2d(40, 60), cv::Point2d(600, 430), cv::Point2d(10, 470)}) {
+    for (const cv::Point2d pixel :
+         {cv::Point2d(320, 240), cv::Point2d(40, 60), cv::Point2d(600, 430), cv::Point2d(10, 470)}) {
         const cv::Point3d ray = pixel_to_ray(truth, pixel);
         CHECK_THAT(cv::norm(ray), WithinAbs(1.0, 1e-9));
         CHECK(ray.z > 0.0);

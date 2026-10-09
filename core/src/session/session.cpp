@@ -22,7 +22,9 @@ std::filesystem::path session_folder(const std::filesystem::path& root, std::str
 {
     const std::string date = format_iso8601(started).substr(0, 10);  // "2026-10-09"
     const std::string site(site_id.empty() ? std::string_view("site") : site_id);
-    return root / std::filesystem::path(reinterpret_cast<const char8_t*>(site.c_str()))  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    return root /
+           std::filesystem::path(
+               reinterpret_cast<const char8_t*>(site.c_str()))  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
            / date / session_id(started, site_id);
 }
 
@@ -79,8 +81,8 @@ Expected<SessionInfo> session_info_from_json(const nlohmann::json& manifest, con
     return info;
 }
 
-Expected<Session> Session::create(const std::filesystem::path& root, const SiteInfo& site, const hal::DeviceInfo& camera,
-                                  UtcTime started)
+Expected<Session> Session::create(const std::filesystem::path& root, const SiteInfo& site,
+                                  const hal::DeviceInfo& camera, UtcTime started)
 {
     SessionInfo info;
     info.id = session_id(started, site.id);

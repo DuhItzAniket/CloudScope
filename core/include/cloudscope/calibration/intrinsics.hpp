@@ -30,8 +30,8 @@ enum class LensModel : std::uint8_t {
 [[nodiscard]] Expected<LensModel> lens_model_from_string(std::string_view text);
 
 struct BoardSpec {
-    int columns = 9;         // inner corners across
-    int rows = 6;            // inner corners down
+    int columns = 9;          // inner corners across
+    int rows = 6;             // inner corners down
     double square_mm = 25.0;  // side of a square
 };
 

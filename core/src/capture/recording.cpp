@@ -105,7 +105,8 @@ std::filesystem::path with_suffix(const std::filesystem::path& file, const char*
 // "frame.png" -> "frame.part.png": the extension stays, so encoders that look at it still work.
 std::filesystem::path partial_name(const std::filesystem::path& file)
 {
-    return file.parent_path() / (file.stem().native() + std::filesystem::path(".part").native() + file.extension().native());
+    return file.parent_path() /
+           (file.stem().native() + std::filesystem::path(".part").native() + file.extension().native());
 }
 
 // Moves a finished temporary file into place, replacing what was there.
@@ -180,7 +181,8 @@ public:
         int status = 0;
         fits_open_memfile(&file_, "", READONLY, &buffer_, &size_, 0, nullptr, &status);
         if (status != 0) {
-            return fail(ErrorCode::Parse, fmt::format("{} is not a FITS file: {}", path.string(), fits_message(status)));
+            return fail(ErrorCode::Parse,
+                        fmt::format("{} is not a FITS file: {}", path.string(), fits_message(status)));
         }
         return {};
     }
@@ -197,7 +199,8 @@ public:
             return fail(ErrorCode::Io, fmt::format("could not measure the FITS file: {}", fits_message(status)));
         }
         close();  // pads the last block and flushes into the buffer
-        const auto blocks = static_cast<std::size_t>((data_end + static_cast<LONGLONG>(kFitsBlock) - 1) / static_cast<LONGLONG>(kFitsBlock));
+        const auto blocks = static_cast<std::size_t>((data_end + static_cast<LONGLONG>(kFitsBlock) - 1) /
+                                                     static_cast<LONGLONG>(kFitsBlock));
         const std::size_t length = std::min(blocks * kFitsBlock, size_);
         std::ofstream out(path, std::ios::binary | std::ios::trunc);
         if (!out.write(static_cast<const char*>(buffer_), static_cast<std::streamsize>(length))) {
@@ -276,8 +279,9 @@ Expected<void> write_fits(const cv::Mat& image, const std::filesystem::path& fil
     for (std::size_t p = 0; p < planes.size(); ++p) {
         for (int row = 0; row < image.rows; ++row) {
             const int source_row = image.rows - 1 - row;  // bottom-up
-            std::memcpy(data.data() + p * plane_pixels + static_cast<std::size_t>(row) * static_cast<std::size_t>(image.cols),
-                        planes[p].ptr<std::uint16_t>(source_row), static_cast<std::size_t>(image.cols) * sizeof(std::uint16_t));
+            std::memcpy(
+                data.data() + p * plane_pixels + static_cast<std::size_t>(row) * static_cast<std::size_t>(image.cols),
+                planes[p].ptr<std::uint16_t>(source_row), static_cast<std::size_t>(image.cols) * sizeof(std::uint16_t));
         }
     }
     fits_write_img(fits.file(), TUSHORT, 1, static_cast<LONGLONG>(data.size()), data.data(), &status);
@@ -285,37 +289,47 @@ Expected<void> write_fits(const cv::Mat& image, const std::filesystem::path& fil
         return fail(ErrorCode::Io, fmt::format("could not write the FITS image: {}", fits_message(status)));
     }
 
-    write_key_string(fits.file(), "DATE-OBS", fits_date_obs(record.info.captured.utc), "UTC time the frame arrived", status);
+    write_key_string(fits.file(), "DATE-OBS", fits_date_obs(record.info.captured.utc), "UTC time the frame arrived",
+                     status);
     write_key_string(fits.file(), "TIMESYS", "UTC", "time scale of DATE-OBS", status);
-    write_key_double(fits.file(), "MJD-OBS", modified_julian_date(record.info.captured.utc), "Modified Julian Date of DATE-OBS",
-                     status);
-    write_key_string(fits.file(), "TIMESRC", std::string(to_string(record.info.captured.source)), "what disciplines the host clock",
-                     status);
+    write_key_double(fits.file(), "MJD-OBS", modified_julian_date(record.info.captured.utc),
+                     "Modified Julian Date of DATE-OBS", status);
+    write_key_string(fits.file(), "TIMESRC", std::string(to_string(record.info.captured.source)),
+                     "what disciplines the host clock", status);
     if (record.exposure_ms) {
-        write_key_double(fits.file(), "EXPTIME", *record.exposure_ms / 1000.0, "[s] exposure time reported by the camera", status);
+        write_key_double(fits.file(), "EXPTIME", *record.exposure_ms / 1000.0,
+                         "[s] exposure time reported by the camera", status);
     }
     if (record.gain) {
-        write_key_double(fits.file(), "GAIN", *record.gain, "gain setting reported by the camera (driver scale)", status);
+        write_key_double(fits.file(), "GAIN", *record.gain, "gain setting reported by the camera (driver scale)",
+                         status);
     }
     if (record.site) {
-        write_key_double(fits.file(), "OBSGEO-B", record.site->latitude_deg, "[deg] geodetic latitude of the site", status);
-        write_key_double(fits.file(), "OBSGEO-L", record.site->longitude_deg, "[deg] longitude of the site, east positive", status);
+        write_key_double(fits.file(), "OBSGEO-B", record.site->latitude_deg, "[deg] geodetic latitude of the site",
+                         status);
+        write_key_double(fits.file(), "OBSGEO-L", record.site->longitude_deg,
+                         "[deg] longitude of the site, east positive", status);
         write_key_double(fits.file(), "OBSGEO-H", record.site->altitude_m, "[m] altitude of the site", status);
         write_key_double(fits.file(), "SITELAT", record.site->latitude_deg, "[deg] site latitude", status);
-        write_key_double(fits.file(), "SITELONG", record.site->longitude_deg, "[deg] site longitude, east positive", status);
-        write_key_double(fits.file(), "SITEELEV", record.site->altitude_m, "[m] site elevation above sea level", status);
+        write_key_double(fits.file(), "SITELONG", record.site->longitude_deg, "[deg] site longitude, east positive",
+                         status);
+        write_key_double(fits.file(), "SITEELEV", record.site->altitude_m, "[m] site elevation above sea level",
+                         status);
         write_key_string(fits.file(), "SITEID", record.site->id, "site identifier", status);
     }
     if (record.pointing) {
-        write_key_double(fits.file(), "CENTALT", record.pointing->elevation_deg, "[deg] elevation of the optical axis", status);
-        write_key_double(fits.file(), "CENTAZ", record.pointing->azimuth_deg, "[deg] azimuth of the optical axis", status);
+        write_key_double(fits.file(), "CENTALT", record.pointing->elevation_deg, "[deg] elevation of the optical axis",
+                         status);
+        write_key_double(fits.file(), "CENTAZ", record.pointing->azimuth_deg, "[deg] azimuth of the optical axis",
+                         status);
         write_key_string(fits.file(), "POINTSRC", record.pointing->source, "source of the pointing", status);
     }
     if (record.sun) {
         write_key_double(fits.file(), "SUNALT", record.sun->elevation_deg, "[deg] Sun elevation at DATE-OBS", status);
         write_key_double(fits.file(), "SUNAZ", record.sun->azimuth_deg, "[deg] Sun azimuth at DATE-OBS", status);
     }
-    write_key_string(fits.file(), "ROWORDER", "BOTTOM-UP", "first row of the data is the bottom of the picture", status);
+    write_key_string(fits.file(), "ROWORDER", "BOTTOM-UP", "first row of the data is the bottom of the picture",
+                     status);
     write_key_string(fits.file(), "INSTRUME", record.camera_name, "camera", status);
     write_key_string(fits.file(), "DEVICEID", record.camera_id, "CloudScope device id", status);
     write_key_bool(fits.file(), "SIMULATE", record.info.simulated, "T: synthetic data, not a measurement", status);
@@ -328,7 +342,8 @@ Expected<void> write_fits(const cv::Mat& image, const std::filesystem::path& fil
     const BuildInfo& build = build_info();
     write_key_string(fits.file(), "SWCREATE", fmt::format("CloudScope {} ({})", build.version, build.git_revision),
                      "software that wrote the file", status);
-    write_key_string(fits.file(), "CREATOR", fmt::format("CloudScope {}", build.version), "software that wrote the file", status);
+    write_key_string(fits.file(), "CREATOR", fmt::format("CloudScope {}", build.version),
+                     "software that wrote the file", status);
     write_key_string(fits.file(), "BUNIT", "ADU", "camera data numbers (8-bit data scaled by 257)", status);
     if (status != 0) {
         return fail(ErrorCode::Io, fmt::format("could not write the FITS header: {}", fits_message(status)));
@@ -383,8 +398,9 @@ Expected<WrittenFile> write_picture(const cv::Mat& image, ImageFileFormat format
             return fail(ErrorCode::Io, "JPEG encoding failed");
         }
         std::ofstream out(partial, std::ios::binary);
-        if (!out.write(reinterpret_cast<const char*>(encoded.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-                       static_cast<std::streamsize>(encoded.size()))) {
+        if (!out.write(
+                reinterpret_cast<const char*>(encoded.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                static_cast<std::streamsize>(encoded.size()))) {
             return fail(ErrorCode::Io, fmt::format("could not write {}", partial.string()));
         }
         break;
@@ -424,8 +440,9 @@ Expected<WrittenFile> write_jpeg_bytes(std::span<const std::byte> jpeg, const st
     const std::filesystem::path partial = partial_name(file);
     {
         std::ofstream out(partial, std::ios::binary | std::ios::trunc);
-        if (!out.write(reinterpret_cast<const char*>(jpeg.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-                       static_cast<std::streamsize>(jpeg.size()))) {
+        if (!out.write(
+                reinterpret_cast<const char*>(jpeg.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                static_cast<std::streamsize>(jpeg.size()))) {
             return fail(ErrorCode::Io, fmt::format("could not write {}", partial.string()));
         }
     }
@@ -487,7 +504,8 @@ nlohmann::json sidecar_json(const CaptureRecord& record, const WrittenFile& file
           {"utc_unix_ms", to_unix_ms(record.info.captured.utc)},
           {"mjd", modified_julian_date(record.info.captured.utc)},
           {"monotonic_ns",
-           std::chrono::duration_cast<std::chrono::nanoseconds>(record.info.captured.monotonic.time_since_epoch()).count()},
+           std::chrono::duration_cast<std::chrono::nanoseconds>(record.info.captured.monotonic.time_since_epoch())
+               .count()},
           {"sequence", record.info.sequence},
           {"time_source", std::string(to_string(record.info.captured.source))},
           {"simulated", record.info.simulated}}},
@@ -576,7 +594,8 @@ Expected<SidecarSummary> read_sidecar(const nlohmann::json& document)
     const std::string utc_text = text(capture, "utc");
     const auto utc = parse_iso8601(utc_text);
     if (!utc) {
-        return fail(ErrorCode::Parse, fmt::format("sidecar capture.utc '{}' is not an ISO 8601 time with offset", utc_text));
+        return fail(ErrorCode::Parse,
+                    fmt::format("sidecar capture.utc '{}' is not an ISO 8601 time with offset", utc_text));
     }
     out.utc = *utc;
     if (const auto sequence = number(capture, "sequence")) {
@@ -610,7 +629,8 @@ Expected<SidecarSummary> read_sidecar(const nlohmann::json& document)
     if (document.contains("site") && document["site"].is_object()) {
         const nlohmann::json& site = document["site"];
         const auto latitude = number(site, "latitude_deg") ? number(site, "latitude_deg") : number(site, "latitude");
-        const auto longitude = number(site, "longitude_deg") ? number(site, "longitude_deg") : number(site, "longitude");
+        const auto longitude =
+            number(site, "longitude_deg") ? number(site, "longitude_deg") : number(site, "longitude");
         if (latitude && longitude) {
             out.site = SiteInfo{.id = text(site, "id"),
                                 .latitude_deg = *latitude,
@@ -623,7 +643,8 @@ Expected<SidecarSummary> read_sidecar(const nlohmann::json& document)
         const auto azimuth = number(pointing, "azimuth_deg");
         const auto elevation = number(pointing, "elevation_deg");
         if (azimuth && elevation) {
-            out.pointing = PointingInfo{.azimuth_deg = *azimuth, .elevation_deg = *elevation, .source = text(pointing, "source")};
+            out.pointing =
+                PointingInfo{.azimuth_deg = *azimuth, .elevation_deg = *elevation, .source = text(pointing, "source")};
         }
     }
     if (document.contains("sun") && document["sun"].is_object()) {
@@ -706,7 +727,8 @@ Expected<cv::Mat> read_fits_image(const std::filesystem::path& file)
     const std::size_t plane_pixels = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
     std::vector<std::uint16_t> data(plane_pixels * static_cast<std::size_t>(planes));
     int any_null = 0;
-    fits_read_img(fits.file(), TUSHORT, 1, static_cast<LONGLONG>(data.size()), nullptr, data.data(), &any_null, &status);
+    fits_read_img(fits.file(), TUSHORT, 1, static_cast<LONGLONG>(data.size()), nullptr, data.data(), &any_null,
+                  &status);
     if (status != 0) {
         return fail(ErrorCode::Parse, fmt::format("could not read the image of {}: {}", name, fits_message(status)));
     }
@@ -715,7 +737,8 @@ Expected<cv::Mat> read_fits_image(const std::filesystem::path& file)
         cv::Mat plane(height, width, CV_16UC1);
         for (int row = 0; row < height; ++row) {
             std::memcpy(plane.ptr<std::uint16_t>(height - 1 - row),
-                        data.data() + static_cast<std::size_t>(p) * plane_pixels + static_cast<std::size_t>(row) * static_cast<std::size_t>(width),
+                        data.data() + static_cast<std::size_t>(p) * plane_pixels +
+                            static_cast<std::size_t>(row) * static_cast<std::size_t>(width),
                         static_cast<std::size_t>(width) * sizeof(std::uint16_t));
         }
         channel_mats.push_back(plane);

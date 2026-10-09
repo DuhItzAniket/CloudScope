@@ -144,7 +144,7 @@ Expected<VignettingModel> fit_vignetting(const cv::Mat& flat)
         for (int x = 0; x < luma.cols; ++x) {
             const double r = std::hypot(x - model.centre_x, y - model.centre_y) / half_diagonal;
             const int bin = std::min(static_cast<int>(r * kBins), kBins - 1);
-            sums[static_cast<std::size_t>(bin)] += row[x];
+            sums[static_cast<std::size_t>(bin)] += static_cast<double>(row[x]);
             counts[static_cast<std::size_t>(bin)] += 1.0;
         }
     }
@@ -228,7 +228,8 @@ double uniformity_spread(const cv::Mat& picture)
         return 0.0;
     }
     const auto percentile = [&](double fraction) {
-        const std::size_t index = std::min(values.size() - 1, static_cast<std::size_t>(fraction * static_cast<double>(values.size())));
+        const std::size_t index =
+            std::min(values.size() - 1, static_cast<std::size_t>(fraction * static_cast<double>(values.size())));
         std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(index), values.end());
         return static_cast<double>(values[index]);
     };
@@ -250,8 +251,9 @@ Expected<void> write_image(const std::filesystem::path& file, const cv::Mat& ima
         return fail(ErrorCode::Unsupported, fmt::format("cannot encode an image as {}: {}", extension, e.what()));
     }
     std::ofstream out(file, std::ios::binary);
-    if (!out.write(reinterpret_cast<const char*>(encoded.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-                   static_cast<std::streamsize>(encoded.size()))) {
+    if (!out.write(
+            reinterpret_cast<const char*>(encoded.data()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            static_cast<std::streamsize>(encoded.size()))) {
         return fail(ErrorCode::Io, fmt::format("could not write {}", file.string()));
     }
     return {};

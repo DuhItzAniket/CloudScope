@@ -75,8 +75,8 @@ struct CapturePlan {
     std::uintmax_t min_free_bytes = 512ULL * 1024 * 1024;  // the disk guard stops the run below this
     bool write_sidecar = true;
     std::chrono::milliseconds frame_timeout{2000};  // waiting for a frame from the hub
-    int settle_frames = 2;                           // frames to skip after an exposure change
-    int max_consecutive_failures = 3;                // frame failures in a row that end the run (not counting recoveries)
+    int settle_frames = 2;                          // frames to skip after an exposure change
+    int max_consecutive_failures = 3;  // frame failures in a row that end the run (not counting recoveries)
 };
 
 [[nodiscard]] Expected<void> validate(const CapturePlan& plan);
@@ -93,14 +93,14 @@ struct FilenameFields {
 [[nodiscard]] Expected<std::string> expand_filename(std::string_view pattern, const FilenameFields& fields);
 
 struct SequencerStats {
-    std::uint32_t written = 0;      // pictures on disk
-    std::uint32_t failed = 0;       // frames that could not be taken, decoded or written
-    std::uint32_t skipped = 0;      // frames skipped for settling after an exposure change
-    std::uint32_t missed_slots = 0; // interval slots that passed while a picture was taken (FR-SEQ-02)
-    std::uint64_t bytes = 0;        // of the pictures, without sidecars
+    std::uint32_t written = 0;       // pictures on disk
+    std::uint32_t failed = 0;        // frames that could not be taken, decoded or written
+    std::uint32_t skipped = 0;       // frames skipped for settling after an exposure change
+    std::uint32_t missed_slots = 0;  // interval slots that passed while a picture was taken (FR-SEQ-02)
+    std::uint64_t bytes = 0;         // of the pictures, without sidecars
     std::uint32_t profile_switches = 0;
-    std::uint32_t pauses = 0;       // times the run paused for the Sun
-    std::uint32_t recoveries = 0;   // times the camera was brought back (FR-SEQ-05)
+    std::uint32_t pauses = 0;      // times the run paused for the Sun
+    std::uint32_t recoveries = 0;  // times the camera was brought back (FR-SEQ-05)
     bool paused = false;
     std::string current_profile;
     std::optional<Error> last_error;
@@ -144,7 +144,8 @@ public:
     [[nodiscard]] SequencerStats stats() const;
 
     // The profile for a Sun elevation (night below the plan's threshold); the day profile when there is no site.
-    [[nodiscard]] const CaptureProfile& profile_for(const CapturePlan& plan, std::optional<double> sun_elevation_deg) const;
+    [[nodiscard]] const CaptureProfile& profile_for(const CapturePlan& plan,
+                                                    std::optional<double> sun_elevation_deg) const;
 
 private:
     struct Run;

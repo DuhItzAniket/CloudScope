@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <fstream>
+#include <limits>
 
 namespace cloudscope {
 
@@ -61,7 +62,8 @@ std::optional<double> optional_double(const QVariant& value)
 
 Error sql_error(const QSqlQuery& query, std::string_view what)
 {
-    return Error{.code = ErrorCode::Io, .message = fmt::format("catalogue: {}: {}", what, utf8(query.lastError().text()))};
+    return Error{.code = ErrorCode::Io,
+                 .message = fmt::format("catalogue: {}: {}", what, utf8(query.lastError().text()))};
 }
 
 constexpr const char* kFrameColumns =
@@ -141,9 +143,9 @@ SessionInfo session_from_row(const QSqlQuery& query)
     return session;
 }
 
-constexpr const char* kSessionColumns =
-    "id, site_id, latitude_deg, longitude_deg, altitude_m, camera_id, camera_name, started_ms, ended_ms, frames, bytes, "
-    "notes, folder";
+constexpr const char* kSessionColumns = "id, site_id, latitude_deg, longitude_deg, altitude_m, camera_id, camera_name, "
+                                        "started_ms, ended_ms, frames, bytes, "
+                                        "notes, folder";
 
 std::atomic<int> connection_counter{0};
 
@@ -186,7 +188,10 @@ FrameEntry frame_entry(const CapturedPicture& picture, std::string session_id)
     frame.mjd = modified_julian_date(frame.utc);
     frame.sequence = picture.record.info.sequence;
     const std::string extension = picture.file.path.extension().string();
-    frame.format = extension == ".png" ? "png" : extension == ".jpg" ? "jpeg" : extension == ".fits" ? "fits" : "tiff16";
+    frame.format = extension == ".png"    ? "png"
+                   : extension == ".jpg"  ? "jpeg"
+                   : extension == ".fits" ? "fits"
+                                          : "tiff16";
     frame.bytes = picture.file.bytes;
     frame.sha256 = picture.file.sha256;
     frame.width = picture.file.width;
@@ -228,7 +233,9 @@ Expected<FrameEntry> frame_entry_from_sidecar(const std::filesystem::path& sidec
     std::filesystem::path picture = sidecar;
     picture.replace_extension();
     if (!summary->file_name.empty()) {
-        picture = sidecar.parent_path() / std::filesystem::path(reinterpret_cast<const char8_t*>(summary->file_name.c_str()));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        picture = sidecar.parent_path() /
+                  std::filesystem::path(reinterpret_cast<const char8_t*>(
+                      summary->file_name.c_str()));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
     std::error_code error;
     frame.path = std::filesystem::absolute(picture, error);
@@ -236,7 +243,10 @@ Expected<FrameEntry> frame_entry_from_sidecar(const std::filesystem::path& sidec
     frame.mjd = modified_julian_date(frame.utc);
     frame.sequence = summary->sequence;
     const std::string extension = picture.extension().string();
-    frame.format = extension == ".png" ? "png" : (extension == ".jpg" || extension == ".jpeg") ? "jpeg" : extension == ".fits" ? "fits" : "tiff16";
+    frame.format = extension == ".png"                             ? "png"
+                   : (extension == ".jpg" || extension == ".jpeg") ? "jpeg"
+                   : extension == ".fits"                          ? "fits"
+                                                                   : "tiff16";
     frame.bytes = summary->bytes;
     frame.sha256 = summary->sha256;
     frame.width = summary->width;
@@ -294,9 +304,12 @@ Expected<std::unique_ptr<Catalogue>> Catalogue::open(const std::filesystem::path
           "INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '1')",
           "CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, site_id TEXT NOT NULL, latitude_deg REAL, "
           "longitude_deg REAL, altitude_m REAL, camera_id TEXT, camera_name TEXT, started_ms INTEGER NOT NULL, "
-          "ended_ms INTEGER, frames INTEGER NOT NULL DEFAULT 0, bytes INTEGER NOT NULL DEFAULT 0, notes TEXT, folder TEXT)",
-          "CREATE TABLE IF NOT EXISTS frames (id INTEGER PRIMARY KEY, session_id TEXT NOT NULL, path TEXT NOT NULL UNIQUE, "
-          "utc_ms INTEGER NOT NULL, mjd REAL, sequence INTEGER, format TEXT, bytes INTEGER NOT NULL DEFAULT 0, sha256 TEXT, "
+          "ended_ms INTEGER, frames INTEGER NOT NULL DEFAULT 0, bytes INTEGER NOT NULL DEFAULT 0, notes TEXT, folder "
+          "TEXT)",
+          "CREATE TABLE IF NOT EXISTS frames (id INTEGER PRIMARY KEY, session_id TEXT NOT NULL, path TEXT NOT NULL "
+          "UNIQUE, "
+          "utc_ms INTEGER NOT NULL, mjd REAL, sequence INTEGER, format TEXT, bytes INTEGER NOT NULL DEFAULT 0, sha256 "
+          "TEXT, "
           "width INTEGER, height INTEGER, exposure_ms REAL, gain REAL, mean REAL, clipped_fraction REAL, "
           "sun_elevation_deg REAL, sun_azimuth_deg REAL, profile TEXT, simulated INTEGER NOT NULL DEFAULT 0)",
           "CREATE INDEX IF NOT EXISTS frames_utc ON frames (utc_ms)",
@@ -308,26 +321,27 @@ Expected<std::unique_ptr<Catalogue>> Catalogue::open(const std::filesystem::path
     return std::unique_ptr<Catalogue>(new Catalogue(std::move(impl)));
 }
 
-Expected<void> Catalogue::add_session(const SessionInfo& session)
+Expected<void> Catalogue::add_session(const SessionInfo& info)
 {
     QSqlQuery query(impl_->db);
     query.prepare(QStringLiteral(
-        "INSERT OR REPLACE INTO sessions (id, site_id, latitude_deg, longitude_deg, altitude_m, camera_id, camera_name, "
+        "INSERT OR REPLACE INTO sessions (id, site_id, latitude_deg, longitude_deg, altitude_m, camera_id, "
+        "camera_name, "
         "started_ms, ended_ms, frames, bytes, notes, folder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
-    query.addBindValue(qstring(session.id));
-    query.addBindValue(qstring(session.site.id));
-    query.addBindValue(session.site.latitude_deg);
-    query.addBindValue(session.site.longitude_deg);
-    query.addBindValue(session.site.altitude_m);
-    query.addBindValue(qstring(session.camera_id));
-    query.addBindValue(qstring(session.camera_name));
-    query.addBindValue(static_cast<qlonglong>(to_unix_ms(session.started)));
-    query.addBindValue(session.ended ? QVariant(static_cast<qlonglong>(to_unix_ms(*session.ended)))
-                                     : QVariant(QMetaType(QMetaType::LongLong)));
-    query.addBindValue(session.frames);
-    query.addBindValue(static_cast<qulonglong>(session.bytes));
-    query.addBindValue(qstring(session.notes));
-    query.addBindValue(qstring(session.folder));
+    query.addBindValue(qstring(info.id));
+    query.addBindValue(qstring(info.site.id));
+    query.addBindValue(info.site.latitude_deg);
+    query.addBindValue(info.site.longitude_deg);
+    query.addBindValue(info.site.altitude_m);
+    query.addBindValue(qstring(info.camera_id));
+    query.addBindValue(qstring(info.camera_name));
+    query.addBindValue(static_cast<qlonglong>(to_unix_ms(info.started)));
+    query.addBindValue(info.ended ? QVariant(static_cast<qlonglong>(to_unix_ms(*info.ended)))
+                                  : QVariant(QMetaType(QMetaType::LongLong)));
+    query.addBindValue(info.frames);
+    query.addBindValue(static_cast<qulonglong>(info.bytes));
+    query.addBindValue(qstring(info.notes));
+    query.addBindValue(qstring(info.folder));
     if (!query.exec()) {
         return fail(sql_error(query, "add session"));
     }
@@ -337,7 +351,8 @@ Expected<void> Catalogue::add_session(const SessionInfo& session)
 Expected<std::vector<SessionInfo>> Catalogue::sessions() const
 {
     QSqlQuery query(impl_->db);
-    if (!query.exec(QStringLiteral("SELECT %1 FROM sessions ORDER BY started_ms").arg(QString::fromLatin1(kSessionColumns)))) {
+    if (!query.exec(
+            QStringLiteral("SELECT %1 FROM sessions ORDER BY started_ms").arg(QString::fromLatin1(kSessionColumns)))) {
         return fail(sql_error(query, "list sessions"));
     }
     std::vector<SessionInfo> out;
@@ -372,14 +387,14 @@ Expected<std::int64_t> Catalogue::add_frame(const FrameEntry& frame)
     return static_cast<std::int64_t>(query.lastInsertId().toLongLong());
 }
 
-Expected<void> Catalogue::add_frames(const std::vector<FrameEntry>& frames)
+Expected<void> Catalogue::add_frames(const std::vector<FrameEntry>& entries)
 {
     if (!impl_->db.transaction()) {
         return fail(ErrorCode::Io, "catalogue: could not begin a transaction");
     }
     QSqlQuery query(impl_->db);
     query.prepare(QString::fromLatin1(kInsertFrame));
-    for (const FrameEntry& frame : frames) {
+    for (const FrameEntry& frame : entries) {
         bind_frame(query, frame);
         if (!query.exec()) {
             const Error error = sql_error(query, "add frames");
@@ -405,7 +420,8 @@ Expected<std::vector<FrameEntry>> Catalogue::frames(const FrameQuery& wanted) co
     if (wanted.to) {
         sql += QStringLiteral(" AND utc_ms < ?");
     }
-    sql += wanted.newest_first ? QStringLiteral(" ORDER BY utc_ms DESC, id DESC") : QStringLiteral(" ORDER BY utc_ms ASC, id ASC");
+    sql += wanted.newest_first ? QStringLiteral(" ORDER BY utc_ms DESC, id DESC")
+                               : QStringLiteral(" ORDER BY utc_ms ASC, id ASC");
     sql += QStringLiteral(" LIMIT ?");
     QSqlQuery query(impl_->db);
     query.setForwardOnly(true);  // no result cache: rows are read once, straight into FrameEntry
@@ -479,7 +495,8 @@ Expected<RetentionResult> Catalogue::apply_retention(const RetentionPolicy& poli
         return fail(total.error());
     }
     std::uint64_t remaining = *total;
-    const std::int64_t cutoff_ms = policy.max_age ? to_unix_ms(now - *policy.max_age) : std::numeric_limits<std::int64_t>::min();
+    const std::int64_t cutoff_ms =
+        policy.max_age ? to_unix_ms(now - *policy.max_age) : std::numeric_limits<std::int64_t>::min();
 
     struct Victim {
         std::int64_t id;
@@ -503,7 +520,8 @@ Expected<RetentionResult> Catalogue::apply_retention(const RetentionPolicy& poli
                 continue;
             }
             const auto bytes = query.value(2).toULongLong();
-            victims.push_back(Victim{.id = query.value(0).toLongLong(), .path = path_of(query.value(1).toString()), .bytes = bytes});
+            victims.push_back(
+                Victim{.id = query.value(0).toLongLong(), .path = path_of(query.value(1).toString()), .bytes = bytes});
             remaining -= std::min<std::uint64_t>(remaining, bytes);
         }
     }
@@ -521,7 +539,8 @@ Expected<RetentionResult> Catalogue::apply_retention(const RetentionPolicy& poli
             if (!std::filesystem::remove(victim.path, error)) {
                 ++result.missing_files;
             }
-            std::filesystem::remove(std::filesystem::path(victim.path.native() + std::filesystem::path(".json").native()), error);
+            std::filesystem::remove(
+                std::filesystem::path(victim.path.native() + std::filesystem::path(".json").native()), error);
         }
         remove.addBindValue(static_cast<qlonglong>(victim.id));
         if (!remove.exec()) {

@@ -57,7 +57,7 @@ struct CaptureRecord {
     std::string camera_id;
     std::string camera_name;
     std::map<std::string, hal::ControlSetting> controls;  // by control name ("exposure", ...), as read back
-    std::optional<double> exposure_ms;                     // the effective exposure, if the camera has the control
+    std::optional<double> exposure_ms;                    // the effective exposure, if the camera has the control
     std::optional<double> gain;
     std::optional<SiteInfo> site;
     std::optional<PointingInfo> pointing;
@@ -93,13 +93,15 @@ struct WrittenFile {
 
 // Stores a JPEG as the camera sent it (an MJPEG frame), without decoding: the lossless, fastest way to keep what
 // a UVC camera produced. InvalidArgument if the bytes are not a JPEG.
-[[nodiscard]] Expected<WrittenFile> write_jpeg_bytes(std::span<const std::byte> jpeg, const std::filesystem::path& file);
+[[nodiscard]] Expected<WrittenFile> write_jpeg_bytes(std::span<const std::byte> jpeg,
+                                                     const std::filesystem::path& file);
 
 // The sidecar document for a written picture.
 [[nodiscard]] nlohmann::json sidecar_json(const CaptureRecord& record, const WrittenFile& file, ImageFileFormat format);
 
 // Writes `<picture>.json` next to the picture (through a temporary file, so a crash never leaves a half-written sidecar).
-[[nodiscard]] Expected<std::filesystem::path> write_sidecar(const std::filesystem::path& picture, const nlohmann::json& sidecar);
+[[nodiscard]] Expected<std::filesystem::path> write_sidecar(const std::filesystem::path& picture,
+                                                            const nlohmann::json& sidecar);
 
 // The sidecar schema compiled from the resources; valid for the whole program.
 [[nodiscard]] const JsonSchema& sidecar_schema();

@@ -102,10 +102,16 @@ TEST_CASE("the sky controller clips fewer cloud pixels than the simulated camera
     REQUIRE(exposure < caps.controls.size());
     Frame frame(frame_buffer_bytes(mode.format, mode.width, mode.height));
     const auto render = [&](std::uint64_t index) {
-        REQUIRE(outcome(source->render({.index = index, .stream_time_s = static_cast<double>(index) * 0.1, .settings = settings},
-                                       frame)) == "ok");
-        frame.info() = {.sequence = index, .captured = {}, .width = mode.width, .height = mode.height, .format = mode.format,
-                        .stride = static_cast<std::size_t>(mode.width) * bytes_per_pixel(mode.format), .simulated = true};
+        REQUIRE(outcome(source->render(
+                    {.index = index, .stream_time_s = static_cast<double>(index) * 0.1, .settings = settings},
+                    frame)) == "ok");
+        frame.info() = {.sequence = index,
+                        .captured = {},
+                        .width = mode.width,
+                        .height = mode.height,
+                        .format = mode.format,
+                        .stride = static_cast<std::size_t>(mode.width) * bytes_per_pixel(mode.format),
+                        .simulated = true};
         const auto image = decode_gray8(frame);
         REQUIRE(outcome(image) == "ok");
         return *image;

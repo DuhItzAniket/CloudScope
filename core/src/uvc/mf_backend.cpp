@@ -41,13 +41,13 @@ namespace cloudscope::uvc {
 
 namespace {
 
-using Microsoft::WRL::ComPtr;
 using hal::CameraCapabilities;
 using hal::CameraControl;
 using hal::CameraMode;
 using hal::ControlInfo;
 using hal::ControlSetting;
 using hal::ControlState;
+using Microsoft::WRL::ComPtr;
 
 constexpr DWORD kVideoStream = static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
 constexpr std::size_t kBufferedSamples = 3;
@@ -388,8 +388,7 @@ Expected<void> MediaFoundationBackend::open()
         return com_error(ErrorCode::NotFound, fmt::format("camera '{}' is not connected", descriptor_.name), hr);
     }
     if (FAILED(hr)) {
-        return com_error(ErrorCode::Unavailable, fmt::format("camera '{}' could not be opened", descriptor_.name),
-                         hr);
+        return com_error(ErrorCode::Unavailable, fmt::format("camera '{}' could not be opened", descriptor_.name), hr);
     }
     ComPtr<IMFAttributes> reader_attributes;
     hr = MFCreateAttributes(&reader_attributes, 3);
@@ -485,7 +484,8 @@ Expected<void> MediaFoundationBackend::read_native_modes()
         capabilities_.modes.push_back(mode);
     }
     if (native_modes_.empty()) {
-        return fail(ErrorCode::Unsupported, fmt::format("camera '{}' offers no MJPEG, YUY2 or RGB24 mode", descriptor_.name));
+        return fail(ErrorCode::Unsupported,
+                    fmt::format("camera '{}' offers no MJPEG, YUY2 or RGB24 mode", descriptor_.name));
     }
     // The camera's own choice after opening: whatever type the reader reports as current, if it is listed.
     ComPtr<IMFMediaType> current;
@@ -512,8 +512,9 @@ HRESULT MediaFoundationBackend::range_raw(const ControlBinding& binding, long& m
                                           long& fallback, long& flags) const
 {
     if (binding.camera_control) {
-        return camera_control_ ? camera_control_->GetRange(binding.property, &minimum, &maximum, &step, &fallback, &flags)
-                               : E_NOINTERFACE;
+        return camera_control_
+                   ? camera_control_->GetRange(binding.property, &minimum, &maximum, &step, &fallback, &flags)
+                   : E_NOINTERFACE;
     }
     return proc_amp_ ? proc_amp_->GetRange(binding.property, &minimum, &maximum, &step, &fallback, &flags)
                      : E_NOINTERFACE;
@@ -662,8 +663,8 @@ Expected<ControlState> MediaFoundationBackend::set_control(CameraControl control
     if (!effective) {
         return fail(effective.error());
     }
-    const bool applied = effective->automatic == setting.automatic &&
-                         (effective->automatic || nearly(effective->value, setting.value));
+    const bool applied =
+        effective->automatic == setting.automatic && (effective->automatic || nearly(effective->value, setting.value));
     return ControlState{.requested = setting, .effective = *effective, .applied = applied};
 }
 
@@ -691,7 +692,8 @@ Expected<void> MediaFoundationBackend::start()
         hr = reader_->SetCurrentMediaType(kVideoStream, nullptr, type.Get());
     }
     if (FAILED(hr)) {
-        return com_error(ErrorCode::Io, fmt::format("camera '{}' refused the mode for streaming", descriptor_.name), hr);
+        return com_error(ErrorCode::Io, fmt::format("camera '{}' refused the mode for streaming", descriptor_.name),
+                         hr);
     }
     sink_->set_running(true);
     hr = reader_->ReadSample(kVideoStream, 0, nullptr, nullptr, nullptr, nullptr);

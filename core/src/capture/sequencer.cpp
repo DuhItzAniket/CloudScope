@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <thread>
 
 namespace cloudscope {
@@ -44,8 +45,8 @@ std::string_view to_string(CaptureKind kind)
 
 Expected<CaptureKind> capture_kind_from_string(std::string_view text)
 {
-    for (const CaptureKind kind :
-         {CaptureKind::Single, CaptureKind::Burst, CaptureKind::Interval, CaptureKind::Bracket, CaptureKind::Scheduled}) {
+    for (const CaptureKind kind : {CaptureKind::Single, CaptureKind::Burst, CaptureKind::Interval, CaptureKind::Bracket,
+                                   CaptureKind::Scheduled}) {
         if (text == to_string(kind)) {
             return kind;
         }
@@ -144,10 +145,12 @@ Expected<void> validate(const CapturePlan& plan)
             return fail(ErrorCode::InvalidArgument, "a profile needs a name");
         }
         if (profile->jpeg_quality < 1 || profile->jpeg_quality > 100) {
-            return fail(ErrorCode::InvalidArgument, fmt::format("profile '{}': JPEG quality must be 1..100", profile->name));
+            return fail(ErrorCode::InvalidArgument,
+                        fmt::format("profile '{}': JPEG quality must be 1..100", profile->name));
         }
         if (profile->exposure_ms && *profile->exposure_ms <= 0.0) {
-            return fail(ErrorCode::InvalidArgument, fmt::format("profile '{}': exposure must be positive", profile->name));
+            return fail(ErrorCode::InvalidArgument,
+                        fmt::format("profile '{}': exposure must be positive", profile->name));
         }
     }
     const auto sample = expand_filename(plan.filename_template, FilenameFields{});
@@ -170,7 +173,8 @@ Sequencer::Sequencer(std::shared_ptr<hal::ICamera> camera, std::shared_ptr<Frame
 {
 }
 
-void Sequencer::set_recovery(Recovery recovery, std::chrono::milliseconds first_backoff, std::chrono::milliseconds max_backoff)
+void Sequencer::set_recovery(Recovery recovery, std::chrono::milliseconds first_backoff,
+                             std::chrono::milliseconds max_backoff)
 {
     recovery_ = std::move(recovery);
     first_backoff_ = std::max(first_backoff, std::chrono::milliseconds(1));
@@ -215,7 +219,8 @@ Expected<void> Sequencer::apply_profile(const CaptureProfile& profile)
     using hal::CameraControl;
     using hal::ControlSetting;
     if (profile.exposure_ms) {
-        if (auto set = camera_->set_control(CameraControl::Exposure, ControlSetting{.value = *profile.exposure_ms, .automatic = false});
+        if (auto set = camera_->set_control(CameraControl::Exposure,
+                                            ControlSetting{.value = *profile.exposure_ms, .automatic = false});
             !set && set.error().code != ErrorCode::Unsupported) {
             return fail(set.error());
         }
@@ -226,7 +231,8 @@ Expected<void> Sequencer::apply_profile(const CaptureProfile& profile)
         }
     }
     if (profile.gain) {
-        if (auto set = camera_->set_control(CameraControl::Gain, ControlSetting{.value = *profile.gain, .automatic = false});
+        if (auto set =
+                camera_->set_control(CameraControl::Gain, ControlSetting{.value = *profile.gain, .automatic = false});
             !set && set.error().code != ErrorCode::Unsupported) {
             return fail(set.error());
         }
@@ -234,13 +240,13 @@ Expected<void> Sequencer::apply_profile(const CaptureProfile& profile)
     return {};
 }
 
-FramePtr Sequencer::next_frame(Run& run)
+FramePtr Sequencer::next_frame(Run& current)
 {
     // Wait in slices so that request_stop() is honoured within kWaitSlice even when no frame comes.
-    auto remaining = run.plan.frame_timeout;
+    auto remaining = current.plan.frame_timeout;
     while (true) {
         const auto slice = std::min(remaining, kWaitSlice);
-        if (FramePtr frame = run.subscription->wait(slice)) {
+        if (FramePtr frame = current.subscription->wait(slice)) {
             return frame;
         }
         remaining -= slice;
@@ -250,21 +256,21 @@ FramePtr Sequencer::next_frame(Run& run)
     }
 }
 
-bool Sequencer::ended(const Run& run) const
+bool Sequencer::ended(const Run& current) const
 {
-    if (run.plan.end_at && clock_.now_utc() >= *run.plan.end_at) {
+    if (current.plan.end_at && clock_.now_utc() >= *current.plan.end_at) {
         return true;
     }
-    return run.plan.duration && SteadyClock::now() - run.started >= *run.plan.duration;
+    return current.plan.duration && SteadyClock::now() - current.started >= *current.plan.duration;
 }
 
-Sequencer::Outcome Sequencer::wait_until(const Run& run, UtcTime time)
+Sequencer::Outcome Sequencer::wait_until(const Run& current, UtcTime time)
 {
     while (clock_.now_utc() < time) {
         if (stop_requested_.load()) {
             return Outcome::Stopped;
         }
-        if (ended(run)) {
+        if (ended(current)) {
             return Outcome::Ended;
         }
         std::this_thread::sleep_for(kWaitSlice);
@@ -272,15 +278,15 @@ Sequencer::Outcome Sequencer::wait_until(const Run& run, UtcTime time)
     return Outcome::Continue;
 }
 
-Sequencer::Outcome Sequencer::pause_for_sun(Run& run)
+Sequencer::Outcome Sequencer::pause_for_sun(Run& current)
 {
-    if (!run.plan.pause_below_sun_elevation_deg || !site_) {
+    if (!current.plan.pause_below_sun_elevation_deg || !site_) {
         return Outcome::Continue;
     }
     bool paused = false;
     while (true) {
         const std::optional<double> elevation = sun_elevation_now();
-        if (!elevation || *elevation >= *run.plan.pause_below_sun_elevation_deg) {
+        if (!elevation || *elevation >= *current.plan.pause_below_sun_elevation_deg) {
             break;
         }
         if (!paused) {
@@ -292,7 +298,7 @@ Sequencer::Outcome Sequencer::pause_for_sun(Run& run)
         if (stop_requested_.load()) {
             return Outcome::Stopped;
         }
-        if (ended(run)) {
+        if (ended(current)) {
             return Outcome::Ended;
         }
         std::this_thread::sleep_for(kWaitSlice);
@@ -304,7 +310,7 @@ Sequencer::Outcome Sequencer::pause_for_sun(Run& run)
     return Outcome::Continue;
 }
 
-Sequencer::Outcome Sequencer::recover(Run& run)
+Sequencer::Outcome Sequencer::recover(Run& current)
 {
     if (!recovery_) {
         return Outcome::Ended;
@@ -318,14 +324,14 @@ Sequencer::Outcome Sequencer::recover(Run& run)
             }
             std::this_thread::sleep_for(std::min(kWaitSlice, backoff - waited));
         }
-        if (ended(run)) {
+        if (ended(current)) {
             return Outcome::Ended;
         }
         if (auto recovered = recovery_(); recovered) {
             const std::lock_guard lock(stats_mutex_);
             ++stats_.recoveries;
-            run.consecutive_failures = 0;
-            run.active = nullptr;  // the profile's controls must be applied again to the reopened camera
+            current.consecutive_failures = 0;
+            current.active = nullptr;  // the profile's controls must be applied again to the reopened camera
             return Outcome::Continue;
         } else {
             note(recovered.error());
@@ -344,11 +350,11 @@ bool Sequencer::disk_has_room(const CapturePlan& plan)
     return space.available >= plan.min_free_bytes;
 }
 
-Expected<CapturedPicture> Sequencer::capture_one(Run& run, const CaptureProfile& profile, std::uint32_t sequence,
+Expected<CapturedPicture> Sequencer::capture_one(Run& current, const CaptureProfile& profile, std::uint32_t sequence,
                                                  std::optional<double> fixed_exposure_ms)
 {
     using hal::CameraControl;
-    const FramePtr frame = next_frame(run);
+    const FramePtr frame = next_frame(current);
     if (frame == nullptr) {
         return fail(ErrorCode::Timeout, "no frame arrived in time");
     }
@@ -380,17 +386,17 @@ Expected<CapturedPicture> Sequencer::capture_one(Run& run, const CaptureProfile&
     record.calibration_id = calibration_id_;
     record.session_id = session_id_;
 
-    const auto name = expand_filename(run.plan.filename_template,
+    const auto name = expand_filename(current.plan.filename_template,
                                       FilenameFields{.site = site_ ? site_->id : std::string(),
                                                      .camera = record.camera_id,
                                                      .utc = info.captured.utc,
                                                      .sequence = sequence,
                                                      .profile = profile.name,
-                                                     .kind = std::string(to_string(run.plan.kind))});
+                                                     .kind = std::string(to_string(current.plan.kind))});
     if (!name) {
         return fail(name.error());
     }
-    const std::filesystem::path file = run.plan.folder / (*name + std::string(extension(profile.format)));
+    const std::filesystem::path file = current.plan.folder / (*name + std::string(extension(profile.format)));
 
     Expected<WrittenFile> written = fail(ErrorCode::Internal, "not written");
     if (profile.format == ImageFileFormat::Jpeg && profile.keep_native_jpeg && info.format == PixelFormat::Mjpeg) {
@@ -409,7 +415,7 @@ Expected<CapturedPicture> Sequencer::capture_one(Run& run, const CaptureProfile&
     if (!written) {
         return fail(written.error());
     }
-    if (run.plan.write_sidecar) {
+    if (current.plan.write_sidecar) {
         if (auto sidecar = write_sidecar(file, sidecar_json(record, *written, profile.format)); !sidecar) {
             return fail(sidecar.error());
         }
@@ -438,9 +444,10 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
     std::error_code ignored;
     std::filesystem::create_directories(plan.folder, ignored);
 
-    Run run{.plan = plan,
-            .subscription = hub_->subscribe("sequencer", plan.kind == CaptureKind::Burst ? Delivery::Queue : Delivery::Latest,
-                                            plan.kind == CaptureKind::Burst ? std::max<std::size_t>(plan.count, 4) : 4)};
+    Run current{.plan = plan,
+                .subscription =
+                    hub_->subscribe("sequencer", plan.kind == CaptureKind::Burst ? Delivery::Queue : Delivery::Latest,
+                                    plan.kind == CaptureKind::Burst ? std::max<std::size_t>(plan.count, 4) : 4)};
 
     enum class Reason : std::uint8_t { Done, Request, DiskGuard, Failures };
     const auto finish = [&](Reason reason) {
@@ -449,12 +456,14 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
         stats_.stopped_by_disk_guard = reason == Reason::DiskGuard;
         stats_.stopped_by_failures = reason == Reason::Failures;
         stats_.paused = false;
-        stats_.elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(SteadyClock::now() - run.started);
+        stats_.elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(SteadyClock::now() - current.started);
         return stats_;
     };
-    const auto outcome_reason = [](Outcome outcome) { return outcome == Outcome::Stopped ? Reason::Request : Reason::Done; };
+    const auto outcome_reason = [](Outcome outcome) {
+        return outcome == Outcome::Stopped ? Reason::Request : Reason::Done;
+    };
     const auto count_written = [&](const CapturedPicture& picture) {
-        run.consecutive_failures = 0;
+        current.consecutive_failures = 0;
         {
             const std::lock_guard lock(stats_mutex_);
             ++stats_.written;
@@ -465,7 +474,7 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
         }
     };
     const auto count_failed = [&](const Error& error) {
-        ++run.consecutive_failures;
+        ++current.consecutive_failures;
         const std::lock_guard lock(stats_mutex_);
         ++stats_.failed;
         stats_.last_error = error;
@@ -473,7 +482,7 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
     // Skips frames taken before an exposure change reached the sensor.
     const auto settle = [&] {
         for (int i = 0; i < plan.settle_frames; ++i) {
-            if (next_frame(run) != nullptr) {
+            if (next_frame(current) != nullptr) {
                 const std::lock_guard lock(stats_mutex_);
                 ++stats_.skipped;
             }
@@ -482,19 +491,20 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
     // Picks the profile for now, applies it when it changes.
     const auto choose_profile = [&]() -> const CaptureProfile& {
         const CaptureProfile& wanted = profile_for(plan, sun_elevation_now());
-        if (run.active == nullptr || run.active->name != wanted.name) {
+        if (current.active == nullptr || current.active->name != wanted.name) {
             if (auto applied = apply_profile(wanted); !applied) {
                 note(applied.error());
             }
             {
                 const std::lock_guard lock(stats_mutex_);
-                if (run.active != nullptr) {
+                if (current.active != nullptr) {
                     ++stats_.profile_switches;
                 }
                 stats_.current_profile = wanted.name;
             }
-            const bool changes_exposure = wanted.exposure_ms.has_value() || wanted.automatic_exposure || wanted.gain.has_value();
-            run.active = &wanted;
+            const bool changes_exposure =
+                wanted.exposure_ms.has_value() || wanted.automatic_exposure || wanted.gain.has_value();
+            current.active = &wanted;
             if (changes_exposure) {
                 settle();
             }
@@ -505,7 +515,7 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
     const auto after_failure = [&](const Error& error) -> std::optional<Reason> {
         count_failed(error);
         if (error.code == ErrorCode::Timeout && !camera_->is_streaming()) {
-            switch (recover(run)) {
+            switch (recover(current)) {
             case Outcome::Continue:
                 return std::nullopt;
             case Outcome::Stopped:
@@ -514,20 +524,20 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
                 return recovery_ ? Reason::Done : Reason::Failures;
             }
         }
-        if (run.consecutive_failures >= plan.max_consecutive_failures) {
+        if (current.consecutive_failures >= plan.max_consecutive_failures) {
             return Reason::Failures;
         }
         return std::nullopt;
     };
 
     if (plan.kind == CaptureKind::Scheduled) {
-        if (const Outcome waited = wait_until(run, *plan.start_at); waited != Outcome::Continue) {
+        if (const Outcome waited = wait_until(current, *plan.start_at); waited != Outcome::Continue) {
             return finish(outcome_reason(waited));
         }
     }
 
     if (plan.kind == CaptureKind::Bracket) {
-        if (const Outcome paused = pause_for_sun(run); paused != Outcome::Continue) {
+        if (const Outcome paused = pause_for_sun(current); paused != Outcome::Continue) {
             return finish(outcome_reason(paused));
         }
         const CaptureProfile& profile = choose_profile();
@@ -541,14 +551,15 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
             }
         }
         if (base_ms <= 0.0) {
-            if (auto current = camera_->control(hal::CameraControl::Exposure)) {
-                base_ms = current->value;
+            if (auto exposure_now = camera_->control(hal::CameraControl::Exposure)) {
+                base_ms = exposure_now->value;
             }
         }
         if (!exposure_info || base_ms <= 0.0) {
             return fail(ErrorCode::Unsupported, "a bracket needs a camera with an exposure control");
         }
-        const std::vector<double> exposures = bracket_exposures(base_ms, plan.bracket_stops, exposure_info->minimum, exposure_info->maximum);
+        const std::vector<double> exposures =
+            bracket_exposures(base_ms, plan.bracket_stops, exposure_info->minimum, exposure_info->maximum);
         std::uint32_t sequence = 0;
         for (const double exposure_ms : exposures) {
             if (stop_requested_.load()) {
@@ -557,12 +568,14 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
             if (!disk_has_room(plan)) {
                 return finish(Reason::DiskGuard);
             }
-            if (auto set = camera_->set_control(hal::CameraControl::Exposure, {.value = exposure_ms, .automatic = false}); !set) {
+            if (auto set =
+                    camera_->set_control(hal::CameraControl::Exposure, {.value = exposure_ms, .automatic = false});
+                !set) {
                 count_failed(set.error());
                 continue;
             }
             settle();
-            if (auto picture = capture_one(run, profile, sequence, exposure_ms)) {
+            if (auto picture = capture_one(current, profile, sequence, exposure_ms)) {
                 count_written(*picture);
             } else {
                 count_failed(picture.error());
@@ -584,10 +597,10 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
         if (stop_requested_.load()) {
             return finish(Reason::Request);
         }
-        if (ended(run)) {
+        if (ended(current)) {
             break;
         }
-        if (const Outcome paused = pause_for_sun(run); paused != Outcome::Continue) {
+        if (const Outcome paused = pause_for_sun(current); paused != Outcome::Continue) {
             return finish(outcome_reason(paused));
         }
         if (paced) {
@@ -605,19 +618,19 @@ Expected<SequencerStats> Sequencer::run(const CapturePlan& plan)
                 if (stop_requested_.load()) {
                     return finish(Reason::Request);
                 }
-                std::this_thread::sleep_for(
-                    std::min(kWaitSlice, std::chrono::duration_cast<std::chrono::milliseconds>(*next_due - SteadyClock::now()) +
-                                             std::chrono::milliseconds(1)));
+                std::this_thread::sleep_for(std::min(
+                    kWaitSlice, std::chrono::duration_cast<std::chrono::milliseconds>(*next_due - SteadyClock::now()) +
+                                    std::chrono::milliseconds(1)));
             }
             *next_due += plan.interval;
             // The newest frame, not one that waited in the queue while we slept.
-            (void)run.subscription->try_take();
+            (void)current.subscription->try_take();
         }
         if (!disk_has_room(plan)) {
             return finish(Reason::DiskGuard);
         }
         const CaptureProfile& profile = choose_profile();
-        if (auto picture = capture_one(run, profile, sequence, std::nullopt)) {
+        if (auto picture = capture_one(current, profile, sequence, std::nullopt)) {
             count_written(*picture);
             ++sequence;
         } else if (const auto reason = after_failure(picture.error())) {

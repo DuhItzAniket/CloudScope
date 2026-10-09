@@ -29,8 +29,11 @@ UtcTime at(std::string_view iso)
 }
 
 const SiteInfo kSite{.id = "blr-roof", .latitude_deg = 12.97, .longitude_deg = 77.59, .altitude_m = 920.0};
-const hal::DeviceInfo kCamera{.id = "sim:camera:sky", .kind = hal::DeviceKind::Camera, .name = "Simulated sky camera",
-                              .driver = "sim", .simulated = true};
+const hal::DeviceInfo kCamera{.id = "sim:camera:sky",
+                              .kind = hal::DeviceKind::Camera,
+                              .name = "Simulated sky camera",
+                              .driver = "sim",
+                              .simulated = true};
 
 FrameEntry entry(const std::string& session, UtcTime utc, std::uint64_t sequence, std::uint64_t bytes = 1000)
 {
@@ -54,7 +57,8 @@ FrameEntry entry(const std::string& session, UtcTime utc, std::uint64_t sequence
 }
 
 // Writes a small picture with a sidecar, as the sequencer would.
-CapturedPicture write_test_picture(const std::filesystem::path& folder, const std::string& name, UtcTime utc, std::uint64_t sequence)
+CapturedPicture write_test_picture(const std::filesystem::path& folder, const std::string& name, UtcTime utc,
+                                   std::uint64_t sequence)
 {
     CaptureRecord record;
     record.info.sequence = sequence;
@@ -225,7 +229,8 @@ TEST_CASE("a query over 100,000 catalogued frames answers within 100 ms", "[sess
     }
     const auto insert_started = std::chrono::steady_clock::now();
     REQUIRE(outcome(catalogue.add_frames(bulk)) == "ok");
-    const auto insert_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - insert_started);
+    const auto insert_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - insert_started);
     INFO("inserting 100,000 frames took " << insert_ms.count() << " ms");
     REQUIRE(catalogue.count().value() == 100'000);
 
@@ -235,7 +240,8 @@ TEST_CASE("a query over 100,000 catalogued frames answers within 100 ms", "[sess
     for (int run = 0; run < 3; ++run) {
         const auto query_started = std::chrono::steady_clock::now();
         auto result = catalogue.frames({.from = t0 + 50'000s, .to = t0 + 53'600s, .limit = 10'000});
-        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - query_started);
+        const auto elapsed =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - query_started);
         REQUIRE(outcome(result) == "ok");
         query_ms = std::min(query_ms, elapsed);
         hour = std::move(*result);
@@ -253,7 +259,8 @@ TEST_CASE("a query over 100,000 catalogued frames answers within 100 ms", "[sess
     CHECK(catalogue.count("s7").value() == 10'000);
     const auto newest = catalogue.frames({.limit = 100, .newest_first = true});
     CHECK(newest->front().sequence == 99'999);
-    const auto count_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - count_started);
+    const auto count_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - count_started);
     INFO("count + newest-100 took " << count_ms.count() << " ms");
     CHECK(count_ms < 100ms);
     WARN(fmt::format("catalogue timings: insert 100k {} ms, hour query {} ms, count+newest {} ms", insert_ms.count(),
@@ -271,7 +278,8 @@ TEST_CASE("retention removes the oldest pictures with their sidecars and rows", 
     const UtcTime t0 = at("2026-10-09T10:00:00Z");
     std::vector<std::uint64_t> sizes;
     for (std::uint64_t i = 0; i < 6; ++i) {
-        const CapturedPicture picture = write_test_picture(folder, fmt::format("f{}", i), t0 + std::chrono::minutes(i), i);
+        const CapturedPicture picture =
+            write_test_picture(folder, fmt::format("f{}", i), t0 + std::chrono::minutes(i), i);
         sizes.push_back(picture.file.bytes);
         REQUIRE(catalogue.add_frame(frame_entry(picture, "s")));
     }
@@ -303,7 +311,8 @@ TEST_CASE("retention removes the oldest pictures with their sidecars and rows", 
     }
     SECTION("by age: removes what is older than the limit")
     {
-        const auto result = catalogue.apply_retention({.max_age = 1h}, t0 + 1h + 2min + 30s);  // f0, f1, f2 are > 1 h old
+        const auto result =
+            catalogue.apply_retention({.max_age = 1h}, t0 + 1h + 2min + 30s);  // f0, f1, f2 are > 1 h old
         REQUIRE(outcome(result) == "ok");
         CHECK(result->removed_frames == 3);
         CHECK(catalogue.count().value() == 3);

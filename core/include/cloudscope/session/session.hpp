@@ -42,7 +42,8 @@ struct SessionInfo {
 
 [[nodiscard]] std::string session_id(UtcTime started, std::string_view site_id);
 // <root>/<site-id>/<YYYY-MM-DD>/<session-id>
-[[nodiscard]] std::filesystem::path session_folder(const std::filesystem::path& root, std::string_view site_id, UtcTime started);
+[[nodiscard]] std::filesystem::path session_folder(const std::filesystem::path& root, std::string_view site_id,
+                                                   UtcTime started);
 
 class Session {
 public:
@@ -72,6 +73,7 @@ private:
 };
 
 [[nodiscard]] const JsonSchema& session_schema();
-[[nodiscard]] Expected<SessionInfo> session_info_from_json(const nlohmann::json& manifest, const std::filesystem::path& folder);
+[[nodiscard]] Expected<SessionInfo> session_info_from_json(const nlohmann::json& manifest,
+                                                           const std::filesystem::path& folder);
 
 }  // namespace cloudscope

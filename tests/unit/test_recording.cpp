@@ -35,7 +35,8 @@ cv::Mat test_picture()
     cv::Mat image(48, 64, CV_8UC3);
     for (int y = 0; y < image.rows; ++y) {
         for (int x = 0; x < image.cols; ++x) {
-            image.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<std::uint8_t>(x * 4), static_cast<std::uint8_t>(y * 5), 40);
+            image.at<cv::Vec3b>(y, x) =
+                cv::Vec3b(static_cast<std::uint8_t>(x * 4), static_cast<std::uint8_t>(y * 5), 40);
         }
     }
     cv::rectangle(image, cv::Rect(0, 0, 8, 8), cv::Scalar(255, 255, 255), cv::FILLED);
@@ -141,7 +142,7 @@ TEST_CASE("the FITS file carries the agreed keywords and reads back upright", "[
     fits_read_img(fits, TUSHORT, 1 + 47 * 64, 64, nullptr, last_row.data(), &any_null, &status);
     fits_close_file(fits, &status);
     REQUIRE(status == 0);
-    CHECK(last_row[0] == 65535);   // white square, red plane
+    CHECK(last_row[0] == 65535);      // white square, red plane
     CHECK(first_row[0] == 40 * 257);  // bottom-left pixel: B=0, G=235, R=40 -> red plane 40
 }
 
@@ -312,10 +313,17 @@ TEST_CASE("sidecars of both schemas are read back", "[capture][recording]")
         {"sha256", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},
         {"bytes", 123456},
         {"encoding", {{"format", "jpg"}, {"jpeg_quality", 92}}},
-        {"capture", {{"utc", "2026-10-04T12:15:00.250+00:00"}, {"utc_unix", 1791108900.25}, {"sequence", 7},
-                     {"time_source", "host clock (not GPS-disciplined)"}}},
+        {"capture",
+         {{"utc", "2026-10-04T12:15:00.250+00:00"},
+          {"utc_unix", 1791108900.25},
+          {"sequence", 7},
+          {"time_source", "host clock (not GPS-disciplined)"}}},
         {"site", {{"id", "blr-roof"}, {"latitude", 12.97}, {"longitude", 77.59}, {"altitude_m", 920.0}}},
-        {"pointing", {{"source", "declared_by_operator"}, {"description", "zenith"}, {"azimuth_deg", 0.0}, {"elevation_deg", 90.0}}},
+        {"pointing",
+         {{"source", "declared_by_operator"},
+          {"description", "zenith"},
+          {"azimuth_deg", 0.0},
+          {"elevation_deg", 90.0}}},
         {"camera", {{"index", 1}, {"backend", "dshow"}}},
         {"image", {{"width", 4656}, {"height", 3496}, {"channels", 3}}},
         {"sun", {{"azimuth_deg", 180.5}, {"elevation_deg", 72.6}}},
@@ -338,7 +346,8 @@ TEST_CASE("sidecars of both schemas are read back", "[capture][recording]")
     CHECK(old->sun->elevation_deg == 72.6);
     CHECK(old->width == 4656);
 
-    CHECK_FALSE(read_sidecar(nlohmann::json{{"schema", "somebody.else/1"}, {"capture", {{"utc", "2026-10-04T12:15:00Z"}}}}));
+    CHECK_FALSE(
+        read_sidecar(nlohmann::json{{"schema", "somebody.else/1"}, {"capture", {{"utc", "2026-10-04T12:15:00Z"}}}}));
     CHECK_FALSE(read_sidecar(nlohmann::json{{"schema", "cloudscope.frame/1"}}));  // no time
     CHECK_FALSE(read_sidecar(nlohmann::json::array()));
 }

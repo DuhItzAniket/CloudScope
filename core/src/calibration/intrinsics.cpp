@@ -61,7 +61,8 @@ std::vector<cv::Point3f> board_points(const BoardSpec& board)
     points.reserve(static_cast<std::size_t>(board.columns) * static_cast<std::size_t>(board.rows));
     for (int row = 0; row < board.rows; ++row) {
         for (int column = 0; column < board.columns; ++column) {
-            points.emplace_back(static_cast<float>(column * board.square_mm), static_cast<float>(row * board.square_mm), 0.0F);
+            points.emplace_back(static_cast<float>(column * board.square_mm), static_cast<float>(row * board.square_mm),
+                                0.0F);
         }
     }
     return points;
@@ -87,13 +88,15 @@ Expected<DetectedBoard> detect_checkerboard(const cv::Mat& image, const BoardSpe
     std::vector<cv::Point2f> corners;
     bool found = false;
     try {
-        found = cv::findChessboardCornersSB(grey, pattern, corners, cv::CALIB_CB_NORMALIZE_IMAGE | cv::CALIB_CB_EXHAUSTIVE | cv::CALIB_CB_ACCURACY);
+        found = cv::findChessboardCornersSB(
+            grey, pattern, corners, cv::CALIB_CB_NORMALIZE_IMAGE | cv::CALIB_CB_EXHAUSTIVE | cv::CALIB_CB_ACCURACY);
     } catch (const cv::Exception&) {
         found = false;
     }
     if (!found) {
         // The classic detector as a fallback, refined to sub-pixel corners.
-        found = cv::findChessboardCorners(grey, pattern, corners, cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
+        found = cv::findChessboardCorners(grey, pattern, corners,
+                                          cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
         if (found) {
             cv::cornerSubPix(grey, corners, cv::Size(11, 11), cv::Size(-1, -1),
                              cv::TermCriteria(cv::TermCriteria::EPS | cv::TermCriteria::COUNT, 40, 0.001));
@@ -106,7 +109,9 @@ Expected<DetectedBoard> detect_checkerboard(const cv::Mat& image, const BoardSpe
 }
 
 CaptureAssistant::CaptureAssistant(cv::Size image_size, int grid)
-    : image_size_(image_size), grid_(std::max(grid, 1)), covered_(static_cast<std::size_t>(grid_) * static_cast<std::size_t>(grid_), false)
+    : image_size_(image_size),
+      grid_(std::max(grid, 1)),
+      covered_(static_cast<std::size_t>(grid_) * static_cast<std::size_t>(grid_), false)
 {
 }
 
@@ -120,9 +125,14 @@ bool CaptureAssistant::accept(const DetectedBoard& board, std::string* reason)
     }
     std::vector<bool> cells(covered_.size(), false);
     for (const cv::Point2f& corner : board.corners) {
-        const int column = std::clamp(static_cast<int>(corner.x / static_cast<float>(image_size_.width) * static_cast<float>(grid_)), 0, grid_ - 1);
-        const int row = std::clamp(static_cast<int>(corner.y / static_cast<float>(image_size_.height) * static_cast<float>(grid_)), 0, grid_ - 1);
-        cells[static_cast<std::size_t>(row) * static_cast<std::size_t>(grid_) + static_cast<std::size_t>(column)] = true;
+        const int column =
+            std::clamp(static_cast<int>(corner.x / static_cast<float>(image_size_.width) * static_cast<float>(grid_)),
+                       0, grid_ - 1);
+        const int row =
+            std::clamp(static_cast<int>(corner.y / static_cast<float>(image_size_.height) * static_cast<float>(grid_)),
+                       0, grid_ - 1);
+        cells[static_cast<std::size_t>(row) * static_cast<std::size_t>(grid_) + static_cast<std::size_t>(column)] =
+            true;
     }
     int added = 0;
     for (std::size_t i = 0; i < cells.size(); ++i) {
@@ -187,8 +197,9 @@ Expected<CameraModel> fit_intrinsics(const std::vector<DetectedBoard>& views, co
         if (model == LensModel::Fisheye) {
             d = cv::Mat::zeros(4, 1, CV_64F);
             const int flags = cv::fisheye::CALIB_RECOMPUTE_EXTRINSIC | cv::fisheye::CALIB_FIX_SKEW;
-            out.rms_px = cv::fisheye::calibrate(object_points, image_points, size, k, d, rvecs, tvecs, flags,
-                                                cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 200, 1e-8));
+            out.rms_px =
+                cv::fisheye::calibrate(object_points, image_points, size, k, d, rvecs, tvecs, flags,
+                                       cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 200, 1e-8));
         } else {
             d = cv::Mat::zeros(5, 1, CV_64F);
             out.rms_px = cv::calibrateCamera(object_points, image_points, size, k, d, rvecs, tvecs, 0);
@@ -223,7 +234,8 @@ Expected<double> reprojection_error(const CameraModel& model, const DetectedBoar
             // solvePnP works on undistorted normalised points; project them back through the fisheye model.
             std::vector<cv::Point2f> undistorted;
             cv::fisheye::undistortPoints(view.corners, undistorted, k, d);
-            cv::solvePnP(object, undistorted, cv::Mat::eye(3, 3, CV_64F), cv::noArray(), rvec, tvec, false, cv::SOLVEPNP_IPPE);
+            cv::solvePnP(object, undistorted, cv::Mat::eye(3, 3, CV_64F), cv::noArray(), rvec, tvec, false,
+                         cv::SOLVEPNP_IPPE);
             cv::fisheye::projectPoints(object, projected, rvec, tvec, k, d);
         } else {
             cv::solvePnP(object, view.corners, k, d, rvec, tvec, false, cv::SOLVEPNP_IPPE);
@@ -235,7 +247,8 @@ Expected<double> reprojection_error(const CameraModel& model, const DetectedBoar
     double sum = 0.0;
     for (std::size_t i = 0; i < object.size(); ++i) {
         const cv::Point2f delta = projected[i] - view.corners[i];
-        sum += static_cast<double>(delta.x) * delta.x + static_cast<double>(delta.y) * delta.y;
+        sum += static_cast<double>(delta.x) * static_cast<double>(delta.x) +
+               static_cast<double>(delta.y) * static_cast<double>(delta.y);
     }
     return std::sqrt(sum / static_cast<double>(object.size()));
 }
@@ -278,7 +291,8 @@ nlohmann::json to_json(const CameraModel& model)
         {"fit",
          {{"rms_px", model.rms_px},
           {"views", model.views},
-          {"board", {{"columns", model.board.columns}, {"rows", model.board.rows}, {"square_mm", model.board.square_mm}}}}},
+          {"board",
+           {{"columns", model.board.columns}, {"rows", model.board.rows}, {"square_mm", model.board.square_mm}}}}},
         {"camera", {{"id", model.camera_id}, {"name", model.camera_name}}},
         {"calibration_id", model.calibration_id},
         {"calibrated_utc", format_iso8601(model.calibrated)},
@@ -325,14 +339,15 @@ Expected<CameraModel> camera_model_from_json(const nlohmann::json& document)
     model.distortion = document["distortion"].get<std::vector<double>>();
     const std::size_t expected = model.model == LensModel::Fisheye ? 4 : 5;
     if (model.distortion.size() != expected) {
-        return fail(ErrorCode::Validation,
-                    fmt::format("camera model: {} needs {} distortion coefficients, got {}", to_string(model.model), expected,
-                                model.distortion.size()));
+        return fail(ErrorCode::Validation, fmt::format("camera model: {} needs {} distortion coefficients, got {}",
+                                                       to_string(model.model), expected, model.distortion.size()));
     }
     model.rms_px = document["fit"]["rms_px"].get<double>();
     model.views = document["fit"]["views"].get<int>();
     const nlohmann::json& board = document["fit"]["board"];
-    model.board = BoardSpec{.columns = board["columns"].get<int>(), .rows = board["rows"].get<int>(), .square_mm = board["square_mm"].get<double>()};
+    model.board = BoardSpec{.columns = board["columns"].get<int>(),
+                            .rows = board["rows"].get<int>(),
+                            .square_mm = board["square_mm"].get<double>()};
     model.camera_id = document["camera"]["id"].get<std::string>();
     model.camera_name = document["camera"]["name"].get<std::string>();
     model.calibration_id = document["calibration_id"].get<std::string>();

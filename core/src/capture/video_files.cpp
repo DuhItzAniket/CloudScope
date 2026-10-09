@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cctype>
 #include <cstring>
 
 namespace cloudscope {
@@ -166,8 +167,9 @@ Expected<void> SerWriter::append(const cv::Mat& frame, UtcTime utc)
     }
     const std::size_t row_bytes = static_cast<std::size_t>(frame.cols) * frame.elemSize();
     for (int row = 0; row < frame.rows; ++row) {
-        out_.write(reinterpret_cast<const char*>(frame.ptr(row)),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-                   static_cast<std::streamsize>(row_bytes));
+        out_.write(
+            reinterpret_cast<const char*>(frame.ptr(row)),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            static_cast<std::streamsize>(row_bytes));
     }
     if (!out_) {
         return fail(ErrorCode::Io, fmt::format("could not write a frame to {}", file_.string()));
@@ -250,9 +252,9 @@ Expected<cv::Mat> SerReader::frame(std::uint32_t index)
         return fail(ErrorCode::InvalidArgument, fmt::format("frame {} of {}", index, header_.frames));
     }
     const int type = header_.bit_depth == 16 ? CV_16UC1 : (header_.colour == SerColour::Mono ? CV_8UC1 : CV_8UC3);
-    cv::Mat frame(header_.height, header_.width, type);
+    cv::Mat image(header_.height, header_.width, type);
     in_.seekg(static_cast<std::streamoff>(kHeaderBytes + static_cast<std::uint64_t>(frame_bytes_) * index));
-    in_.read(reinterpret_cast<char*>(frame.data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    in_.read(reinterpret_cast<char*>(image.data),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
              static_cast<std::streamsize>(frame_bytes_));
     if (!in_) {
         in_.clear();
@@ -260,15 +262,15 @@ Expected<cv::Mat> SerReader::frame(std::uint32_t index)
     }
     if (header_.bit_depth == 16 && header_.little_endian == (std::endian::native == std::endian::big)) {
         // The file's byte order differs from the host's: swap.
-        auto* words = frame.ptr<std::uint16_t>();
-        for (std::size_t i = 0; i < frame.total(); ++i) {
+        auto* words = image.ptr<std::uint16_t>();
+        for (std::size_t i = 0; i < image.total(); ++i) {
             words[i] = static_cast<std::uint16_t>((words[i] >> 8) | (words[i] << 8));
         }
     }
     if (header_.colour == SerColour::Rgb) {
-        cv::cvtColor(frame, frame, cv::COLOR_RGB2BGR);
+        cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
     }
-    return frame;
+    return image;
 }
 
 Expected<UtcTime> SerReader::timestamp(std::uint32_t index) const
@@ -291,8 +293,10 @@ Expected<std::vector<std::filesystem::path>> picture_files(const std::filesystem
             continue;
         }
         std::string extension = entry.path().extension().string();
-        std::ranges::transform(extension, extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        if (extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".tif" || extension == ".tiff") {
+        std::ranges::transform(extension, extension.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".tif" ||
+            extension == ".tiff") {
             files.push_back(entry.path());
         }
     }
@@ -306,8 +310,9 @@ Expected<std::vector<std::filesystem::path>> picture_files(const std::filesystem
     return files;
 }
 
-Expected<void> for_each_picture(const std::filesystem::path& folder,
-                                const std::function<Expected<void>(const cv::Mat&, const std::filesystem::path&)>& visit)
+Expected<void>
+for_each_picture(const std::filesystem::path& folder,
+                 const std::function<Expected<void>(const cv::Mat&, const std::filesystem::path&)>& visit)
 {
     const auto files = picture_files(folder);
     if (!files) {
@@ -330,35 +335,37 @@ Expected<std::uint32_t> assemble_time_lapse(const std::filesystem::path& folder,
 {
     SerWriter writer;
     cv::Size size;
-    const auto result = for_each_picture(folder, [&](const cv::Mat& picture, const std::filesystem::path& file) -> Expected<void> {
-        cv::Mat bgr;
-        if (picture.channels() == 1) {
-            cv::cvtColor(picture, bgr, cv::COLOR_GRAY2BGR);
-        } else if (picture.channels() == 4) {
-            cv::cvtColor(picture, bgr, cv::COLOR_BGRA2BGR);
-        } else {
-            bgr = picture;
-        }
-        if (bgr.depth() != CV_8U) {
-            bgr.convertTo(bgr, CV_8UC3, 1.0 / 256.0);
-        }
-        if (!writer.is_open()) {
-            size = bgr.size();
-            if (auto opened = writer.open(ser_file, size.width, size.height, CV_8UC3, "", instrument, ""); !opened) {
-                return opened;
+    const auto result =
+        for_each_picture(folder, [&](const cv::Mat& picture, const std::filesystem::path& file) -> Expected<void> {
+            cv::Mat bgr;
+            if (picture.channels() == 1) {
+                cv::cvtColor(picture, bgr, cv::COLOR_GRAY2BGR);
+            } else if (picture.channels() == 4) {
+                cv::cvtColor(picture, bgr, cv::COLOR_BGRA2BGR);
+            } else {
+                bgr = picture;
             }
-        } else if (bgr.size() != size) {
-            cv::resize(bgr, bgr, size, 0, 0, cv::INTER_AREA);
-        }
-        std::error_code error;
-        const auto modified = std::filesystem::last_write_time(file, error);
-        UtcTime utc{};
-        if (!error) {
-            const auto system_time = std::chrono::clock_cast<std::chrono::system_clock>(modified);
-            utc = std::chrono::time_point_cast<std::chrono::milliseconds>(system_time);
-        }
-        return writer.append(bgr, utc);
-    });
+            if (bgr.depth() != CV_8U) {
+                bgr.convertTo(bgr, CV_8UC3, 1.0 / 256.0);
+            }
+            if (!writer.is_open()) {
+                size = bgr.size();
+                if (auto opened = writer.open(ser_file, size.width, size.height, CV_8UC3, "", instrument, "");
+                    !opened) {
+                    return opened;
+                }
+            } else if (bgr.size() != size) {
+                cv::resize(bgr, bgr, size, 0, 0, cv::INTER_AREA);
+            }
+            std::error_code error;
+            const auto modified = std::filesystem::last_write_time(file, error);
+            UtcTime utc{};
+            if (!error) {
+                const auto system_time = std::chrono::clock_cast<std::chrono::system_clock>(modified);
+                utc = std::chrono::time_point_cast<std::chrono::milliseconds>(system_time);
+            }
+            return writer.append(bgr, utc);
+        });
     if (!result) {
         (void)writer.close();
         return fail(result.error());

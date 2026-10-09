@@ -29,7 +29,8 @@ double atmospheric_refraction_deg(double elevation_deg)
     if (elevation_deg > 5.0) {
         arcseconds = 58.1 / tangent - 0.07 / (tangent * tangent * tangent) + 0.000086 / std::pow(tangent, 5.0);
     } else if (elevation_deg > -0.575) {
-        arcseconds = 1735.0 + elevation_deg * (-518.2 + elevation_deg * (103.4 + elevation_deg * (-12.79 + elevation_deg * 0.711)));
+        arcseconds = 1735.0 + elevation_deg *
+                                  (-518.2 + elevation_deg * (103.4 + elevation_deg * (-12.79 + elevation_deg * 0.711)));
     } else {
         arcseconds = -20.772 / tangent;
     }
@@ -46,8 +47,8 @@ SunPosition sun_position(UtcTime time, double latitude_deg, double longitude_deg
     const double mean_anomaly = 357.52911 + t * (35999.05029 - 0.0001537 * t);
     const double eccentricity = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
     const double m = mean_anomaly * kRadians;
-    const double centre = std::sin(m) * (1.914602 - t * (0.004817 + 0.000014 * t)) + std::sin(2.0 * m) * (0.019993 - 0.000101 * t) +
-                          std::sin(3.0 * m) * 0.000289;
+    const double centre = std::sin(m) * (1.914602 - t * (0.004817 + 0.000014 * t)) +
+                          std::sin(2.0 * m) * (0.019993 - 0.000101 * t) + std::sin(3.0 * m) * 0.000289;
     const double true_longitude = mean_longitude + centre;
     const double omega = (125.04 - 1934.136 * t) * kRadians;
     const double apparent_longitude = true_longitude - 0.00569 - 0.00478 * std::sin(omega);
@@ -58,19 +59,23 @@ SunPosition sun_position(UtcTime time, double latitude_deg, double longitude_deg
     const double y = std::tan(obliquity / 2.0) * std::tan(obliquity / 2.0);
     const double l0 = mean_longitude * kRadians;
     const double equation_of_time =
-        4.0 * kDegrees * (y * std::sin(2.0 * l0) - 2.0 * eccentricity * std::sin(m) + 4.0 * eccentricity * y * std::sin(m) * std::cos(2.0 * l0) -
-                          0.5 * y * y * std::sin(4.0 * l0) - 1.25 * eccentricity * eccentricity * std::sin(2.0 * m));
+        4.0 * kDegrees *
+        (y * std::sin(2.0 * l0) - 2.0 * eccentricity * std::sin(m) +
+         4.0 * eccentricity * y * std::sin(m) * std::cos(2.0 * l0) - 0.5 * y * y * std::sin(4.0 * l0) -
+         1.25 * eccentricity * eccentricity * std::sin(2.0 * m));
 
     const double minutes_of_day = (unix_days - std::floor(unix_days)) * 1440.0;
     double true_solar_minutes = std::fmod(minutes_of_day + equation_of_time + 4.0 * longitude_deg, 1440.0);
     if (true_solar_minutes < 0.0) {
         true_solar_minutes += 1440.0;
     }
-    const double hour_angle_deg = true_solar_minutes / 4.0 < 0.0 ? true_solar_minutes / 4.0 + 180.0 : true_solar_minutes / 4.0 - 180.0;
+    const double hour_angle_deg =
+        true_solar_minutes / 4.0 < 0.0 ? true_solar_minutes / 4.0 + 180.0 : true_solar_minutes / 4.0 - 180.0;
 
     const double latitude = latitude_deg * kRadians;
     const double hour_angle = hour_angle_deg * kRadians;
-    double cos_zenith = std::sin(latitude) * std::sin(declination) + std::cos(latitude) * std::cos(declination) * std::cos(hour_angle);
+    double cos_zenith =
+        std::sin(latitude) * std::sin(declination) + std::cos(latitude) * std::cos(declination) * std::cos(hour_angle);
     cos_zenith = std::clamp(cos_zenith, -1.0, 1.0);
     const double zenith = std::acos(cos_zenith);
     const double elevation_deg = 90.0 - zenith * kDegrees;

@@ -108,7 +108,8 @@ private:
 [[nodiscard]] Expected<cv::Mat> star_trails(const std::vector<cv::Mat>& frames);
 
 // Runs `visit` over the pictures of a folder in name order (decoded as stored); stops at the first error.
-[[nodiscard]] Expected<void> for_each_picture(const std::filesystem::path& folder,
-                                              const std::function<Expected<void>(const cv::Mat&, const std::filesystem::path&)>& visit);
+[[nodiscard]] Expected<void>
+for_each_picture(const std::filesystem::path& folder,
+                 const std::function<Expected<void>(const cv::Mat&, const std::filesystem::path&)>& visit);
 
 }  // namespace cloudscope
