@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P035 — Camera control panel (2026-10-12)
+- Camera panel (`camera_panel.hpp`): devices, modes, every listed control with its range, step, unit and automatic toggle, the value read back from the device after each request with a mark when the device clamped or ignored it; named profiles in `camera-profiles.json` (`camera_profiles.hpp`).
+
 ### P034 — Live view (2026-10-12)
 - Live view (`live_view.hpp`, `viewport.hpp`, `preview_pipeline.hpp`): zoom around the cursor, pan, fit and 1:1, frame-rate and drop indicators, an OpenGL canvas (GPU scaling) and a software canvas; the preview pipeline decodes the newest frame on its own thread and never queues frames. `CameraService` runs every camera call on a worker thread.
 
