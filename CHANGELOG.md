@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P037 — Overlays (2026-10-12)
+- Overlays (`overlay.hpp`): reticle and grid; with an intrinsic calibration and the declared pointing, altitude circles, compass points, the Sun and the keep-out ring, projected through the P031 camera model and the orientation of `rotation.hpp`.
+
 ### P036 — Histogram, scopes & stretch (2026-10-12)
 - Histogram and scopes (`histogram_panel.hpp`, `display_stretch.hpp`): luma and channel histograms, linear or logarithmic, clipping indicators, RGB parade; display stretch (levels and gamma, manual or automatic from percentiles) and over-exposure highlight applied to the preview copy only; red rendering for the night theme.
 
