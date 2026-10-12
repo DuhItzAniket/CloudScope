@@ -44,5 +44,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P038](P038-image-tools.md) | Image tools | DONE |
 | [P039](P039-capture-panel.md) | Capture panel | DONE |
 | [P040](P040-session-browser.md) | Session browser | DONE |
+| [P041](P041-preferences.md) | Preferences | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).

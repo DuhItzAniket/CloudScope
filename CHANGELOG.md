@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P041 — Preferences (2026-10-12)
+- Preferences dialog (`preferences_dialog.hpp`): devices, paths, site and pointing, display and units, shortcuts; the whole configuration is validated before the user's `config.toml` is written, and an invalid value is refused with the message that names the key.
+
 ### P040 — Session browser (2026-10-12)
 - Session browser (`session_browser.hpp`): the frame catalogue as a table with thumbnails, loaded in pages of 500 rows; filters by session, time, format and simulated data; side-by-side comparison; export of a selection with sidecars and an `export.json` manifest with checksums.
 
