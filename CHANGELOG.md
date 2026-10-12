@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P034 — Live view (2026-10-12)
+- Live view (`live_view.hpp`, `viewport.hpp`, `preview_pipeline.hpp`): zoom around the cursor, pan, fit and 1:1, frame-rate and drop indicators, an OpenGL canvas (GPU scaling) and a software canvas; the preview pipeline decodes the newest frame on its own thread and never queues frames. `CameraService` runs every camera call on a worker thread.
+
 ### P033 — App shell (2026-10-12)
 - Added the desktop application `cloudscope-desktop` (`apps/desktop/`, ADR-002): a Qt Widgets workbench on the Qt Advanced Docking System with the live view in the centre and camera, capture, histogram, image-tool, session and console panels around it; panel layout, window geometry and named layouts persist in `desktop-state.ini`; dark and red night-vision themes; menus and shortcuts for every action; `--camera`, `--mode`, `--start`, `--renderer`, `--theme`, `--reset-layout`, `--exit-after` options. Manual in `docs/manual/desktop.md`.
 - Configuration: new `[desktop]` section (theme, renderer, session root, default camera, time display, units, calibration file, site, pointing, shortcuts); `AppContext::update_user_config()` writes validated changes to the user's `config.toml`.
