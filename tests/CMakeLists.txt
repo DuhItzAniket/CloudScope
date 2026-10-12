@@ -5,12 +5,12 @@
 
 include(Catch)
 
-# Shared by all test executables: main() with a QCoreApplication, helpers (fixtures, temporary folders,
-# waiting on the Qt event loop), and mock devices for code that uses the HAL.
+# Shared by all test executables: helpers (fixtures, temporary folders, waiting on the Qt event loop) and mock
+# devices for code that uses the HAL. The main() with the Qt application object is added per executable:
+# a QCoreApplication by default, a QApplication (widgets, offscreen platform) for the user-interface tests.
 add_library(cloudscope_test_support STATIC
   support/mock_devices.cpp
   support/mock_devices.hpp
-  support/qt_catch_main.cpp
   support/test_support.cpp
   support/test_support.hpp)
 target_include_directories(cloudscope_test_support PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/support")
@@ -28,16 +28,39 @@ target_include_directories(cloudscope_hal_contract PUBLIC "${CMAKE_CURRENT_SOURC
 target_link_libraries(cloudscope_hal_contract PUBLIC Catch2::Catch2 CloudScope::core)
 cloudscope_target_defaults(cloudscope_hal_contract)
 
-#   cloudscope_add_tests(<target> PREFIX <ctest prefix> SOURCES <files>... [LIBRARIES <targets>...])
+#   cloudscope_add_tests(<target> PREFIX <ctest prefix> SOURCES <files>... [LIBRARIES <targets>...]
+#                        [MAIN <file>] [GUI] [ENVIRONMENT <var=value>...] [TIMEOUT <seconds>])
+#   GUI: a QApplication main, the Qt platform plugins next to the executable, and the offscreen platform in CTest.
 function(cloudscope_add_tests target)
-  cmake_parse_arguments(PARSE_ARGV 1 arg "" "PREFIX" "SOURCES;LIBRARIES")
-  add_executable(${target} ${arg_SOURCES})
+  cmake_parse_arguments(PARSE_ARGV 1 arg "GUI" "PREFIX;MAIN;TIMEOUT" "SOURCES;LIBRARIES;ENVIRONMENT")
+  if(NOT arg_MAIN)
+    if(arg_GUI)
+      set(arg_MAIN support/qt_widgets_catch_main.cpp)
+    else()
+      set(arg_MAIN support/qt_catch_main.cpp)
+    endif()
+  endif()
+  if(NOT arg_TIMEOUT)
+    set(arg_TIMEOUT 60)
+  endif()
+  add_executable(${target} ${arg_SOURCES} ${arg_MAIN})
   string(REPLACE "_" "-" _output_name "${target}")
   set_target_properties(${target} PROPERTIES OUTPUT_NAME "${_output_name}")
   target_link_libraries(${target} PRIVATE cloudscope_test_support CloudScope::core ${arg_LIBRARIES})
   cloudscope_target_defaults(${target})
-  cloudscope_copy_runtime_dlls(${target})
-  catch_discover_tests(${target} TEST_PREFIX "${arg_PREFIX}" PROPERTIES TIMEOUT 60)
+  set(_environment ${arg_ENVIRONMENT})
+  if(arg_GUI)
+    target_link_libraries(${target} PRIVATE Qt6::Widgets)
+    cloudscope_copy_runtime_dlls(${target} GUI)
+    list(APPEND _environment "QT_QPA_PLATFORM=offscreen")
+  else()
+    cloudscope_copy_runtime_dlls(${target})
+  endif()
+  if(_environment)
+    catch_discover_tests(${target} TEST_PREFIX "${arg_PREFIX}" PROPERTIES TIMEOUT ${arg_TIMEOUT} ENVIRONMENT "${_environment}")
+  else()
+    catch_discover_tests(${target} TEST_PREFIX "${arg_PREFIX}" PROPERTIES TIMEOUT ${arg_TIMEOUT})
+  endif()
 endfunction()
 
 cloudscope_add_tests(cloudscope_unit_tests
@@ -91,6 +114,33 @@ cloudscope_add_tests(cloudscope_cli_tests
 add_dependencies(cloudscope_cli_tests cloudscope_info)
 target_compile_definitions(cloudscope_cli_tests PRIVATE
   "CLOUDSCOPE_INFO_EXE=\"$<TARGET_FILE:cloudscope_info>\"")
+
+# User-interface tests (Stage D): the desktop application's widgets and models on the offscreen platform,
+# with the simulated devices. They run in CI without a display or OpenGL.
+cloudscope_add_tests(cloudscope_ui_tests
+  PREFIX "ui."
+  GUI
+  TIMEOUT 120
+  SOURCES
+    ui/desktop_fixture.hpp
+    ui/test_camera_panel.cpp
+    ui/test_capture_panel.cpp
+    ui/test_console_status.cpp
+    ui/test_display_stretch.cpp
+    ui/test_image_tools.cpp
+    ui/test_input.cpp
+    ui/test_main_window.cpp
+    ui/test_overlay.cpp
+    ui/test_preferences.cpp
+    ui/test_session_browser.cpp
+    ui/test_viewport.cpp
+  LIBRARIES
+    CloudScope::desktop
+    nlohmann_json::nlohmann_json
+    fmt::fmt
+    opencv_imgproc
+    opencv_imgcodecs)
+set_target_properties(cloudscope_ui_tests PROPERTIES AUTOMOC ON)
 
 # Benchmarks with a pass mark, run in optimised builds only: a Debug build says nothing about speed.
 #   bench.4K frames ...   plan P016: 4K frames copied at more than 60 fps without a dropped frame

@@ -90,8 +90,9 @@ CheckOptions:
   readability-identifier-naming.GlobalConstantCase: CamelCase
   readability-identifier-naming.GlobalConstantPrefix: k
   readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
-  # Qt's own virtual functions and signals keep their camelCase names.
-  readability-identifier-naming.MethodIgnoredRegexp: '^(timerEvent|event|eventFilter|customEvent|childEvent|run)$'
+  # Qt's own virtual functions, signals and slots keep their camelCase names (cpp_style.md): any camelCase method
+  # name is left alone; everything else must be snake_case.
+  readability-identifier-naming.MethodIgnoredRegexp: '^(timerEvent|event|eventFilter|customEvent|childEvent|run|[a-z]+([A-Z][A-Za-z0-9]*)+)$'
   readability-function-cognitive-complexity.Threshold: 40
   readability-function-cognitive-complexity.IgnoreMacros: true
   readability-function-size.StatementThreshold: 120

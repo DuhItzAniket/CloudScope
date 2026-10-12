@@ -17,6 +17,7 @@ Small data files that tests read. Everything here is listed in [`manifest.json`]
 | `sky/ccsn_ci_n001.jpg` | Bright cirrus on blue sky, some clipped highlights | CCSN database v2, `Ci/Ci-N001.jpg` | CC0 1.0 |
 | `sky/ccsn_cu_n001.jpg` | Cumulus against a dark sky, low mean brightness | CCSN database v2, `Cu/Cu-N001.jpg` | CC0 1.0 |
 | `sky/ccsn_st_n001.jpg` | Grey, low-contrast layer cloud | CCSN database v2, `St/St-N001.jpg` | CC0 1.0 |
+| `ui/live_view_reticle_grid.png` | The live view's rendering of a synthetic sky with the reticle and the grid (no text): the screenshot reference of the desktop application | Rendered by `tests/ui/test_main_window.cpp` with `CLOUDSCOPE_UPDATE_REFERENCES=1` | Apache-2.0 (CloudScope) |
 
 CCSN: Zhang et al., "CloudNet: Ground-based cloud classification with deep convolutional neural network", 2018; Harvard Dataverse, doi:10.7910/DVN/CADDPD, released under CC0 1.0. The three files are 400 × 400 JPEGs, unmodified.
 

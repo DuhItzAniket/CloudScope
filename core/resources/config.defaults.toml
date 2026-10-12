@@ -37,3 +37,39 @@ seed = 1
 replay_folder = ""
 # Pictures per second of the replay camera.
 replay_fps = 2.0
+
+[desktop]
+# Theme of the desktop application: "dark", or "night" for the red night-vision theme.
+theme = "dark"
+# Live-view renderer: "auto" (OpenGL when the computer offers it, software otherwise), "opengl" or "raster".
+renderer = "auto"
+# Folder for sessions and the frame catalogue. Empty: the Pictures folder of the user, subfolder CloudScope.
+session_root = ""
+# Device id of the camera opened when the application starts (see cloudscope-info --devices). Empty: none.
+default_camera = ""
+# How times are shown: "utc", "local" or "both".
+time_display = "both"
+# Unit of temperature displays: "celsius" or "fahrenheit".
+temperature_unit = "celsius"
+# Intrinsic calibration file (schema cloudscope.camera_model/1, from cloudscope-camtool calibrate) that the sky
+# overlays use. Empty: no sky overlays.
+calibration_file = ""
+
+[desktop.site]
+# Where the camera stands: an id for file names, latitude (north positive), longitude (east positive) and
+# altitude above sea level.
+id = "site"
+latitude_deg = 0.0
+longitude_deg = 0.0
+altitude_m = 0.0
+
+[desktop.pointing]
+# Where the camera looks, declared by the operator and used until a mount or an IMU reports it: azimuth from
+# north through east, elevation above the horizon, roll about the optical axis.
+azimuth_deg = 0.0
+elevation_deg = 90.0
+roll_deg = 0.0
+
+[desktop.shortcuts]
+# Keyboard shortcuts by action id, in Qt's spelling, for example:  "view.fit" = "Ctrl+F"
+# The action ids are listed in Preferences > Shortcuts. Empty text removes a shortcut.

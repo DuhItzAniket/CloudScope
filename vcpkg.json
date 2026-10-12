@@ -24,6 +24,7 @@
         "tiff"
       ]
     },
+    "sdl2",
     "spdlog",
     "tl-expected",
     "tomlplusplus"

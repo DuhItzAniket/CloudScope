@@ -19,3 +19,9 @@ The desktop application uses **Qt Widgets** with the **Qt Advanced Docking Syste
 - The legacy QML frontend is not carried forward; its layout ideas are reused.
 - ADS is added as a dependency in P011 (built from source or vendored as a submodule, since vcpkg availability is not confirmed).
 - Perspectives (saved layouts) satisfy FR-DSP-08.
+
+## Implementation notes (P033)
+- Debian 13 packages the Qt Advanced Docking System for Qt 5 only (`libqt-advanced-docking-system-dev` 3.8.3 depends on `qtbase5-dev`), so the library is **built from source at configure time** (CMake `FetchContent`, release tag 4.5.0, the version Ubuntu 26.04 ships) on every platform, as a shared library next to CloudScope's own binaries. One version everywhere; the Windows build does not use a vcpkg port for it.
+- On Linux the library uses Qt's platform-native interface (`qt6-base-private-dev`) and `libxcb1-dev`; both are in `tools/build/install-deps-debian.sh`.
+- The live view renders through `QOpenGLWidget` (Qt's OpenGL paint engine scales the picture on the GPU) with a software `QWidget` canvas as the fallback and for the offscreen tests; `QRhiWidget` was not used because the offscreen platform in CI has no graphics device.
+- Gamepad input uses SDL2's game-controller API (zlib licence); Qt 6 has no gamepad module.

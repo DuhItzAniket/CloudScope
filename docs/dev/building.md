@@ -80,7 +80,9 @@ Code must compile against the **minimum** column: those are the versions in Debi
 
 | Library | Minimum (Debian 13) | Windows (vcpkg baseline 2026.07.29) | Used for |
 |---|---|---|---|
-| Qt (Core) | 6.8.2 | 6.8 or newer from the Qt installer | Application framework |
+| Qt (Core, Sql, Gui, Widgets, OpenGL, OpenGLWidgets) | 6.8.2 | 6.8 or newer from the Qt installer | Application framework and the desktop application |
+| Qt Advanced Docking System | 4.5.0 (built from source) | 4.5.0 (built from source) | Dockable panels (ADR-002); fetched at configure time, needs network once |
+| SDL2 | 2.32.4 | 2.32.10 | Gamepad input |
 | OpenCV | 4.10.0 | 4.12.0 | Image processing and codecs |
 | spdlog / fmt | 1.15.2 / 10.1 | 1.17.0 / 12.2.0 | Logging and formatting |
 | toml++ | 3.4.0 | 3.4.0 | Configuration files |

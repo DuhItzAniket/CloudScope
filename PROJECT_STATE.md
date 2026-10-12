@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Current stage | Stage C — Camera subsystem (P019–P032) complete on the laptop as of 2026-10-09 (P032 PARTIAL: the 24 h and Raspberry Pi 5 soak are owner items). Next: Stage D — Desktop application, P033 App shell. Stages A and B complete (tag `stage-B-complete`) |
-| Last completed phase | P032 — Camera soak test (PARTIAL) |
-| Next phase | P033 — App shell |
+| Current stage | Stage D — Desktop application (P033–P046) in progress as of 2026-10-12. Stage C complete on the laptop (P032 PARTIAL: the 24 h and Raspberry Pi 5 soak are owner items); Stages A and B complete (tag `stage-B-complete`) |
+| Last completed phase | P033 — App shell |
+| Next phase | P034 — Live view |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Last CI result checked | `7f606a2` (P018, tag `stage-B-complete`): all ten jobs green; coverage 96.3 % of core-library lines. (The two runs before it lost jobs to GitHub's Actions incident of 5 Oct 2026, not to failures.) |
@@ -48,3 +48,4 @@
 | P030 | Sessions & catalogue | DONE | 2026-10-09 |
 | P031 | Intrinsic calibration tool | DONE | 2026-10-09 |
 | P032 | Camera soak test | PARTIAL | 2026-10-09 |
+| P033 | App shell | DONE | 2026-10-12 |

@@ -4,7 +4,7 @@
   "title": "CloudScope configuration (config.toml), format version 1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "logging", "camera", "simulation"],
+  "required": ["schema_version", "logging", "camera", "simulation", "desktop"],
   "properties": {
     "schema_version": {
       "description": "Version of the file format. CloudScope migrates older files automatically.",
@@ -84,6 +84,120 @@
           "type": "number",
           "minimum": 0.01,
           "maximum": 120
+        }
+      }
+    },
+    "desktop": {
+      "description": "The desktop application.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "theme",
+        "renderer",
+        "session_root",
+        "default_camera",
+        "time_display",
+        "temperature_unit",
+        "calibration_file",
+        "site",
+        "pointing",
+        "shortcuts"
+      ],
+      "properties": {
+        "theme": {
+          "description": "Dark theme, or the red night-vision theme.",
+          "enum": ["dark", "night"]
+        },
+        "renderer": {
+          "description": "Live-view renderer: OpenGL when available (auto), OpenGL, or software.",
+          "enum": ["auto", "opengl", "raster"]
+        },
+        "session_root": {
+          "description": "Folder for sessions and the frame catalogue. Empty: the Pictures folder.",
+          "type": "string"
+        },
+        "default_camera": {
+          "description": "Device id of the camera opened at start. Empty: none.",
+          "type": "string"
+        },
+        "time_display": {
+          "description": "How times are shown.",
+          "enum": ["utc", "local", "both"]
+        },
+        "temperature_unit": {
+          "description": "Unit of temperature displays.",
+          "enum": ["celsius", "fahrenheit"]
+        },
+        "calibration_file": {
+          "description": "Intrinsic calibration (cloudscope.camera_model/1) for the sky overlays. Empty: none.",
+          "type": "string"
+        },
+        "site": {
+          "description": "Where the camera stands.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "latitude_deg", "longitude_deg", "altitude_m"],
+          "properties": {
+            "id": {
+              "description": "Site identifier used in file names and sidecars.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "latitude_deg": {
+              "description": "North positive.",
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude_deg": {
+              "description": "East positive.",
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "altitude_m": {
+              "description": "Above sea level.",
+              "type": "number",
+              "minimum": -500,
+              "maximum": 9000
+            }
+          }
+        },
+        "pointing": {
+          "description": "Where the camera looks, as declared by the operator (until a mount or IMU reports it).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["azimuth_deg", "elevation_deg", "roll_deg"],
+          "properties": {
+            "azimuth_deg": {
+              "description": "From north through east.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMaximum": 360
+            },
+            "elevation_deg": {
+              "description": "Above the horizon.",
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "roll_deg": {
+              "description": "Turn about the optical axis.",
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          }
+        },
+        "shortcuts": {
+          "description": "Keyboard shortcuts by action id, in Qt's spelling (\"Ctrl+Shift+F\"). Empty text removes one.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 64
+          }
         }
       }
     }

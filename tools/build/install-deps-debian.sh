@@ -28,4 +28,12 @@ $SUDO apt-get install -y --no-install-recommends \
     nlohmann-json3-dev \
     pkgconf \
     qt6-base-dev \
-    libqt6sql6-sqlite
+    qt6-base-private-dev \
+    libqt6sql6-sqlite \
+    libgl-dev \
+    libxcb1-dev \
+    libsdl2-dev \
+    fonts-dejavu-core
+# qt6-base-private-dev and libxcb1-dev: the Qt Advanced Docking System (built from source, ADR-002) uses Qt's
+# platform-native interface on Linux. libgl-dev: Qt OpenGL headers. libsdl2-dev: gamepad input (P043).
+# fonts-dejavu-core: the user-interface tests render text on the offscreen platform.

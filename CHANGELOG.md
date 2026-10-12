@@ -4,6 +4,12 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P033 — App shell (2026-10-12)
+- Added the desktop application `cloudscope-desktop` (`apps/desktop/`, ADR-002): a Qt Widgets workbench on the Qt Advanced Docking System with the live view in the centre and camera, capture, histogram, image-tool, session and console panels around it; panel layout, window geometry and named layouts persist in `desktop-state.ini`; dark and red night-vision themes; menus and shortcuts for every action; `--camera`, `--mode`, `--start`, `--renderer`, `--theme`, `--reset-layout`, `--exit-after` options. Manual in `docs/manual/desktop.md`.
+- Configuration: new `[desktop]` section (theme, renderer, session root, default camera, time display, units, calibration file, site, pointing, shortcuts); `AppContext::update_user_config()` writes validated changes to the user's `config.toml`.
+- Build: Qt Gui, Widgets, OpenGL and OpenGLWidgets; the Qt Advanced Docking System 4.5.0 built from source at configure time (Debian 13 ships it for Qt 5 only); SDL2 for gamepad input; Debian dependencies `qt6-base-private-dev`, `libxcb1-dev`, `libgl-dev`, `libsdl2-dev`, `fonts-dejavu-core`; licence table entries. Windows builds copy the Qt platform plugins next to GUI executables.
+- Tests: the `ui.` tier (`cloudscope-ui-tests`, a `QApplication` on the offscreen platform) with the user-interface tests of the whole stage; the test-support main is now chosen per executable.
+
 ### P032 — Camera soak test (2026-10-09, PARTIAL)
 - One-hour soak of the Arducam B0268 at 1920x1080 MJPEG through the acquisition, decode and statistics path (Release build): 101,122 frames at 28.1 fps, 4 lost (0.004 %), no timeouts, errors or pool misses, latency 0.3 ms mean / 1.6 ms max, resident memory flat (+0.7 MiB over the hour), decode 4.4 ms per frame. Report in `docs/hardware/b0268_soak.md`. The 24 h and Raspberry Pi 5 parts of the exit criterion are not run (no Pi; owner's time).
 - Stage C (camera subsystem) complete on the laptop: 285 tests in Release, 284 in Debug, all passing; sources formatted with clang-format 19; portability fixes for GCC's warning set (shadowed member names, float promotion, missing includes).

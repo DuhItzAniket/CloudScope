@@ -47,6 +47,17 @@ The complete list of settings with their defaults is [`core/resources/config.def
 | `simulation.seed` | `1` | The same seed gives the same simulated clouds and the same sensor noise (0 to 4294967295) |
 | `simulation.replay_folder` | `""` | Folder of JPEG or PNG pictures that the replay camera shows in name order; empty means no replay camera |
 | `simulation.replay_fps` | `2.0` | Pictures per second of the replay camera (0.01 to 120) |
+| `desktop.theme` | `"dark"` | Theme of the desktop application: `dark`, or `night` for the red night-vision theme |
+| `desktop.renderer` | `"auto"` | Live-view renderer: `auto` (OpenGL when available), `opengl` or `raster` (software) |
+| `desktop.session_root` | `""` | Folder for sessions and the frame catalogue; empty means the Pictures folder, subfolder `CloudScope` |
+| `desktop.default_camera` | `""` | Device id of the camera opened at start (`cloudscope-info --devices`); empty means none |
+| `desktop.time_display` | `"both"` | How times are shown: `utc`, `local` or `both` |
+| `desktop.temperature_unit` | `"celsius"` | `celsius` or `fahrenheit` |
+| `desktop.calibration_file` | `""` | Intrinsic calibration file (`cloudscope.camera_model/1`) for the sky overlays; empty means none |
+| `desktop.site.id` | `"site"` | Site identifier for file names and sidecars (letters, digits, `-`, `_`) |
+| `desktop.site.latitude_deg`, `longitude_deg`, `altitude_m` | `0.0` | Where the camera stands: north and east positive, altitude above sea level |
+| `desktop.pointing.azimuth_deg`, `elevation_deg`, `roll_deg` | `0.0`, `90.0`, `0.0` | Where the camera looks, declared by the operator until a mount or IMU reports it |
+| `desktop.shortcuts.<action>` | none | Keyboard shortcut overrides by action id, in Qt's spelling (`"view.fit" = "Ctrl+Shift+F"`); empty text removes one |
 
 More sections arrive with the features that need them.
 

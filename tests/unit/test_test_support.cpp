@@ -43,7 +43,8 @@ TEST_CASE("fixtures match the manifest", "[support][fixtures]")
                                      QCryptographicHash::Sha256);
         CHECK(digest.toHex().toStdString() == entry.at("sha256").get<std::string>());
         CHECK_FALSE(entry.at("source").get<std::string>().empty());
-        CHECK(entry.at("licence") == "CC0-1.0");
+        // Rule 1 of tests/data/README.md: public domain, or made by this project (Apache-2.0).
+        CHECK((entry.at("licence") == "CC0-1.0" || entry.at("licence") == "Apache-2.0"));
 
         // The image decodes to what the manifest says.
         const std::vector<unsigned char> bytes(content.begin(), content.end());
@@ -54,7 +55,7 @@ TEST_CASE("fixtures match the manifest", "[support][fixtures]")
         CHECK(image.type() == CV_8UC3);
     }
     CHECK(total <= kMaxTotalBytes);
-    CHECK(listed.size() == 3);
+    CHECK(listed.size() == 4);
 
     // Nothing unlisted lies in the fixture folder.
     for (const auto& entry : std::filesystem::recursive_directory_iterator(data_dir())) {

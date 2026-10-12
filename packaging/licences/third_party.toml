@@ -55,10 +55,40 @@ name = "Qt"
 licence = "LGPL-3.0-only"
 linking = "dynamic"
 homepage = "https://www.qt.io/"
-used_for = "Application framework (Qt Core); Qt Test in the test executables only"
+used_for = "Application framework (Qt Core, Sql), the desktop application (Gui, Widgets, OpenGL, OpenGLWidgets); Qt Test in the test executables only"
 vcpkg_ports = []
-windows_dlls = ["Qt6Core.dll", "Qt6Cored.dll", "Qt6Sql.dll", "Qt6Sqld.dll", "Qt6Test.dll", "Qt6Testd.dll"]
-linux_libraries = ["libQt6Core.so.*", "libQt6Sql.so.*", "libQt6Test.so.*"]
+windows_dlls = ["Qt6Core.dll", "Qt6Cored.dll", "Qt6Sql.dll", "Qt6Sqld.dll", "Qt6Test.dll", "Qt6Testd.dll",
+                "Qt6Gui.dll", "Qt6Guid.dll", "Qt6Widgets.dll", "Qt6Widgetsd.dll", "Qt6OpenGL.dll", "Qt6OpenGLd.dll",
+                "Qt6OpenGLWidgets.dll", "Qt6OpenGLWidgetsd.dll", "Qt6Network.dll", "Qt6Networkd.dll"]
+linux_libraries = ["libQt6Core.so.*", "libQt6Sql.so.*", "libQt6Test.so.*", "libQt6Gui.so.*", "libQt6Widgets.so.*",
+                   "libQt6OpenGL.so.*", "libQt6OpenGLWidgets.so.*"]
+
+[[component]]
+name = "Qt Advanced Docking System"
+licence = "LGPL-2.1-or-later"
+linking = "dynamic"
+homepage = "https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System"
+used_for = "Dockable panels of the desktop application (ADR-002); built from source at configure time (FetchContent, tag 4.5.0) because Debian 13 packages it for Qt 5 only"
+vcpkg_ports = []
+windows_dlls = ["qtadvanceddocking-qt6.dll", "qtadvanceddocking-qt6d.dll"]
+linux_libraries = ["libqtadvanceddocking-qt6.so.*"]
+
+[[component]]
+name = "SDL2"
+licence = "Zlib"
+linking = "dynamic"
+homepage = "https://www.libsdl.org/"
+used_for = "Gamepad input (game-controller API) in the desktop application"
+vcpkg_ports = ["sdl2"]
+linux_libraries = ["libSDL2-2.0.so.*"]
+
+[[component]]
+name = "libxcb"
+licence = "MIT"
+linking = "dynamic"
+homepage = "https://xcb.freedesktop.org/"
+used_for = "X11 client library the Qt Advanced Docking System links on Linux"
+linux_libraries = ["libxcb.so.*"]
 
 [[component]]
 name = "OpenCV"

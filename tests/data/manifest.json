@@ -33,6 +33,17 @@
       "shows": "grey low-contrast layer cloud, treeline at the bottom",
       "source": "CCSN database v2, file St/St-N001.jpg (doi:10.7910/DVN/CADDPD)",
       "licence": "CC0-1.0"
+    },
+    {
+      "file": "ui/live_view_reticle_grid.png",
+      "bytes": 59320,
+      "sha256": "7f7fd35bb06e4cb31b1a909aa88412ad8d05808eb1bda1ce502e3f3e9aa36617",
+      "width": 480,
+      "height": 360,
+      "format": "PNG",
+      "shows": "the live view's rendering of a synthetic sky (seed 7, no noise) with the reticle and the grid, no text: the screenshot reference of the desktop application",
+      "source": "rendered by tests/ui/test_main_window.cpp (CLOUDSCOPE_UPDATE_REFERENCES=1) with Qt 6.9.3 on Windows",
+      "licence": "Apache-2.0"
     }
   ]
 }

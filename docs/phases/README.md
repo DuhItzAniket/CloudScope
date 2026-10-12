@@ -36,5 +36,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P030](P030-sessions-catalogue.md) | Sessions & catalogue | DONE |
 | [P031](P031-intrinsic-calibration.md) | Intrinsic calibration tool | DONE |
 | [P032](P032-camera-soak.md) | Camera soak test | PARTIAL |
+| [P033](P033-app-shell.md) | App shell | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).

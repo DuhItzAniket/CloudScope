@@ -16,8 +16,10 @@ Every Catch2 test case is one CTest entry, named `<tier>.<test name>` and run in
 | `unit.` | `cloudscope-unit-tests` | Functions and classes of the core library, in-process |
 | `cli.` | `cloudscope-cli-tests` | The real executables, started as child processes: output, exit codes, files |
 | `bench.` | `cloudscope-bench` | Speed requirements with a pass mark; only in Release and RelWithDebInfo builds |
+| `ui.` | `cloudscope-ui-tests` | The desktop application's widgets and models (Stage D) with a `QApplication` on Qt's offscreen platform (`QT_QPA_PLATFORM=offscreen`, set by CTest): no display, no OpenGL, simulated devices |
 
-Later tiers (hardware-in-the-loop, user interface) get their own executables in their phases.
+The hardware-in-the-loop tier gets its own executable in Stage E. The `ui.` tests use the simulated camera in real
+time and the mock devices; nothing in them needs a camera, a display or a graphics driver.
 
 Some tests are hidden from the default run (Catch2 tag `[.]`) and are run by hand with their tag:
 

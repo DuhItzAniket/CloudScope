@@ -35,6 +35,7 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `apps/info/` | `cloudscope-info`: build information, installation self-test, configuration report, list of usable devices |
 | `apps/bench/` | `cloudscope-bench`: frame pipeline benchmark |
 | `apps/camtool/` | `cloudscope-camtool`: cameras from the command line: list, measure, stream, record, capture plans, soak test, calibration (`docs/manual/camera_tool.md`) |
+| `apps/desktop/` | `cloudscope-desktop`: the desktop workbench: live view, camera controls, histogram and stretch, overlays, image tools, capture, session browser, preferences, console (`docs/manual/desktop.md`) |
 | `tests/` | Unit tests (Catch2), contract tests for device drivers, mock devices and command-line tests; fixtures in `tests/data` |
 | `cmake/`, `CMakePresets.json`, `vcpkg.json` | Build system ([how to build](docs/dev/building.md)) |
 | `docs/dev/` | Developer guides: building, C++ conventions, threading, hardware abstraction layer, simulators, testing, quality gates, continuous integration |
@@ -47,7 +48,7 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |
 | `legacy/` | Frozen v0.1 AI-Day prototype (Python training scripts, Qt/QML desktop app, ONNX models, reports) |
 
-More folders (`daemon/`, `apps/desktop/`, `web/`, `firmware/`, `protocol/`, `hardware/`) arrive in their phases.
+More folders (`daemon/`, `web/`, `firmware/`, `protocol/`, `hardware/`) arrive in their phases.
 
 ## Building
 
