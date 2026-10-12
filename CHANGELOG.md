@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P043 — Input devices (2026-10-12)
+- Input (`shortcuts.hpp`, `gamepad.hpp`): a shortcut registry with configuration overrides (`desktop.shortcuts`) and conflict reporting; SDL2 game-controller input that jogs the simulated pan-tilt mount through the HAL (stick or D-pad, A stops, B is the emergency stop).
+
 ### P042 — Console & status (2026-10-12)
 - Console and status (`console_panel.hpp`, `status_bar.hpp`): the process log with level and text filters; a notification centre with an unread count; a status bar for the camera, mount, sensors, AI, remote clients and the disk that says what is absent.
 
