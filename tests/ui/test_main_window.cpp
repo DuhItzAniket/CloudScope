@@ -238,7 +238,9 @@ TEST_CASE("the live view renders the same picture as the committed reference", "
         FAIL("reference picture missing: " << reference.string() << "; candidate written to "
                                            << candidate.toStdString());
     }
-    const ImageDifference difference = compare(rendered, expected.convertToFormat(QImage::Format_RGB32));
+    // Compared pixel by pixel in whatever format the PNG loaded as: a format conversion of this size would run
+    // on Qt's own thread pool, which the thread sanitizer cannot see into.
+    const ImageDifference difference = compare(rendered, expected);
     REQUIRE(difference.same_size);
     INFO("mean |diff| " << difference.mean_abs << ", fraction over 40: " << difference.fraction_over_40);
     CHECK(difference.mean_abs < 1.0);

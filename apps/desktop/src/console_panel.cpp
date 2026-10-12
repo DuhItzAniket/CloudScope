@@ -34,13 +34,11 @@ public:
     }
     void set_minimum_level(LogLevel level)
     {
-        minimum_ = level;
-        invalidateRowsFilter();
+        rows_change([&] { minimum_ = level; });
     }
     void set_search(const QString& text)
     {
-        search_ = text;
-        invalidateRowsFilter();
+        rows_change([&] { search_ = text; });
     }
 
 protected:
@@ -58,6 +56,21 @@ protected:
     }
 
 private:
+    // A change of the filter, announced the way the Qt in use wants it: Qt 6.10 replaced invalidateRowsFilter()
+    // with begin/endFilterChange(); the minimum Qt (6.8, ADR-001) has only the former.
+    template <class Change>
+    void rows_change(Change change)
+    {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+        beginFilterChange();
+        change();
+        endFilterChange(QSortFilterProxyModel::Direction::Rows);
+#else
+        change();
+        invalidateRowsFilter();
+#endif
+    }
+
     LogModel& source_;
     LogLevel minimum_ = LogLevel::Trace;
     QString search_;

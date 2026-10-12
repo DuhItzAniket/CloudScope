@@ -23,10 +23,11 @@ TEST_CASE("a uniform region has zero spread and zero focus; a sharp edge scores 
     CHECK_THAT(flat->mean[0], WithinAbs(10.0, 1e-9));
     CHECK_THAT(flat->mean[1], WithinAbs(20.0, 1e-9));
     CHECK_THAT(flat->mean[2], WithinAbs(30.0, 1e-9));
-    CHECK_THAT(flat->std_dev[0], WithinAbs(0.0, 1e-9));
+    // OpenCV's spread is sqrt(E[x^2] - E[x]^2): rounding leaves a few millionths on some CPUs (arm64), not zero.
+    CHECK_THAT(flat->std_dev[0], WithinAbs(0.0, 1e-5));
     CHECK(flat->minimum[2] == 30);
     CHECK(flat->maximum[2] == 30);
-    CHECK_THAT(flat->focus, WithinAbs(0.0, 1e-9));
+    CHECK_THAT(flat->focus, WithinAbs(0.0, 1e-5));
     CHECK_THAT(flat->luma_mean, WithinAbs(0.299 * 30.0 + 0.587 * 20.0 + 0.114 * 10.0, 1e-9));
 
     cv::Mat edge = cv::Mat::zeros(100, 100, CV_8UC1);
