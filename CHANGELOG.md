@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P039 — Capture panel (2026-10-12)
+- Capture panel (`capture_panel.hpp`): capture plans (single, burst, interval, bracket; format, folder, file-name template, night profile) run by the P029 sequencer on a worker thread with camera recovery through the camera service; optional catalogued session; progress and the countdown to the next picture.
+
 ### P038 — Image tools (2026-10-12)
 - Image tools (`image_tools.hpp`, `image_tools_panel.hpp`): focus aid (variance of the Laplacian with a history and the best value), loupe, pixel inspector, region-of-interest statistics (Shift-drag on the live view).
 
