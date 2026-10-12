@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P038 — Image tools (2026-10-12)
+- Image tools (`image_tools.hpp`, `image_tools_panel.hpp`): focus aid (variance of the Laplacian with a history and the best value), loupe, pixel inspector, region-of-interest statistics (Shift-drag on the live view).
+
 ### P037 — Overlays (2026-10-12)
 - Overlays (`overlay.hpp`): reticle and grid; with an intrinsic calibration and the declared pointing, altitude circles, compass points, the Sun and the keep-out ring, projected through the P031 camera model and the orientation of `rotation.hpp`.
 
