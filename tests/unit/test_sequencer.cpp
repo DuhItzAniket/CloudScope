@@ -577,6 +577,9 @@ TEST_CASE("the disk guard, a silent camera and repeated failures end a run witho
     SECTION("a camera that keeps failing to come back ends the run on request_stop()")
     {
         Rig rig;
+        // The stream is stopped before the cable is pulled: frames the acquisition thread already read would
+        // otherwise still reach the run and be written (seen under the thread sanitizer, where that thread lags).
+        rig.acquisition->stop();
         rig.driver->rig()->set_camera_connected(false);
         CapturePlan plan;
         plan.folder = workspace.path("gone");
