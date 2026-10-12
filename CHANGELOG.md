@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P044 — UX polish (2026-10-12)
+- UX: pass-through high-DPI scaling, accessible names on every control, status tips and tooltips on every action, translation-ready strings, units on every value, UTC and local times; checklist in `docs/reviews/gate_D.md`.
+
 ### P043 — Input devices (2026-10-12)
 - Input (`shortcuts.hpp`, `gamepad.hpp`): a shortcut registry with configuration overrides (`desktop.shortcuts`) and conflict reporting; SDL2 game-controller input that jogs the simulated pan-tilt mount through the HAL (stick or D-pad, A stops, B is the emergency stop).
 

@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Current stage | Stage D — Desktop application (P033–P046) in progress as of 2026-10-12. Stage C complete on the laptop (P032 PARTIAL: the 24 h and Raspberry Pi 5 soak are owner items); Stages A and B complete (tag `stage-B-complete`) |
-| Last completed phase | P043 — Input devices |
-| Next phase | P044 — UX polish |
+| Last completed phase | P044 — UX polish |
+| Next phase | P045 — UI test automation |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Last CI result checked | `7f606a2` (P018, tag `stage-B-complete`): all ten jobs green; coverage 96.3 % of core-library lines. (The two runs before it lost jobs to GitHub's Actions incident of 5 Oct 2026, not to failures.) |
@@ -59,3 +59,4 @@
 | P041 | Preferences | DONE | 2026-10-12 |
 | P042 | Console & status | DONE | 2026-10-12 |
 | P043 | Input devices | DONE | 2026-10-12 |
+| P044 | UX polish | DONE | 2026-10-12 |

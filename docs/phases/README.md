@@ -47,5 +47,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P041](P041-preferences.md) | Preferences | DONE |
 | [P042](P042-console-status.md) | Console & status | DONE |
 | [P043](P043-input-devices.md) | Input devices | DONE |
+| [P044](P044-ux-polish.md) | UX polish | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).
