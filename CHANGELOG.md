@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P046 — Gate D — Workbench review (2026-10-12)
+- Gate D (`docs/reviews/gate_D.md`): the workbench against the SharpCap-class must-have list of P006: 14 of 14 items in the desktop stage's scope done with evidence; decision GO for Stage E.
+
 ### P045 — UI test automation (2026-10-12)
 - UI test automation: the `ui.` tier runs in CI on the offscreen platform; widgets are driven through their signals; a screenshot regression of the live view against `tests/data/ui/live_view_reticle_grid.png` (updated with `CLOUDSCOPE_UPDATE_REFERENCES=1`).
 

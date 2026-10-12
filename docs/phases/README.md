@@ -49,5 +49,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P043](P043-input-devices.md) | Input devices | DONE |
 | [P044](P044-ux-polish.md) | UX polish | DONE |
 | [P045](P045-ui-tests.md) | UI test automation | DONE |
+| [P046](P046-gate-d.md) | Gate D — Workbench review | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).

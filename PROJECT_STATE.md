@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Current stage | Stage D — Desktop application (P033–P046) in progress as of 2026-10-12. Stage C complete on the laptop (P032 PARTIAL: the 24 h and Raspberry Pi 5 soak are owner items); Stages A and B complete (tag `stage-B-complete`) |
-| Last completed phase | P045 — UI test automation |
-| Next phase | P046 — Gate D — Workbench review |
+| Current stage | Stage D — Desktop application (P033–P046) complete as of 2026-10-12 (Gate D: GO). Next: Stage E — Hardware control system (P047 CSDP spec v1), at the owner's pace. Stage C complete on the laptop (P032 PARTIAL: the 24 h and Raspberry Pi 5 soak are owner items); Stages A and B complete (tag `stage-B-complete`) |
+| Last completed phase | P046 — Gate D — Workbench review |
+| Next phase | P047 — CSDP spec v1 (Stage E); owner items of Stage C unchanged |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Last CI result checked | `7f606a2` (P018, tag `stage-B-complete`): all ten jobs green; coverage 96.3 % of core-library lines. (The two runs before it lost jobs to GitHub's Actions incident of 5 Oct 2026, not to failures.) |
@@ -61,3 +61,4 @@
 | P043 | Input devices | DONE | 2026-10-12 |
 | P044 | UX polish | DONE | 2026-10-12 |
 | P045 | UI test automation | DONE | 2026-10-12 |
+| P046 | Gate D — Workbench review | DONE | 2026-10-12 |
