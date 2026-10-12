@@ -39,5 +39,6 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P033](P033-app-shell.md) | App shell | DONE |
 | [P034](P034-live-view.md) | Live view | DONE |
 | [P035](P035-camera-panel.md) | Camera control panel | DONE |
+| [P036](P036-histogram-stretch.md) | Histogram, scopes & stretch | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).

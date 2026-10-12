@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P036 — Histogram, scopes & stretch (2026-10-12)
+- Histogram and scopes (`histogram_panel.hpp`, `display_stretch.hpp`): luma and channel histograms, linear or logarithmic, clipping indicators, RGB parade; display stretch (levels and gamma, manual or automatic from percentiles) and over-exposure highlight applied to the preview copy only; red rendering for the night theme.
+
 ### P035 — Camera control panel (2026-10-12)
 - Camera panel (`camera_panel.hpp`): devices, modes, every listed control with its range, step, unit and automatic toggle, the value read back from the device after each request with a mark when the device clamped or ignored it; named profiles in `camera-profiles.json` (`camera_profiles.hpp`).
 
