@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P040 — Session browser (2026-10-12)
+- Session browser (`session_browser.hpp`): the frame catalogue as a table with thumbnails, loaded in pages of 500 rows; filters by session, time, format and simulated data; side-by-side comparison; export of a selection with sidecars and an `export.json` manifest with checksums.
+
 ### P039 — Capture panel (2026-10-12)
 - Capture panel (`capture_panel.hpp`): capture plans (single, burst, interval, bracket; format, folder, file-name template, night profile) run by the P029 sequencer on a worker thread with camera recovery through the camera service; optional catalogued session; progress and the countdown to the next picture.
 
