@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P045 — UI test automation (2026-10-12)
+- UI test automation: the `ui.` tier runs in CI on the offscreen platform; widgets are driven through their signals; a screenshot regression of the live view against `tests/data/ui/live_view_reticle_grid.png` (updated with `CLOUDSCOPE_UPDATE_REFERENCES=1`).
+
 ### P044 — UX polish (2026-10-12)
 - UX: pass-through high-DPI scaling, accessible names on every control, status tips and tooltips on every action, translation-ready strings, units on every value, UTC and local times; checklist in `docs/reviews/gate_D.md`.
 
