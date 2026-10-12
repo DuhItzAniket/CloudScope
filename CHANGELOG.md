@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P042 — Console & status (2026-10-12)
+- Console and status (`console_panel.hpp`, `status_bar.hpp`): the process log with level and text filters; a notification centre with an unread count; a status bar for the camera, mount, sensors, AI, remote clients and the disk that says what is absent.
+
 ### P041 — Preferences (2026-10-12)
 - Preferences dialog (`preferences_dialog.hpp`): devices, paths, site and pointing, display and units, shortcuts; the whole configuration is validated before the user's `config.toml` is written, and an invalid value is refused with the message that names the key.
 
