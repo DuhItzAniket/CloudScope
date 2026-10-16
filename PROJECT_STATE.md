@@ -7,7 +7,7 @@
 | Next phase | P047 — CSDP spec v1 (Stage E); owner items of Stage C unchanged |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
-| Last CI result checked | `7f606a2` (P018, tag `stage-B-complete`): all ten jobs green; coverage 96.3 % of core-library lines. (The two runs before it lost jobs to GitHub's Actions incident of 5 Oct 2026, not to failures.) |
+| Last CI result checked | `b3ee0e7` (Stage D follow-up, run #25): all ten jobs green (Debian 13 x64 and arm64, Ubuntu 26.04 with Qt 6.10, Windows x64, address/undefined and thread sanitizers, coverage, format and static analysis, secret scan, Python tools) after two follow-up fixes (2c7cf8e, b3ee0e7) |
 | Blockers | None for the code. Owner items from Stage C: daylight `ae-test` of the B0268 (P025), real dark/flat masters (P026), a FITS and a 16-bit SER opened in Siril/SER Player (P027/P028), a printed checkerboard for the B0268's intrinsic calibration (P031), the Linux/Raspberry Pi run of the V4L2 backend (P019, P032), EXIF GPS privacy in `legacy/B0268`, the B0268 logging run for STRATIA P041 |
 | Owner decisions (Gate R) | Apache-2.0 · servo tier R1 first · laptop host for now · low intensity until 16 Nov 2026 (STRATIA has priority) |
 | Hardware on the development machine | Arducam B0268 (`uvc:0c45:636d:1`) and the integrated laptop camera, both on USB; no microcontroller attached; no Raspberry Pi |

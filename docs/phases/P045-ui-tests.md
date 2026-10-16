@@ -30,7 +30,7 @@ NFR-MNT-02 (CI), NFR-MNT-03 (coverage of the desktop code through the `ui.` tier
 
 ## Verification
 - Windows: 45 of 45 ui tests pass in Debug and Release on Windows; the whole suite passes (330 tests in Release, 329 in Debug).
-- CI (Debian 13 x64 and arm64, Ubuntu 26.04, sanitizers): the run of this push is recorded in PROJECT_STATE.md (Last CI result checked) once it has finished.
+- CI (Debian 13 x64 and arm64, Ubuntu 26.04, sanitizers): run #25 on `b3ee0e7`: all ten jobs green (Debian 13 x64 and arm64, Ubuntu 26.04 with Qt 6.10, Windows x64, address/undefined and thread sanitizers, coverage, format and static analysis, secret scan, Python tools) after two follow-up fixes (2c7cf8e, b3ee0e7).
 
 ## Exit criteria
 - [x] Runs in CI (offscreen).
