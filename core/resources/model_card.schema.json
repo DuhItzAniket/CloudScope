@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DuhItzAniket/STRATIA/schemas/model_card.schema.json",
+  "title": "STRATIA model card (stratia-contract v1)",
+  "type": "object",
+  "required": [
+    "contract_version",
+    "model_name",
+    "model_version",
+    "created_utc",
+    "git_sha",
+    "input",
+    "genus_classes",
+    "etage_classes",
+    "sky_parse_classes",
+    "layer_classes",
+    "cbh_bin_edges_m",
+    "calibration",
+    "ood_threshold",
+    "training_data",
+    "licences"
+  ],
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$"
+    },
+    "model_name": {
+      "type": "string"
+    },
+    "model_version": {
+      "type": "string"
+    },
+    "created_utc": {
+      "type": "string",
+      "description": "ISO 8601 date-time (the 'format' keyword of STRATIA's copy is checked by the host as text only)"
+    },
+    "git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$"
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "height",
+        "width",
+        "patch_size",
+        "mean",
+        "std",
+        "resize"
+      ],
+      "properties": {
+        "height": {
+          "type": "integer",
+          "minimum": 64
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 64
+        },
+        "patch_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mean": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "std": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "resize": {
+          "type": "string"
+        }
+      }
+    },
+    "genus_classes": {
+      "const": [
+        "Ci",
+        "Cc",
+        "Cs",
+        "Ac",
+        "As",
+        "Ns",
+        "Sc",
+        "St",
+        "Cu",
+        "Cb",
+        "clear",
+        "contrail"
+      ]
+    },
+    "etage_classes": {
+      "const": [
+        "low",
+        "mid",
+        "high"
+      ]
+    },
+    "sky_parse_classes": {
+      "const": [
+        "invalid",
+        "sky",
+        "cloud",
+        "sun_glare"
+      ]
+    },
+    "layer_classes": {
+      "const": [
+        "low",
+        "mid",
+        "high"
+      ]
+    },
+    "cbh_bin_edges_m": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "minItems": 3
+    },
+    "calibration": {
+      "type": "object",
+      "required": [
+        "temperatures",
+        "folded_into_graph"
+      ],
+      "properties": {
+        "temperatures": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "folded_into_graph": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ood_threshold": {
+      "type": "number"
+    },
+    "training_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "dataset",
+          "manifest_sha256"
+        ],
+        "properties": {
+          "dataset": {
+            "type": "string"
+          },
+          "manifest_sha256": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "licences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "evaluation_report": {
+      "type": "string"
+    }
+  }
+}

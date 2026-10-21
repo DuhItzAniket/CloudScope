@@ -4,7 +4,14 @@
   "title": "CloudScope configuration (config.toml), format version 1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "logging", "camera", "simulation", "desktop"],
+  "required": [
+    "schema_version",
+    "logging",
+    "camera",
+    "simulation",
+    "ai",
+    "desktop"
+  ],
   "properties": {
     "schema_version": {
       "description": "Version of the file format. CloudScope migrates older files automatically.",
@@ -15,11 +22,25 @@
       "description": "What is logged and where.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["level", "console", "file", "directory", "max_file_mb", "max_files"],
+      "required": [
+        "level",
+        "console",
+        "file",
+        "directory",
+        "max_file_mb",
+        "max_files"
+      ],
       "properties": {
         "level": {
           "description": "Messages below this level are dropped.",
-          "enum": ["trace", "debug", "info", "warn", "error", "critical"]
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warn",
+            "error",
+            "critical"
+          ]
         },
         "console": {
           "description": "Write log lines to standard error.",
@@ -51,7 +72,9 @@
       "description": "Real cameras.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["uvc"],
+      "required": [
+        "uvc"
+      ],
       "properties": {
         "uvc": {
           "description": "Offer the computer's USB video cameras and built-in webcams (UVC) as devices.",
@@ -63,7 +86,12 @@
       "description": "Simulated devices for working and testing without hardware.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["enabled", "seed", "replay_folder", "replay_fps"],
+      "required": [
+        "enabled",
+        "seed",
+        "replay_folder",
+        "replay_fps"
+      ],
       "properties": {
         "enabled": {
           "description": "Offer simulated devices next to real ones. Their data is always labelled as simulated.",
@@ -87,6 +115,49 @@
         }
       }
     },
+    "ai": {
+      "description": "STRATIA inference (ADR-004).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "model_dir",
+        "provider",
+        "rate_hz",
+        "threads"
+      ],
+      "properties": {
+        "enabled": {
+          "description": "Offer the ONNX Runtime engines as devices and run the model on live frames.",
+          "type": "boolean"
+        },
+        "model_dir": {
+          "description": "Folder with model_card.json and one .onnx file. Empty: no model.",
+          "type": "string"
+        },
+        "provider": {
+          "description": "Execution provider: auto (CUDA, then DirectML, then CPU), cuda, directml or cpu.",
+          "enum": [
+            "auto",
+            "cuda",
+            "directml",
+            "cpu"
+          ]
+        },
+        "rate_hz": {
+          "description": "At most this many inferences per second; faster frames are dropped.",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 120
+        },
+        "threads": {
+          "description": "Threads of the CPU provider; 0 for the runtime's default.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      }
+    },
     "desktop": {
       "description": "The desktop application.",
       "type": "object",
@@ -106,11 +177,18 @@
       "properties": {
         "theme": {
           "description": "Dark theme, or the red night-vision theme.",
-          "enum": ["dark", "night"]
+          "enum": [
+            "dark",
+            "night"
+          ]
         },
         "renderer": {
           "description": "Live-view renderer: OpenGL when available (auto), OpenGL, or software.",
-          "enum": ["auto", "opengl", "raster"]
+          "enum": [
+            "auto",
+            "opengl",
+            "raster"
+          ]
         },
         "session_root": {
           "description": "Folder for sessions and the frame catalogue. Empty: the Pictures folder.",
@@ -122,11 +200,18 @@
         },
         "time_display": {
           "description": "How times are shown.",
-          "enum": ["utc", "local", "both"]
+          "enum": [
+            "utc",
+            "local",
+            "both"
+          ]
         },
         "temperature_unit": {
           "description": "Unit of temperature displays.",
-          "enum": ["celsius", "fahrenheit"]
+          "enum": [
+            "celsius",
+            "fahrenheit"
+          ]
         },
         "calibration_file": {
           "description": "Intrinsic calibration (cloudscope.camera_model/1) for the sky overlays. Empty: none.",
@@ -136,7 +221,12 @@
           "description": "Where the camera stands.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["id", "latitude_deg", "longitude_deg", "altitude_m"],
+          "required": [
+            "id",
+            "latitude_deg",
+            "longitude_deg",
+            "altitude_m"
+          ],
           "properties": {
             "id": {
               "description": "Site identifier used in file names and sidecars.",
@@ -169,7 +259,11 @@
           "description": "Where the camera looks, as declared by the operator (until a mount or IMU reports it).",
           "type": "object",
           "additionalProperties": false,
-          "required": ["azimuth_deg", "elevation_deg", "roll_deg"],
+          "required": [
+            "azimuth_deg",
+            "elevation_deg",
+            "roll_deg"
+          ],
           "properties": {
             "azimuth_deg": {
               "description": "From north through east.",

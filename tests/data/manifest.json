@@ -44,6 +44,51 @@
       "shows": "the live view's rendering of a synthetic sky (seed 7, no noise) with the reticle and the grid, no text: the screenshot reference of the desktop application",
       "source": "rendered by tests/ui/test_main_window.cpp (CLOUDSCOPE_UPDATE_REFERENCES=1) with Qt 6.9.3 on Windows",
       "licence": "Apache-2.0"
+    },
+    {
+      "file": "stratia/stratia_dummy.onnx",
+      "bytes": 150024,
+      "sha256": "93cd72bbe3619c47330fc7a74998e56995e5b9a6c662f6419e1b4b4723ae7b9a",
+      "format": "ONNX",
+      "shows": "STRATIA's untrained dummy model: the stratia-contract v1 interface (3 inputs, 7 outputs, 512 x 512) on a 16-wide fake backbone; deterministic, no training data",
+      "source": "STRATIA repository, scripts/export_onnx.py --dummy (P096, dummy card with folded temperatures, P096)",
+      "licence": "Apache-2.0"
+    },
+    {
+      "file": "stratia/model_card.json",
+      "bytes": 3007,
+      "sha256": "fc046c9ab8d1056713a1d9f681ee2252635b78b4a4642607bc5935443f76d866",
+      "format": "JSON",
+      "shows": "the model card of the dummy model (stratia-contract v1.0, validated against schemas/model_card.schema.json)",
+      "source": "STRATIA repository, scripts/export_onnx.py --dummy (P096, dummy card with folded temperatures, P096)",
+      "licence": "Apache-2.0"
+    },
+    {
+      "file": "stratia/reference.json",
+      "bytes": 6188,
+      "sha256": "e91a11436f56263107ba1916dfdfa080bfcf102aaa9dba858e94b08bfb0c406f",
+      "format": "JSON",
+      "shows": "reference outputs of the dummy model on ONNX Runtime CPU for closed-form inputs (STRATIA scripts/make_contract_reference.py); the P066 engine must match them to 1e-4",
+      "source": "STRATIA repository, scripts/make_contract_reference.py (P096)",
+      "licence": "Apache-2.0"
+    },
+    {
+      "file": "stratia/ray_map_reference.json",
+      "bytes": 64674,
+      "sha256": "da83d4c550f1562c7265685c33a5dfc7998ba831f6a9ed48d8f8a4d46db55c2a",
+      "format": "JSON",
+      "shows": "contract ray maps of the nominal B0268 camera for two poses in CloudScope's convention, from STRATIA's reference implementation (P067 cross-repository vectors, tolerance 1e-5)",
+      "source": "STRATIA repository, scripts/make_ray_map_reference.py (P096)",
+      "licence": "Apache-2.0"
+    },
+    {
+      "file": "stratia/b0268_nominal.camera.json",
+      "bytes": 724,
+      "sha256": "cd251fd06e08c466f3dd64a3314f543bae5479559a4807d171fda19f6471a903",
+      "format": "JSON",
+      "shows": "the nominal (datasheet, uncalibrated) camera model of the Arducam B0268: equidistant fisheye, 105 degree horizontal field of view, schema cloudscope.camera_model/1",
+      "source": "STRATIA repository, configs/cameras/b0268_nominal.camera.json (P043)",
+      "licence": "Apache-2.0"
     }
   ]
 }

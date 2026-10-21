@@ -48,11 +48,12 @@ class Component:
 class Policy:
     allowed: frozenset[str]
     allowed_dynamic: frozenset[str]
+    allowed_redistributable: frozenset[str]
     allowed_system: frozenset[str]
 
     def allowed_for(self, linking: str) -> frozenset[str]:
         if linking == "dynamic":
-            return self.allowed | self.allowed_dynamic
+            return self.allowed | self.allowed_dynamic | self.allowed_redistributable
         if linking == "system":
             return self.allowed | self.allowed_system
         return self.allowed
@@ -65,6 +66,7 @@ def load_table(path: Path) -> tuple[Policy, list[Component]]:
     policy = Policy(
         allowed=frozenset(policy_data.get("allowed", [])),
         allowed_dynamic=frozenset(policy_data.get("allowed_dynamic", [])),
+        allowed_redistributable=frozenset(policy_data.get("allowed_redistributable", [])),
         allowed_system=frozenset(policy_data.get("allowed_system", [])),
     )
     if not policy.allowed:

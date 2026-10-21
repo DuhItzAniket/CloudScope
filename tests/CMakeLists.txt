@@ -67,6 +67,8 @@ cloudscope_add_tests(cloudscope_unit_tests
   PREFIX "unit."
   SOURCES
     unit/test_acquisition.cpp
+    unit/test_ai_benchmark_store.cpp
+    unit/test_ai_results.cpp
     unit/test_build_info.cpp
     unit/test_clock.cpp
     unit/test_config.cpp
@@ -75,11 +77,14 @@ cloudscope_add_tests(cloudscope_unit_tests
     unit/test_exposure_calibration.cpp
     unit/test_executor.cpp
     unit/test_frame.cpp
+    unit/test_geometry_inputs.cpp
     unit/test_hal_mocks.cpp
     unit/test_hal_registry.cpp
     unit/test_intrinsics.cpp
     unit/test_json_schema.cpp
     unit/test_log.cpp
+    unit/test_model_card.cpp
+    unit/test_onnx_engine.cpp
     unit/test_motion_profile.cpp
     unit/test_recording.cpp
     unit/test_rotation.cpp
@@ -123,6 +128,9 @@ cloudscope_add_tests(cloudscope_ui_tests
   TIMEOUT 120
   SOURCES
     ui/desktop_fixture.hpp
+    ui/test_ai.cpp
+    ui/test_ai_models.cpp
+    ui/test_ai_timeline.cpp
     ui/test_camera_panel.cpp
     ui/test_capture_panel.cpp
     ui/test_console_status.cpp

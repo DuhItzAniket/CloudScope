@@ -6,6 +6,7 @@
 // Lives on the UI thread. Pictures arrive as PreviewFrame objects from the preview pipeline.
 #pragma once
 
+#include "ai_overlay.hpp"
 #include "overlay.hpp"
 #include "preview_pipeline.hpp"
 #include "viewport.hpp"
@@ -51,7 +52,11 @@ struct LiveViewScene {
     QColor sun_colour{255, 80, 0};
     QColor text_colour{230, 230, 230};
     QColor background{0, 0, 0};
-    std::optional<QRect> roi;  // region of interest in image pixels (P038)
+    std::optional<QRect> roi;                          // region of interest in image pixels (P038)
+    std::shared_ptr<const ai::Prediction> prediction;  // the latest STRATIA result for this frame (P068)
+    QImage ai_image;                                   // its mask picture, or null
+    AiOverlaySettings ai_overlay;
+    QColor warning_colour{255, 140, 40};
 };
 
 // Paints a scene into a painter of the given widget size: the picture through the viewport, then the overlays,
@@ -77,6 +82,9 @@ public:
     void set_show_indicators(bool show);
     void set_colours(QColor overlay, QColor sun, QColor text);
     void set_roi(std::optional<QRect> roi);
+    void set_prediction(std::shared_ptr<const ai::Prediction> prediction);  // null clears the AI overlay
+    void set_ai_overlay_settings(const AiOverlaySettings& settings);
+    void set_warning_colour(QColor colour);
     [[nodiscard]] std::optional<QRect> roi() const { return scene_.roi; }
 
     // The image pixel under the cursor, if the cursor is over the picture.

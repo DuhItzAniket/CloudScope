@@ -110,3 +110,70 @@ message(STATUS "CloudScope dependencies: Qt ${Qt6_VERSION}, OpenCV ${OpenCV_VERS
                "fmt ${fmt_VERSION}, toml++ ${tomlplusplus_VERSION}, nlohmann-json ${nlohmann_json_VERSION}, "
                "libjpeg-turbo ${libjpeg-turbo_VERSION}, tl-expected ${tl-expected_VERSION}, SDL2 ${SDL2_VERSION}, "
                "Qt Advanced Docking System ${ADS_VERSION}")
+
+# ONNX Runtime (ADR-004), fetched at configure time as the prebuilt release archives (verified by SHA-256):
+#   Windows  the NuGet package Microsoft.ML.OnnxRuntime.DirectML (CPU and DirectML providers in one onnxruntime.dll)
+#            and its dependency Microsoft.AI.DirectML (DirectML.dll, the Microsoft DirectML licence terms);
+#   Linux    onnxruntime-linux-<arch> (CPU provider). The CUDA provider is a runtime add-on (ADR-004): a build
+#            whose onnxruntime reports it gets an "onnx:inference:cuda" device, nothing else changes.
+# To build offline, point FETCHCONTENT_SOURCE_DIR_ONNXRUNTIME (and _DIRECTML on Windows) at unpacked copies.
+option(CLOUDSCOPE_ONNXRUNTIME "STRATIA inference with ONNX Runtime" ON)
+if(CLOUDSCOPE_ONNXRUNTIME AND NOT TARGET CloudScope::onnxruntime)
+  include(FetchContent)
+  set(CLOUDSCOPE_ONNXRUNTIME_VERSION "1.24.4")
+  set(CLOUDSCOPE_DIRECTML_VERSION "1.15.4")
+  if(WIN32)
+    FetchContent_Declare(onnxruntime
+      URL      "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/${CLOUDSCOPE_ONNXRUNTIME_VERSION}"
+      URL_HASH SHA256=57e9f11b73437bef7a309496135d4c1f96b1a8e9ddba60013fa27bfc1d788681
+      DOWNLOAD_NAME "Microsoft.ML.OnnxRuntime.DirectML.${CLOUDSCOPE_ONNXRUNTIME_VERSION}.zip"
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_Declare(directml
+      URL      "https://www.nuget.org/api/v2/package/Microsoft.AI.DirectML/${CLOUDSCOPE_DIRECTML_VERSION}"
+      URL_HASH SHA256=4e7cb7ddce8cf837a7a75dc029209b520ca0101470fcdf275c1f49736a3615b9
+      DOWNLOAD_NAME "Microsoft.AI.DirectML.${CLOUDSCOPE_DIRECTML_VERSION}.zip"
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_MakeAvailable(onnxruntime directml)
+    set(_ort_include "${onnxruntime_SOURCE_DIR}/build/native/include")
+    set(_ort_native "${onnxruntime_SOURCE_DIR}/runtimes/win-x64/native")
+    add_library(cloudscope_dep_onnxruntime_lib SHARED IMPORTED GLOBAL)
+    set_target_properties(cloudscope_dep_onnxruntime_lib PROPERTIES
+      IMPORTED_LOCATION "${_ort_native}/onnxruntime.dll"
+      IMPORTED_IMPLIB "${_ort_native}/onnxruntime.lib"
+      INTERFACE_INCLUDE_DIRECTORIES "${_ort_include}"
+      INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_ort_include}")
+    # Loaded by onnxruntime.dll at run time, not linked: copied next to the executables with the other DLLs.
+    set_property(GLOBAL APPEND PROPERTY CLOUDSCOPE_EXTRA_RUNTIME_FILES
+      "${_ort_native}/onnxruntime_providers_shared.dll"
+      "${directml_SOURCE_DIR}/bin/x64-win/DirectML.dll")
+    set(_ort_definitions CLOUDSCOPE_HAS_ONNXRUNTIME=1 CLOUDSCOPE_HAS_DIRECTML=1)
+  else()
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+      set(_ort_arch "aarch64")
+      set(_ort_hash "866109a9248d057671a039b9d725be4bd86888e3754140e6701ec621be9d4d7e")
+    else()
+      set(_ort_arch "x64")
+      set(_ort_hash "3a211fbea252c1e66290658f1b735b772056149f28321e71c308942cdb54b747")
+    endif()
+    FetchContent_Declare(onnxruntime
+      URL      "https://github.com/microsoft/onnxruntime/releases/download/v${CLOUDSCOPE_ONNXRUNTIME_VERSION}/onnxruntime-linux-${_ort_arch}-${CLOUDSCOPE_ONNXRUNTIME_VERSION}.tgz"
+      URL_HASH SHA256=${_ort_hash}
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_MakeAvailable(onnxruntime)
+    add_library(cloudscope_dep_onnxruntime_lib SHARED IMPORTED GLOBAL)
+    set_target_properties(cloudscope_dep_onnxruntime_lib PROPERTIES
+      IMPORTED_LOCATION "${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.so.${CLOUDSCOPE_ONNXRUNTIME_VERSION}"
+      IMPORTED_SONAME "libonnxruntime.so.1"
+      INTERFACE_INCLUDE_DIRECTORIES "${onnxruntime_SOURCE_DIR}/include"
+      INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${onnxruntime_SOURCE_DIR}/include")
+    set(_ort_definitions CLOUDSCOPE_HAS_ONNXRUNTIME=1 CLOUDSCOPE_HAS_DIRECTML=0)
+  endif()
+  add_library(cloudscope_dep_onnxruntime INTERFACE)
+  add_library(CloudScope::onnxruntime ALIAS cloudscope_dep_onnxruntime)
+  target_link_libraries(cloudscope_dep_onnxruntime INTERFACE cloudscope_dep_onnxruntime_lib)
+  target_compile_definitions(cloudscope_dep_onnxruntime INTERFACE ${_ort_definitions})
+elseif(NOT TARGET CloudScope::onnxruntime)
+  add_library(cloudscope_dep_onnxruntime INTERFACE)
+  add_library(CloudScope::onnxruntime ALIAS cloudscope_dep_onnxruntime)
+  target_compile_definitions(cloudscope_dep_onnxruntime INTERFACE CLOUDSCOPE_HAS_ONNXRUNTIME=0 CLOUDSCOPE_HAS_DIRECTML=0)
+endif()

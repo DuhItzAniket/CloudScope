@@ -24,6 +24,7 @@ using namespace std::chrono_literals;
 TEST_CASE("fixtures match the manifest", "[support][fixtures]")
 {
     constexpr std::uintmax_t kMaxFileBytes = std::uintmax_t{100} * 1024;
+    constexpr std::uintmax_t kMaxModelBytes = std::uintmax_t{200} * 1024;  // rule 3: a model file
     constexpr std::uintmax_t kMaxTotalBytes = std::uintmax_t{1024} * 1024;
 
     const nlohmann::json manifest = nlohmann::json::parse(read_file(data_path("manifest.json")));
@@ -35,8 +36,10 @@ TEST_CASE("fixtures match the manifest", "[support][fixtures]")
         listed.insert(name);
         const std::string content = read_file(data_path(name));
 
+        const std::string format = entry.at("format");
+        const bool picture = format == "JPEG" || format == "PNG";
         CHECK(content.size() == entry.at("bytes").get<std::size_t>());
-        CHECK(content.size() <= kMaxFileBytes);
+        CHECK(content.size() <= (format == "ONNX" ? kMaxModelBytes : kMaxFileBytes));
         total += content.size();
         const QByteArray digest =
             QCryptographicHash::hash(QByteArray::fromRawData(content.data(), static_cast<qsizetype>(content.size())),
@@ -46,6 +49,9 @@ TEST_CASE("fixtures match the manifest", "[support][fixtures]")
         // Rule 1 of tests/data/README.md: public domain, or made by this project (Apache-2.0).
         CHECK((entry.at("licence") == "CC0-1.0" || entry.at("licence") == "Apache-2.0"));
 
+        if (!picture) {
+            continue;  // a model or a document: the hash is its whole identity
+        }
         // The image decodes to what the manifest says.
         const std::vector<unsigned char> bytes(content.begin(), content.end());
         const cv::Mat image = cv::imdecode(bytes, cv::IMREAD_UNCHANGED);
@@ -55,7 +61,7 @@ TEST_CASE("fixtures match the manifest", "[support][fixtures]")
         CHECK(image.type() == CV_8UC3);
     }
     CHECK(total <= kMaxTotalBytes);
-    CHECK(listed.size() == 4);
+    CHECK(listed.size() == 9);
 
     // Nothing unlisted lies in the fixture folder.
     for (const auto& entry : std::filesystem::recursive_directory_iterator(data_dir())) {

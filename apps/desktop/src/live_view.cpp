@@ -128,6 +128,7 @@ void paint_live_view(QPainter& painter, const LiveViewScene& scene)
         painter.setTransform(scene.viewport.transform());
         painter.drawImage(QPointF(0.0, 0.0), frame->image);
         painter.restore();
+        paint_ai_overlay(painter, scene.viewport, scene.ai_image, frame->image.size());
     } else {
         painter.setPen(scene.text_colour);
         painter.drawText(whole, Qt::AlignCenter, scene.message);
@@ -138,6 +139,9 @@ void paint_live_view(QPainter& painter, const LiveViewScene& scene)
                                          .colour = scene.overlay_colour,
                                          .sun_colour = scene.sun_colour};
         paint_overlays(painter, scene.viewport, scene.overlays, overlay_scene);
+    }
+    if (frame != nullptr && scene.prediction && scene.ai_overlay.badge) {
+        paint_ai_badge(painter, whole, *scene.prediction, scene.text_colour, scene.warning_colour);
     }
     if (scene.roi.has_value() && frame != nullptr) {
         painter.save();
@@ -212,6 +216,26 @@ void LiveView::set_message(const QString& message)
 void LiveView::set_overlay_settings(const OverlaySettings& settings)
 {
     scene_.overlays = settings;
+    repaint_canvas();
+}
+
+void LiveView::set_prediction(std::shared_ptr<const ai::Prediction> prediction)
+{
+    scene_.prediction = std::move(prediction);
+    scene_.ai_image = scene_.prediction ? ai_overlay_image(*scene_.prediction, scene_.ai_overlay) : QImage();
+    repaint_canvas();
+}
+
+void LiveView::set_ai_overlay_settings(const AiOverlaySettings& settings)
+{
+    scene_.ai_overlay = settings;
+    scene_.ai_image = scene_.prediction ? ai_overlay_image(*scene_.prediction, scene_.ai_overlay) : QImage();
+    repaint_canvas();
+}
+
+void LiveView::set_warning_colour(QColor colour)
+{
+    scene_.warning_colour = colour;
     repaint_canvas();
 }
 

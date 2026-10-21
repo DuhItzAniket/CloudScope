@@ -6,6 +6,10 @@
 // Lives on the UI thread.
 #pragma once
 
+#include "ai_controller.hpp"
+#include "ai_models_dialog.hpp"
+#include "ai_panel.hpp"
+#include "ai_timeline_panel.hpp"
 #include "app_context.hpp"
 #include "camera_panel.hpp"
 #include "camera_service.hpp"
@@ -23,6 +27,8 @@
 
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
+#include <cloudscope/session/catalogue.hpp>
+
 #include <QtWidgets/QMainWindow>
 
 #include <filesystem>
@@ -62,6 +68,10 @@ public:
     // The parts, for the tests and for main().
     [[nodiscard]] CameraService& camera_service() const { return *camera_; }
     [[nodiscard]] PreviewPipeline& preview() const { return *preview_; }
+    [[nodiscard]] AiController& ai() const { return *ai_; }
+    [[nodiscard]] AiPanel& ai_panel() const { return *ai_panel_; }
+    [[nodiscard]] AiTimelinePanel& ai_timeline() const { return *ai_timeline_; }
+    [[nodiscard]] AiModelsDialog& models_dialog();  // created on first use
     [[nodiscard]] LiveView& live_view() const { return *live_view_; }
     [[nodiscard]] CameraPanel& camera_panel() const { return *camera_panel_; }
     [[nodiscard]] HistogramPanel& histogram_panel() const { return *histogram_panel_; }
@@ -109,6 +119,10 @@ private:
     void apply_theme_to_parts();
     void update_camera_status();
     void update_overlay_sources();
+    void ensure_projection(bool notify);
+    void update_ai_status();
+    void log_prediction(const ai::Prediction& prediction);
+    void show_models_dialog(bool benchmark);
     void show_notifications();
     void show_preferences();
     void on_frame_ready();
@@ -122,12 +136,18 @@ private:
     NotificationCenter* notifications_ = nullptr;
     CameraService* camera_ = nullptr;
     PreviewPipeline* preview_ = nullptr;
+    AiController* ai_ = nullptr;
     ads::CDockManager* dock_manager_ = nullptr;
     std::map<QString, ads::CDockWidget*> docks_;
     LiveView* live_view_ = nullptr;
     CameraPanel* camera_panel_ = nullptr;
     HistogramPanel* histogram_panel_ = nullptr;
     ImageToolsPanel* image_tools_panel_ = nullptr;
+    AiPanel* ai_panel_ = nullptr;
+    AiTimelinePanel* ai_timeline_ = nullptr;
+    AiModelsDialog* models_dialog_ = nullptr;
+    std::unique_ptr<Catalogue> ai_catalogue_;  // opened on the first result; results go in per frame (P069)
+    bool ai_catalogue_failed_ = false;
     CapturePanel* capture_panel_ = nullptr;
     SessionBrowser* session_browser_ = nullptr;
     ConsolePanel* console_panel_ = nullptr;

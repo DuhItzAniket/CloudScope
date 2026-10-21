@@ -1,5 +1,9 @@
 #include "main_window.hpp"
 
+#include <cloudscope/ai/result_log.hpp>
+
+#include <nlohmann/json.hpp>
+
 #include "preferences_dialog.hpp"
 
 #include <cloudscope/capture/solar.hpp>
@@ -69,6 +73,7 @@ MainWindow::MainWindow(AppContext& context, MainWindowOptions options, QWidget* 
       notifications_(new NotificationCenter(this)),
       camera_(new CameraService(context.registry(), context.clock(), this)),
       preview_(new PreviewPipeline(this)),
+      ai_(new AiController(context, this)),
       dock_manager_(make_dock_manager(this)),
       status_bar_(new StatusBar(this)),
       sun_timer_(new QTimer(this))
@@ -86,7 +91,13 @@ MainWindow::MainWindow(AppContext& context, MainWindowOptions options, QWidget* 
     connect_parts();
     apply_theme_to_parts();
     update_overlay_sources();
+    ensure_projection(false);
     refresh_sun();
+    if (auto loaded = ai_->load_configured(); !loaded) {
+        notifications_->notify(LogLevel::Warn,
+                               tr("STRATIA model not loaded: %1").arg(QString::fromStdString(loaded.error().message)));
+    }
+    update_ai_status();
 
     sun_timer_->setInterval(kSunIntervalMs);
     connect(sun_timer_, &QTimer::timeout, this, &MainWindow::refresh_sun);
@@ -145,6 +156,7 @@ MainWindow::MainWindow(AppContext& context, MainWindowOptions options, QWidget* 
 
 MainWindow::~MainWindow()
 {
+    ai_->set_running(false);
     preview_->stop();
 }
 
@@ -183,6 +195,10 @@ void MainWindow::build_docks()
     ads::CDockWidget* tools_dock = make_dock(QStringLiteral("image_tools"), tr("Image tools"), image_tools_panel_);
     dock_manager_->addDockWidgetTabToArea(tools_dock, right);
 
+    ai_panel_ = new AiPanel(this);
+    ads::CDockWidget* ai_dock = make_dock(QStringLiteral("ai"), tr("STRATIA"), ai_panel_);
+    dock_manager_->addDockWidgetTabToArea(ai_dock, right);
+
     const DesktopSettings& settings = context_.settings();
     const CaptureDefaults defaults{.folder = settings.session_root / "captures",
                                    .session_root = settings.session_root,
@@ -202,6 +218,11 @@ void MainWindow::build_docks()
     console_panel_ = new ConsolePanel(this);
     ads::CDockWidget* console_dock = make_dock(QStringLiteral("console"), tr("Console"), console_panel_);
     dock_manager_->addDockWidgetTabToArea(console_dock, bottom);
+
+    ai_timeline_ = new AiTimelinePanel(this);
+    ads::CDockWidget* timeline_dock = make_dock(QStringLiteral("ai_timeline"), tr("STRATIA timelines"), ai_timeline_);
+    dock_manager_->addDockWidgetTabToArea(timeline_dock, bottom);
+    sessions_dock->setAsCurrentTab();
     camera_dock->setAsCurrentTab();
     histogram_dock->setAsCurrentTab();
     sessions_dock->setAsCurrentTab();
@@ -298,6 +319,22 @@ void MainWindow::build_actions()
          .text = tr("&Take one picture"),
          .shortcut = QKeySequence(Qt::Key_T),
          .status_tip = tr("One picture with the current settings")},
+        {.id = QStringLiteral("ai.load"),
+         .text = tr("&Load model…"),
+         .shortcut = QKeySequence(),
+         .status_tip = tr("Choose a STRATIA model package: a folder with model_card.json and one .onnx file")},
+        {.id = QStringLiteral("ai.models"),
+         .text = tr("&Models…"),
+         .shortcut = QKeySequence(),
+         .status_tip = tr("Install, activate, roll back and benchmark STRATIA models")},
+        {.id = QStringLiteral("ai.run"),
+         .text = tr("&Run on live frames"),
+         .shortcut = QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_A),
+         .status_tip = tr("Send the newest frame to the STRATIA model at the configured rate")},
+        {.id = QStringLiteral("ai.masks"),
+         .text = tr("AI &masks on the live view"),
+         .shortcut = QKeySequence(Qt::Key_M),
+         .status_tip = tr("Show the model's sky, cloud and glare masks over the picture")},
         {.id = QStringLiteral("help.about"),
          .text = tr("&About"),
          .shortcut = QKeySequence(),
@@ -352,6 +389,12 @@ void MainWindow::build_menus()
                            "overlay.keep_out"}) {
         overlays->addAction(shortcuts_->action(QString::fromLatin1(id)));
     }
+
+    QMenu* ai = menuBar()->addMenu(tr("&AI"));
+    ai->addAction(shortcuts_->action(QStringLiteral("ai.load")));
+    ai->addAction(shortcuts_->action(QStringLiteral("ai.models")));
+    ai->addAction(shortcuts_->action(QStringLiteral("ai.run")));
+    ai->addAction(shortcuts_->action(QStringLiteral("ai.masks")));
 
     QMenu* camera = menuBar()->addMenu(tr("&Camera"));
     camera->addAction(shortcuts_->action(QStringLiteral("camera.open")));
@@ -430,6 +473,81 @@ void MainWindow::connect_parts()
         capture_panel_->set_plan_controls(CaptureKind::Single, 1, 5000, ImageFileFormat::Png);
         capture_panel_->start();
     });
+    // STRATIA
+    act("ai.run")->setCheckable(true);
+    act("ai.run")->setChecked(true);
+    act("ai.masks")->setCheckable(true);
+    act("ai.masks")->setChecked(ai_panel_->overlay_settings().masks);
+    live_view_->set_ai_overlay_settings(ai_panel_->overlay_settings());
+    connect(act("ai.load"), &QAction::triggered, ai_panel_->load_button(), &QPushButton::click);
+    connect(act("ai.run"), &QAction::toggled, ai_panel_, &AiPanel::set_running);
+    connect(act("ai.masks"), &QAction::toggled, this, [this](bool on) {
+        AiOverlaySettings settings = ai_panel_->overlay_settings();
+        if (settings.masks != on) {
+            settings.masks = on;
+            ai_panel_->set_overlay_settings(settings);
+            live_view_->set_ai_overlay_settings(settings);
+        }
+    });
+    connect(ai_panel_, &AiPanel::runningChanged, this, [this](bool on) {
+        ai_->set_running(on);
+        shortcuts_->action(QStringLiteral("ai.run"))->setChecked(on);
+        if (!on) {
+            live_view_->set_prediction(nullptr);
+        }
+        update_ai_status();
+    });
+    connect(ai_panel_, &AiPanel::overlaySettingsChanged, this, [this](const AiOverlaySettings& settings) {
+        live_view_->set_ai_overlay_settings(settings);
+        shortcuts_->action(QStringLiteral("ai.masks"))->setChecked(settings.masks);
+    });
+    connect(ai_panel_, &AiPanel::loadRequested, this, [this](const QString& folder) {
+        const auto loaded = ai_->load(std::filesystem::path(folder.toStdU16String()));
+        if (!loaded) {
+            notifications_->notify(LogLevel::Error,
+                                   tr("Model not loaded: %1").arg(QString::fromStdString(loaded.error().message)));
+        } else {
+            const ai::ServiceStatus status = ai_->status();
+            notifications_->notify(LogLevel::Info, tr("Model %1 %2 loaded on %3")
+                                                       .arg(QString::fromStdString(status.model_name),
+                                                            QString::fromStdString(status.model_version),
+                                                            QString::fromStdString(status.provider)));
+        }
+    });
+    connect(ai_panel_, &AiPanel::unloadRequested, this, [this] {
+        ai_->unload();
+        live_view_->set_prediction(nullptr);
+        ai_panel_->clear_prediction();
+    });
+    connect(ai_, &AiController::predictionReady, this, [this](const std::shared_ptr<const ai::Prediction>& prediction) {
+        ai_panel_->show_prediction(prediction);
+        live_view_->set_prediction(prediction);
+        ai_timeline_->add_prediction(*prediction);
+        log_prediction(*prediction);
+        update_ai_status();
+    });
+    connect(act("ai.models"), &QAction::triggered, this, [this] { show_models_dialog(false); });
+    connect(ai_panel_, &AiPanel::benchmarkRequested, this, [this] { show_models_dialog(true); });
+    connect(ai_, &AiController::statusChanged, this, &MainWindow::update_ai_status);
+    connect(ai_timeline_, &AiTimelinePanel::replayRequested, this, [this](const QString& session_id) {
+        Catalogue* catalogue = session_browser_->model()->catalogue();
+        if (catalogue == nullptr) {
+            notifications_->notify(LogLevel::Warn, tr("No catalogue to replay from"));
+            return;
+        }
+        AiResultQuery query;
+        if (!session_id.isEmpty()) {
+            query.session_id = session_id.toStdString();
+        }
+        const auto loaded = ai_timeline_->replay(*catalogue, query);
+        if (!loaded) {
+            notifications_->notify(LogLevel::Warn,
+                                   tr("Replay failed: %1").arg(QString::fromStdString(loaded.error().message)));
+        } else {
+            notifications_->notify(LogLevel::Info, tr("%1 AI results replayed").arg(*loaded));
+        }
+    });
+    ai_timeline_->set_sessions(session_browser_->model()->sessions());
     connect(act("help.about"), &QAction::triggered, this, [this] {
         const BuildInfo& info = build_info();
         QMessageBox::about(this, tr("About CloudScope Desktop"),
@@ -492,6 +610,7 @@ void MainWindow::connect_parts()
         if (auto reopened = session_browser_->reopen(); !reopened) {
             log().warn("catalogue not reopened: {}", reopened.error().to_string());
         }
+        ai_timeline_->set_sessions(session_browser_->model()->sessions());
         status_bar_->refresh_disk();
     });
     connect(session_browser_, &SessionBrowser::notice, this,
@@ -534,6 +653,7 @@ void MainWindow::on_frame_ready()
     live_view_->set_frame(frame);
     histogram_panel_->show_frame(frame);
     image_tools_panel_->show_frame(frame);
+    ai_->on_frame(frame);
 }
 
 void MainWindow::update_camera_status()
@@ -568,28 +688,64 @@ void MainWindow::update_camera_status()
 
 void MainWindow::update_overlay_sources()
 {
-    const DesktopSettings& settings = context_.settings();
     const bool sky_wanted = overlays_.altitude_circles || overlays_.compass || overlays_.sun || overlays_.keep_out;
-    if (!sky_wanted) {
-        return;
+    if (sky_wanted) {
+        ensure_projection(true);
     }
+}
+
+void MainWindow::ensure_projection(bool notify)
+{
     if (projection_) {
         return;
     }
+    const DesktopSettings& settings = context_.settings();
     if (settings.calibration_file.empty()) {
         projection_note_ = tr("Sky overlays need an intrinsic calibration file (Preferences > Paths)");
-        notifications_->notify(LogLevel::Info, projection_note_);
+        if (notify) {
+            notifications_->notify(LogLevel::Info, projection_note_);
+        }
         return;
     }
     auto model = load_camera_model(settings.calibration_file);
     if (!model) {
         projection_note_ = tr("Calibration file not usable: %1").arg(QString::fromStdString(model.error().message));
-        notifications_->notify(LogLevel::Warn, projection_note_);
+        if (notify) {
+            notifications_->notify(LogLevel::Warn, projection_note_);
+        }
         return;
     }
     projection_ = std::make_shared<const SkyProjection>(*model, settings.pointing);
     live_view_->set_projection(projection_);
+    ai_->set_projection(projection_);
     projection_note_.clear();
+}
+
+void MainWindow::update_ai_status()
+{
+    const ai::ServiceStatus status = ai_->status();
+    ai_panel_->set_status(status, ai_->stats());
+    if (!status.loaded) {
+        status_bar_->set_ai(tr("AI: not available (no model)"), SegmentState::Absent);
+        return;
+    }
+    const QString model = QStringLiteral("%1 %2").arg(QString::fromStdString(status.model_name),
+                                                      QString::fromStdString(status.model_version));
+    if (!ai_->running()) {
+        status_bar_->set_ai(tr("AI: paused (%1)").arg(model), SegmentState::Idle);
+        return;
+    }
+    const std::shared_ptr<const ai::Prediction> latest = ai_->service().latest();
+    if (!latest) {
+        status_bar_->set_ai(tr("AI: %1 on %2, waiting for frames").arg(model, QString::fromStdString(status.provider)),
+                            SegmentState::Idle);
+        return;
+    }
+    status_bar_->set_ai(tr("AI: %1 on %2, %3 ms%4")
+                            .arg(model, QString::fromStdString(status.provider))
+                            .arg(latest->run_ms, 0, 'f', 0)
+                            .arg(latest->uncertain ? tr(", uncertain") : QString()),
+                        latest->uncertain ? SegmentState::Warning : SegmentState::Active);
 }
 
 void MainWindow::refresh_sun()
@@ -597,6 +753,7 @@ void MainWindow::refresh_sun()
     const SiteInfo& site = context_.settings().site;
     const SunPosition sun = sun_position(context_.clock().now_utc(), site.latitude_deg, site.longitude_deg);
     live_view_->set_sun(sun);
+    ai_->set_sun(sun);
 }
 
 void MainWindow::apply_theme_to_parts()
@@ -609,6 +766,9 @@ void MainWindow::apply_theme_to_parts()
     live_view_->set_colours(overlay, theme_ == Theme::Night ? QColor(255, 100, 60) : QColor(255, 80, 0), text);
     histogram_panel_->set_colours(text, warning_colour(theme_));
     image_tools_panel_->set_colours(text, overlay);
+    ai_panel_->set_colours(text, warning_colour(theme_));
+    ai_timeline_->set_colours(text, warning_colour(theme_), overlay);
+    live_view_->set_warning_colour(warning_colour(theme_));
     status_bar_->set_colours(text, warning_colour(theme_), QColor(255, 90, 90));
     PreviewOptions options = preview_->options();
     options.night_vision = theme_ == Theme::Night;
@@ -775,6 +935,73 @@ QString MainWindow::preview_report() const
                       .arg(frame->process_ms, 0, 'f', 1);
     }
     return report;
+}
+
+void MainWindow::log_prediction(const ai::Prediction& prediction)
+{
+    if (!ai_catalogue_ && !ai_catalogue_failed_) {
+        const std::filesystem::path root = context_.settings().session_root;
+        std::error_code error;
+        std::filesystem::create_directories(root, error);
+        auto opened = Catalogue::open(root / "catalogue.sqlite");
+        if (!opened) {
+            ai_catalogue_failed_ = true;
+            notifications_->notify(
+                LogLevel::Warn,
+                tr("AI results are not logged: %1").arg(QString::fromStdString(opened.error().message)));
+            return;
+        }
+        ai_catalogue_ = std::move(*opened);
+    }
+    if (!ai_catalogue_) {
+        return;
+    }
+    if (auto added =
+            ai::log_prediction(*ai_catalogue_, prediction, capture_panel_->session_id().value_or(std::string()));
+        !added) {
+        log().warn("AI result not logged: {}", added.error().to_string());
+    }
+}
+
+AiModelsDialog& MainWindow::models_dialog()
+{
+    if (models_dialog_ == nullptr) {
+        models_dialog_ = new AiModelsDialog(context_.settings().session_root / "models", context_.registry(), this);
+        connect(models_dialog_, &AiModelsDialog::notice, this,
+                [this](const QString& text) { notifications_->notify(LogLevel::Info, text); });
+        connect(models_dialog_, &AiModelsDialog::activeModelChanged, this, [this](const QString& folder) {
+            const std::filesystem::path package(folder.toStdU16String());
+            if (auto loaded = ai_->load(package); !loaded) {
+                notifications_->notify(LogLevel::Error,
+                                       tr("Model not loaded: %1").arg(QString::fromStdString(loaded.error().message)));
+                return;
+            }
+            const std::u8string utf8 = package.u8string();
+            const nlohmann::json patch{{"ai", {{"model_dir", std::string(utf8.begin(), utf8.end())}}}};
+            if (auto saved = context_.update_user_config(patch); !saved) {
+                notifications_->notify(
+                    LogLevel::Warn,
+                    tr("Active model not remembered: %1").arg(QString::fromStdString(saved.error().message)));
+            }
+            const ai::ServiceStatus status = ai_->status();
+            notifications_->notify(LogLevel::Info, tr("Model %1 %2 active on %3")
+                                                       .arg(QString::fromStdString(status.model_name),
+                                                            QString::fromStdString(status.model_version),
+                                                            QString::fromStdString(status.provider)));
+        });
+    }
+    return *models_dialog_;
+}
+
+void MainWindow::show_models_dialog(bool benchmark)
+{
+    AiModelsDialog& dialog = models_dialog();
+    dialog.refresh();
+    dialog.show();
+    dialog.raise();
+    if (benchmark) {
+        dialog.run_benchmark();
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)

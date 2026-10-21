@@ -2,6 +2,16 @@
 # Docking System. Everything except main() is in a static library so that the user-interface tests link it.
 
 add_library(cloudscope_desktop_lib STATIC
+  src/ai_controller.cpp
+  src/ai_controller.hpp
+  src/ai_models_dialog.cpp
+  src/ai_models_dialog.hpp
+  src/ai_overlay.cpp
+  src/ai_overlay.hpp
+  src/ai_panel.cpp
+  src/ai_panel.hpp
+  src/ai_timeline_panel.cpp
+  src/ai_timeline_panel.hpp
   src/app_context.cpp
   src/app_context.hpp
   src/camera_panel.cpp

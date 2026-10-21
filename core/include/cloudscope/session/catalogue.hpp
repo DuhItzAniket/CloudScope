@@ -18,6 +18,7 @@
 #include "cloudscope/common/error.hpp"
 #include "cloudscope/session/session.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -55,6 +56,40 @@ struct FrameEntry {
 // The entry for a picture from its sidecar (`<picture>.json`); either sidecar schema.
 [[nodiscard]] Expected<FrameEntry> frame_entry_from_sidecar(const std::filesystem::path& sidecar,
                                                             std::string session_id);
+
+// One STRATIA result per frame (P069, FR-AI-07): what the model said, with its uncertainty, when, on which engine.
+struct AiResultEntry {
+    std::int64_t id = 0;     // assigned by the catalogue; 0 before insertion
+    std::string session_id;  // empty when the frame was not part of a recorded session
+    UtcTime utc{};
+    std::uint64_t sequence = 0;
+    std::string model_name;
+    std::string model_version;
+    std::string provider;
+    int oktas = 0;
+    double cover_fraction = 0.0;
+    int genus_top = 0;
+    double genus_prob = 0.0;
+    std::array<double, 3> etage_probs{};
+    double p_cloud_overhead = 0.0;
+    std::optional<double> cbh_median_m = std::nullopt;
+    std::optional<double> cbh_low_80_m = std::nullopt;
+    std::optional<double> cbh_high_80_m = std::nullopt;
+    std::array<double, 4> sky_fractions{};  // invalid, sky, cloud, sun glare
+    double ood_score = 0.0;
+    bool uncertain = false;
+    bool night = false;
+    bool geometry_valid = false;
+    double run_ms = 0.0;
+};
+
+struct AiResultQuery {
+    std::optional<std::string> session_id = std::nullopt;  // "" selects results outside any session
+    std::optional<UtcTime> from = std::nullopt;            // inclusive
+    std::optional<UtcTime> to = std::nullopt;              // exclusive
+    std::size_t limit = 10000;
+    bool newest_first = false;
+};
 
 struct FrameQuery {
     std::optional<std::string> session_id = std::nullopt;
@@ -109,6 +144,12 @@ public:
     // Adds every picture of a folder that has a sidecar and is not catalogued yet; returns how many were added.
     [[nodiscard]] Expected<std::uint32_t> index_folder(const std::filesystem::path& folder,
                                                        const std::string& session_id);
+
+    // STRATIA results (P069)
+    [[nodiscard]] Expected<std::int64_t> add_ai_result(const AiResultEntry& result);
+    [[nodiscard]] Expected<std::vector<AiResultEntry>> ai_results(const AiResultQuery& wanted) const;
+    [[nodiscard]] Expected<std::uint64_t>
+    ai_result_count(const std::optional<std::string>& session_id = std::nullopt) const;
 
 private:
     struct Impl;

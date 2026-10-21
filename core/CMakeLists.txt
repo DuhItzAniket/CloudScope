@@ -15,6 +15,15 @@ add_custom_target(cloudscope_git_revision
   VERBATIM)
 
 add_library(cloudscope_core STATIC
+  include/cloudscope/ai/benchmark.hpp
+  include/cloudscope/ai/contract.hpp
+  include/cloudscope/ai/geometry_inputs.hpp
+  include/cloudscope/ai/inference_service.hpp
+  include/cloudscope/ai/model_card.hpp
+  include/cloudscope/ai/model_store.hpp
+  include/cloudscope/ai/onnx_engine.hpp
+  include/cloudscope/ai/result_log.hpp
+  include/cloudscope/ai/settings.hpp
   include/cloudscope/app/devices.hpp
   include/cloudscope/calibration/intrinsics.hpp
   include/cloudscope/capture/acquisition.hpp
@@ -60,6 +69,15 @@ add_library(cloudscope_core STATIC
   include/cloudscope/sim/synthetic_sky.hpp
   include/cloudscope/uvc/uvc_camera.hpp
   include/cloudscope/uvc/uvc_driver.hpp
+  src/ai/benchmark.cpp
+  src/ai/contract.cpp
+  src/ai/geometry_inputs.cpp
+  src/ai/inference_service.cpp
+  src/ai/model_card.cpp
+  src/ai/model_store.cpp
+  src/ai/onnx_engine.cpp
+  src/ai/result_log.cpp
+  src/ai/settings.cpp
   src/app/devices.cpp
   src/calibration/intrinsics.cpp
   src/capture/acquisition.cpp
@@ -105,7 +123,7 @@ add_library(CloudScope::core ALIAS cloudscope_core)
 # One capture backend per platform: Media Foundation on Windows, Video4Linux2 elsewhere.
 if(WIN32)
   target_sources(cloudscope_core PRIVATE src/uvc/mf_backend.cpp)
-  target_link_libraries(cloudscope_core PRIVATE mf mfplat mfreadwrite mfuuid strmiids ole32)
+  target_link_libraries(cloudscope_core PRIVATE mf mfplat mfreadwrite mfuuid strmiids ole32 dxgi)
 else()
   target_sources(cloudscope_core PRIVATE src/uvc/v4l2_backend.cpp)
 endif()
@@ -120,6 +138,7 @@ qt_add_resources(cloudscope_core "cloudscope_core_resources"
     resources/camera_model.schema.json
     resources/config.defaults.toml
     resources/config.schema.json
+    resources/model_card.schema.json
     resources/session.schema.json
     resources/sidecar.schema.json)
 
@@ -145,6 +164,7 @@ target_link_libraries(cloudscope_core
     opencv_imgproc opencv_imgcodecs opencv_calib3d
     tomlplusplus::tomlplusplus
     CloudScope::cfitsio
-    CloudScope::turbojpeg)
+    CloudScope::turbojpeg
+    CloudScope::onnxruntime)
 
 cloudscope_target_defaults(cloudscope_core)

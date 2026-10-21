@@ -19,6 +19,12 @@ function(cloudscope_copy_runtime_dlls target)
     COMMAND_EXPAND_LISTS
     VERBATIM)
   # Qt loads its SQL driver as a plugin from <application dir>/sqldrivers; the frame catalogue needs QSQLITE.
+  get_property(_extra GLOBAL PROPERTY CLOUDSCOPE_EXTRA_RUNTIME_FILES)
+  if(_extra)
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${_extra} "$<TARGET_FILE_DIR:${target}>"
+      VERBATIM)
+  endif()
   if(TARGET Qt6::QSQLiteDriverPlugin)
     add_custom_command(TARGET ${target} POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:${target}>/sqldrivers"

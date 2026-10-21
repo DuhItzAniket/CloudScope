@@ -24,7 +24,11 @@ extern "C" const char* __tsan_default_suppressions()
     //     functor wrapper of Qt's headers (QtPrivate::QCallableObject / FunctorCall), which is inlined into
     //     CloudScope's binaries, hence a race suppression rather than a library one. Everything the task touches
     //     on the UI thread stays checked.
+    //
+    // ONNX Runtime (P066) brings its own thread pool and is not built with the sanitizer: calls from inside it are
+    // ignored like TBB's; CloudScope's inference service around it stays checked.
     return "called_from_lib:libtbb.so\n"
+           "called_from_lib:libonnxruntime.so\n"
            "called_from_lib:libQt6Core.so\n"
            "called_from_lib:libQt6Gui.so\n"
            "race:*QtPrivate::QCallableObject*\n"

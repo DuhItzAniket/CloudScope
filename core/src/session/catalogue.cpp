@@ -329,7 +329,16 @@ Expected<std::unique_ptr<Catalogue>> Catalogue::open(const std::filesystem::path
           "width INTEGER, height INTEGER, exposure_ms REAL, gain REAL, mean REAL, clipped_fraction REAL, "
           "sun_elevation_deg REAL, sun_azimuth_deg REAL, profile TEXT, simulated INTEGER NOT NULL DEFAULT 0)",
           "CREATE INDEX IF NOT EXISTS frames_utc ON frames (utc_ms)",
-          "CREATE INDEX IF NOT EXISTS frames_session_utc ON frames (session_id, utc_ms)"}) {
+          "CREATE INDEX IF NOT EXISTS frames_session_utc ON frames (session_id, utc_ms)",
+          "CREATE TABLE IF NOT EXISTS ai_results (id INTEGER PRIMARY KEY, session_id TEXT NOT NULL DEFAULT '', "
+          "utc_ms INTEGER NOT NULL, sequence INTEGER, model_name TEXT, model_version TEXT, provider TEXT, "
+          "oktas INTEGER, cover_fraction REAL, genus_top INTEGER, genus_prob REAL, etage_low REAL, etage_mid REAL, "
+          "etage_high REAL, p_cloud_overhead REAL, cbh_median_m REAL, cbh_low_80_m REAL, cbh_high_80_m REAL, "
+          "sky_invalid REAL, sky_sky REAL, sky_cloud REAL, sky_glare REAL, ood_score REAL, "
+          "uncertain INTEGER NOT NULL DEFAULT 0, night INTEGER NOT NULL DEFAULT 0, "
+          "geometry_valid INTEGER NOT NULL DEFAULT 0, run_ms REAL)",
+          "CREATE INDEX IF NOT EXISTS ai_results_utc ON ai_results (utc_ms)",
+          "CREATE INDEX IF NOT EXISTS ai_results_session_utc ON ai_results (session_id, utc_ms)"}) {
         if (auto done = impl->exec(statement); !done) {
             return fail(done.error());
         }
@@ -602,6 +611,140 @@ Expected<std::uint32_t> Catalogue::index_folder(const std::filesystem::path& fol
         return fail(added.error());
     }
     return static_cast<std::uint32_t>(entries.size());
+}
+
+// ------------------------------------------------------------------------------------------- STRATIA results
+
+namespace {
+
+constexpr const char* kAiColumns =
+    "id, session_id, utc_ms, sequence, model_name, model_version, provider, oktas, cover_fraction, genus_top, "
+    "genus_prob, etage_low, etage_mid, etage_high, p_cloud_overhead, cbh_median_m, cbh_low_80_m, cbh_high_80_m, "
+    "sky_invalid, sky_sky, sky_cloud, sky_glare, ood_score, uncertain, night, geometry_valid, run_ms";
+
+constexpr const char* kInsertAi =
+    "INSERT INTO ai_results (session_id, utc_ms, sequence, model_name, model_version, provider, oktas, "
+    "cover_fraction, genus_top, genus_prob, etage_low, etage_mid, etage_high, p_cloud_overhead, cbh_median_m, "
+    "cbh_low_80_m, cbh_high_80_m, sky_invalid, sky_sky, sky_cloud, sky_glare, ood_score, uncertain, night, "
+    "geometry_valid, run_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+AiResultEntry ai_from_row(const QSqlQuery& query)
+{
+    AiResultEntry r;
+    r.id = query.value(0).toLongLong();
+    r.session_id = utf8(query.value(1).toString());
+    r.utc = from_unix_ms(query.value(2).toLongLong());
+    r.sequence = static_cast<std::uint64_t>(query.value(3).toULongLong());
+    r.model_name = utf8(query.value(4).toString());
+    r.model_version = utf8(query.value(5).toString());
+    r.provider = utf8(query.value(6).toString());
+    r.oktas = query.value(7).toInt();
+    r.cover_fraction = query.value(8).toDouble();
+    r.genus_top = query.value(9).toInt();
+    r.genus_prob = query.value(10).toDouble();
+    r.etage_probs = {query.value(11).toDouble(), query.value(12).toDouble(), query.value(13).toDouble()};
+    r.p_cloud_overhead = query.value(14).toDouble();
+    r.cbh_median_m = optional_double(query.value(15));
+    r.cbh_low_80_m = optional_double(query.value(16));
+    r.cbh_high_80_m = optional_double(query.value(17));
+    r.sky_fractions = {query.value(18).toDouble(), query.value(19).toDouble(), query.value(20).toDouble(),
+                       query.value(21).toDouble()};
+    r.ood_score = query.value(22).toDouble();
+    r.uncertain = query.value(23).toInt() != 0;
+    r.night = query.value(24).toInt() != 0;
+    r.geometry_valid = query.value(25).toInt() != 0;
+    r.run_ms = query.value(26).toDouble();
+    return r;
+}
+
+}  // namespace
+
+Expected<std::int64_t> Catalogue::add_ai_result(const AiResultEntry& result)
+{
+    QSqlQuery query(impl_->db);
+    query.prepare(QString::fromLatin1(kInsertAi));
+    query.addBindValue(qstring(result.session_id));
+    query.addBindValue(static_cast<qlonglong>(to_unix_ms(result.utc)));
+    query.addBindValue(static_cast<qulonglong>(result.sequence));
+    query.addBindValue(qstring(result.model_name));
+    query.addBindValue(qstring(result.model_version));
+    query.addBindValue(qstring(result.provider));
+    query.addBindValue(result.oktas);
+    query.addBindValue(result.cover_fraction);
+    query.addBindValue(result.genus_top);
+    query.addBindValue(result.genus_prob);
+    for (double p : result.etage_probs) {
+        query.addBindValue(p);
+    }
+    query.addBindValue(result.p_cloud_overhead);
+    query.addBindValue(optional_variant(result.cbh_median_m));
+    query.addBindValue(optional_variant(result.cbh_low_80_m));
+    query.addBindValue(optional_variant(result.cbh_high_80_m));
+    for (double f : result.sky_fractions) {
+        query.addBindValue(f);
+    }
+    query.addBindValue(result.ood_score);
+    query.addBindValue(result.uncertain ? 1 : 0);
+    query.addBindValue(result.night ? 1 : 0);
+    query.addBindValue(result.geometry_valid ? 1 : 0);
+    query.addBindValue(result.run_ms);
+    if (!query.exec()) {
+        return fail(sql_error(query, "add AI result"));
+    }
+    return static_cast<std::int64_t>(query.lastInsertId().toLongLong());
+}
+
+Expected<std::vector<AiResultEntry>> Catalogue::ai_results(const AiResultQuery& wanted) const
+{
+    QString sql = QStringLiteral("SELECT %1 FROM ai_results WHERE 1 = 1").arg(QString::fromLatin1(kAiColumns));
+    if (wanted.session_id) {
+        sql += QStringLiteral(" AND session_id = ?");
+    }
+    if (wanted.from) {
+        sql += QStringLiteral(" AND utc_ms >= ?");
+    }
+    if (wanted.to) {
+        sql += QStringLiteral(" AND utc_ms < ?");
+    }
+    sql += wanted.newest_first ? QStringLiteral(" ORDER BY utc_ms DESC, id DESC")
+                               : QStringLiteral(" ORDER BY utc_ms ASC, id ASC");
+    sql += QStringLiteral(" LIMIT ?");
+    QSqlQuery query(impl_->db);
+    query.setForwardOnly(true);
+    query.prepare(sql);
+    if (wanted.session_id) {
+        query.addBindValue(qstring(*wanted.session_id));
+    }
+    if (wanted.from) {
+        query.addBindValue(static_cast<qlonglong>(to_unix_ms(*wanted.from)));
+    }
+    if (wanted.to) {
+        query.addBindValue(static_cast<qlonglong>(to_unix_ms(*wanted.to)));
+    }
+    query.addBindValue(static_cast<qlonglong>(wanted.limit));
+    if (!query.exec()) {
+        return fail(sql_error(query, "query AI results"));
+    }
+    std::vector<AiResultEntry> out;
+    while (query.next()) {
+        out.push_back(ai_from_row(query));
+    }
+    return out;
+}
+
+Expected<std::uint64_t> Catalogue::ai_result_count(const std::optional<std::string>& session_id) const
+{
+    QSqlQuery query(impl_->db);
+    if (session_id) {
+        query.prepare(QStringLiteral("SELECT COUNT(*) FROM ai_results WHERE session_id = ?"));
+        query.addBindValue(qstring(*session_id));
+    } else {
+        query.prepare(QStringLiteral("SELECT COUNT(*) FROM ai_results"));
+    }
+    if (!query.exec() || !query.next()) {
+        return fail(sql_error(query, "count AI results"));
+    }
+    return static_cast<std::uint64_t>(query.value(0).toULongLong());
 }
 
 }  // namespace cloudscope

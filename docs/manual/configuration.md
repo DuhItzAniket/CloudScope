@@ -47,6 +47,11 @@ The complete list of settings with their defaults is [`core/resources/config.def
 | `simulation.seed` | `1` | The same seed gives the same simulated clouds and the same sensor noise (0 to 4294967295) |
 | `simulation.replay_folder` | `""` | Folder of JPEG or PNG pictures that the replay camera shows in name order; empty means no replay camera |
 | `simulation.replay_fps` | `2.0` | Pictures per second of the replay camera (0.01 to 120) |
+| `ai.enabled` | `true` | Offer the ONNX Runtime engines as devices and run the STRATIA model on live frames (ADR-004) |
+| `ai.model_dir` | `""` | Model package: a folder with `model_card.json` and one `.onnx` file; empty means no model |
+| `ai.provider` | `"auto"` | Execution provider: `auto` (CUDA, then DirectML, then CPU), `cuda`, `directml` or `cpu` |
+| `ai.rate_hz` | `2.0` | At most this many inferences per second; faster frames are dropped, never queued |
+| `ai.threads` | `0` | Threads of the CPU provider; 0 for the runtime's default |
 | `desktop.theme` | `"dark"` | Theme of the desktop application: `dark`, or `night` for the red night-vision theme |
 | `desktop.renderer` | `"auto"` | Live-view renderer: `auto` (OpenGL when available), `opengl` or `raster` (software) |
 | `desktop.session_root` | `""` | Folder for sessions and the frame catalogue; empty means the Pictures folder, subfolder `CloudScope` |

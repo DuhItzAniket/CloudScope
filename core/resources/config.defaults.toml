@@ -38,6 +38,19 @@ replay_folder = ""
 # Pictures per second of the replay camera.
 replay_fps = 2.0
 
+[ai]
+# STRATIA inference (ADR-004). Offer the ONNX Runtime engines as devices and run the model on live frames.
+enabled = true
+# Model package: a folder holding model_card.json and one .onnx file (STRATIA models/<version>/). Empty: no model.
+model_dir = ""
+# Execution provider: "auto" tries CUDA, then DirectML (Windows), then the CPU; or name one of "cuda",
+# "directml", "cpu". The one in use is shown in the status bar.
+provider = "auto"
+# At most this many inferences per second; frames arriving faster are dropped, never queued.
+rate_hz = 2.0
+# Threads of the CPU provider. 0: the runtime's default.
+threads = 0
+
 [desktop]
 # Theme of the desktop application: "dark", or "night" for the red night-vision theme.
 theme = "dark"

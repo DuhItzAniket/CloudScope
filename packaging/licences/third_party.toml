@@ -31,6 +31,11 @@ allowed_dynamic = [
     "LGPL-3.0-only",
     "LGPL-3.0-or-later",
 ]
+# Proprietary but redistributable binaries whose licence terms permit shipping them with an application. Allowed
+# only dynamically linked, and only when the licence text travels with the package (packaging/licences/).
+allowed_redistributable = [
+    "LicenseRef-Microsoft-DirectML",
+]
 # Compiler and C runtime libraries. They are part of the operating system or the compiler, are never shipped
 # by CloudScope on Linux, and carry exceptions that permit linking from programs under any licence.
 allowed_system = [
@@ -224,3 +229,22 @@ linking = "system"
 homepage = "https://www.gnu.org/software/libc/"
 used_for = "C runtime on Linux"
 linux_libraries = ["libc.so.*", "libm.so.*", "libpthread.so.*", "libdl.so.*", "ld-linux*.so.*"]
+
+[[component]]
+name = "ONNX Runtime"
+licence = "MIT"
+linking = "dynamic"
+homepage = "https://onnxruntime.ai/"
+used_for = "STRATIA inference (ADR-004, P066): runs the model's ONNX graph on the CPU, DirectML or CUDA execution provider"
+vcpkg_ports = []
+windows_dlls = ["onnxruntime.dll", "onnxruntime_providers_shared.dll"]
+linux_libraries = ["libonnxruntime.so*"]
+
+[[component]]
+name = "DirectML"
+licence = "LicenseRef-Microsoft-DirectML"
+linking = "dynamic"
+homepage = "https://github.com/microsoft/DirectML"
+used_for = "GPU execution provider of ONNX Runtime on Windows (any DirectX 12 GPU, P066); redistributable under the Microsoft DirectML licence terms, text in packaging/licences/DirectML-LICENSE.txt"
+vcpkg_ports = []
+windows_dlls = ["DirectML.dll"]

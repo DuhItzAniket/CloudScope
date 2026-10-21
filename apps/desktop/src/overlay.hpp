@@ -57,6 +57,7 @@ public:
     [[nodiscard]] SkyDirection to_sky(QPointF pixel) const;
     [[nodiscard]] const CameraModel& model() const { return model_; }
     [[nodiscard]] const SkyPose& pose() const { return pose_; }
+    [[nodiscard]] const Quaternion& camera_to_enu() const { return camera_to_enu_; }  // for the model's ray map
 
 private:
     CameraModel model_;

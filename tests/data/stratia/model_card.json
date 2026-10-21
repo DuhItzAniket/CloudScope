@@ -1,0 +1,133 @@
+{
+  "contract_version": "1.0",
+  "model_name": "stratia-dummy",
+  "model_version": "1.0.0-demo",
+  "created_utc": "2026-10-21T15:31:13Z",
+  "git_sha": "69847e1fd37dd23d99ce2a4e4640302b257fc92f",
+  "input": {
+    "height": 512,
+    "width": 512,
+    "patch_size": 16,
+    "mean": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "std": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "resize": "full-frame resize of the whole frame to 512 x 512 (OpenCV INTER_AREA), no crop, no camera-mask zeroing (the heads were trained on transform ffr1 without it); then scale to [0, 1] and normalise with mean / std"
+  },
+  "genus_classes": [
+    "Ci",
+    "Cc",
+    "Cs",
+    "Ac",
+    "As",
+    "Ns",
+    "Sc",
+    "St",
+    "Cu",
+    "Cb",
+    "clear",
+    "contrail"
+  ],
+  "etage_classes": [
+    "low",
+    "mid",
+    "high"
+  ],
+  "sky_parse_classes": [
+    "invalid",
+    "sky",
+    "cloud",
+    "sun_glare"
+  ],
+  "layer_classes": [
+    "low",
+    "mid",
+    "high"
+  ],
+  "cbh_bin_edges_m": [
+    0.0,
+    100.0,
+    139.0,
+    195.0,
+    271.0,
+    379.0,
+    528.0,
+    737.0,
+    1028.0,
+    1434.0,
+    2000.0,
+    2294.0,
+    2632.0,
+    3020.0,
+    3464.0,
+    3974.0,
+    4559.0,
+    5230.0,
+    6000.0,
+    6735.0,
+    7560.0,
+    8485.0,
+    9524.0,
+    10691.0,
+    12000.0
+  ],
+  "calibration": {
+    "temperatures": {
+      "genus": 2.0,
+      "etage": 1.0,
+      "oktas": 1.0,
+      "cbh": 1.5
+    },
+    "folded_into_graph": true,
+    "cbh_conformal_radius_cdf": {
+      "80": 0.3,
+      "95": 0.45
+    },
+    "fitted_on": "untrained dummy: made-up values"
+  },
+  "ood_threshold": 1.0,
+  "training_data": [
+    {
+      "dataset": "none (untrained dummy model)",
+      "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "licences": [
+    "Apache-2.0 (STRATIA code and head weights)",
+    "DINOv3 License (backbone weights facebook/dinov3-vits16-pretrain-lvd1689m): Built with DINOv3",
+    "training datasets keep their own licences (docs/data/data_card.md)"
+  ],
+  "evaluation_report": "docs/data/onnx_export.md; docs/data/gate_g4.md; docs/data/calibration.md",
+  "backbone": "fake",
+  "outputs_note": {
+    "cbh_probs": "24 height bins (edges cbh_bin_edges_m) + index 24 = no cloud overhead",
+    "ood_score": "z-scored energy + Mahalanobis average; above ood_threshold = show as uncertain",
+    "ray_map": "the 32 x 32 contract ray map is average-pooled to 8 x 8 inside the graph for the global and cloud-base heads; the dense heads use the full 32 x 32 token grid"
+  },
+  "trained_from": {},
+  "head_summaries": {},
+  "onnx": {
+    "opset": 17,
+    "dynamic_axes": "batch",
+    "inputs": [
+      "image",
+      "ray_map",
+      "meta"
+    ],
+    "outputs": [
+      "genus_logits",
+      "etage_logits",
+      "oktas_probs",
+      "sky_parse_logits",
+      "layer_logits",
+      "cbh_probs",
+      "ood_score"
+    ]
+  }
+}

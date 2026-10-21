@@ -1,0 +1,40 @@
+{
+  "schema": "cloudscope.camera_model/1",
+  "model": "opencv_fisheye",
+  "image": {
+    "width": 4656,
+    "height": 3496
+  },
+  "intrinsics": {
+    "fx": 2540.659,
+    "fy": 2540.659,
+    "cx": 2327.5,
+    "cy": 1747.5
+  },
+  "distortion": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "fit": {
+    "rms_px": 0.0,
+    "views": 0,
+    "board": {
+      "columns": 9,
+      "rows": 6,
+      "square_mm": 25.0
+    }
+  },
+  "camera": {
+    "id": "b0268",
+    "name": "Arducam B0268 (nominal datasheet model, not a calibration)"
+  },
+  "calibration_id": "nominal-datasheet-hfov105",
+  "calibrated_utc": "2026-10-10T00:00:00.000+00:00",
+  "software": {
+    "name": "stratia",
+    "version": "P043",
+    "git_revision": "n/a"
+  }
+}

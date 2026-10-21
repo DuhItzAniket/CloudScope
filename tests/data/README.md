@@ -6,7 +6,7 @@ Small data files that tests read. Everything here is listed in [`manifest.json`]
 
 1. **Licence-clean only.** A fixture must be CC0/public domain, or made by this project. The manifest names source and licence.
 2. **No personal data.** No people, number plates or interiors; no EXIF or GPS metadata (the manifest script refuses files with EXIF).
-3. **Small.** At most 100 KB per file and 1 MB in total. Larger test data stays outside the repository.
+3. **Small.** At most 100 KB per picture, 200 KB for a model file (`.onnx`: its size is graph structure, not data), and 1 MB in total. Larger test data stays outside the repository.
 4. **Real camera recordings** (B0268 sessions) are never committed. Tests that need them, from the camera stage on, read a folder outside the repository.
 5. Prefer the synthetic sky generator (`cloudscope/sim/synthetic_sky.hpp`) when a test needs a known ground truth: cloud mask, Sun position, number of saturated pixels.
 
@@ -17,6 +17,11 @@ Small data files that tests read. Everything here is listed in [`manifest.json`]
 | `sky/ccsn_ci_n001.jpg` | Bright cirrus on blue sky, some clipped highlights | CCSN database v2, `Ci/Ci-N001.jpg` | CC0 1.0 |
 | `sky/ccsn_cu_n001.jpg` | Cumulus against a dark sky, low mean brightness | CCSN database v2, `Cu/Cu-N001.jpg` | CC0 1.0 |
 | `sky/ccsn_st_n001.jpg` | Grey, low-contrast layer cloud | CCSN database v2, `St/St-N001.jpg` | CC0 1.0 |
+| `stratia/stratia_dummy.onnx` | STRATIA's untrained dummy model with the stratia-contract v1 interface (P065 contract test, P066 engine test) | STRATIA `scripts/export_onnx.py --dummy` | Apache-2.0 |
+| `stratia/reference.json` | Reference outputs of the dummy model for closed-form inputs (P066 parity test) | STRATIA `scripts/make_contract_reference.py` | Apache-2.0 |
+| `stratia/ray_map_reference.json` | Contract ray maps of the nominal B0268 for two poses (P067 cross-repository vectors) | STRATIA `scripts/make_ray_map_reference.py` | Apache-2.0 |
+| `stratia/b0268_nominal.camera.json` | The nominal (datasheet) B0268 camera model | STRATIA `configs/cameras/b0268_nominal.camera.json` | Apache-2.0 |
+| `stratia/model_card.json` | The dummy model's card | STRATIA `scripts/export_onnx.py --dummy` | Apache-2.0 |
 | `ui/live_view_reticle_grid.png` | The live view's rendering of a synthetic sky with the reticle and the grid (no text): the screenshot reference of the desktop application | Rendered by `tests/ui/test_main_window.cpp` with `CLOUDSCOPE_UPDATE_REFERENCES=1` | Apache-2.0 (CloudScope) |
 
 CCSN: Zhang et al., "CloudNet: Ground-based cloud classification with deep convolutional neural network", 2018; Harvard Dataverse, doi:10.7910/DVN/CADDPD, released under CC0 1.0. The three files are 400 × 400 JPEGs, unmodified.
