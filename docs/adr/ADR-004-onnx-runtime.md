@@ -20,3 +20,17 @@ Use **ONNX Runtime** through its C++ API. Execution-provider order: CUDA → Dir
 - The model card declares the contract version and input/output names; CloudScope validates it before loading (FR-AI-01).
 - GPU runtime DLLs are kept out of the portable package and installed by a helper, as in the prototype.
 - Inference runs on its own thread with latest-frame-only semantics (architecture §4.1).
+
+## Implementation notes (P066, 2026-10-21)
+
+- ONNX Runtime 1.24.4 is fetched at configure time (`cmake/CloudScopeDependencies.cmake`): on Windows the NuGet
+  package `Microsoft.ML.OnnxRuntime.DirectML` (one `onnxruntime.dll` with the CPU and DirectML providers) and its
+  dependency `Microsoft.AI.DirectML` (`DirectML.dll`); on Linux the release archive (CPU provider). The CUDA
+  provider is not shipped: a runtime whose `onnxruntime` reports it gets an `onnx:inference:cuda` device, nothing
+  else changes. `CLOUDSCOPE_ONNXRUNTIME=OFF` builds without the engine (the driver enumerates nothing).
+- One `OnnxInference` device per provider (`core/ai/onnx_engine`); `InferenceService` picks the first of CUDA,
+  DirectML, CPU that loads the model and declares the contract's tensors, and reports it (FR-AI-02).
+- Latest-frame-only: `InferenceService::submit()` never blocks; the worker takes the newest frame, a replaced
+  frame is counted as dropped; `ai.rate_hz` bounds the rate (FR-AI-03).
+- DirectML.dll is a proprietary redistributable: the licence policy gained `allowed_redistributable`, the text
+  travels in `packaging/licences/`.

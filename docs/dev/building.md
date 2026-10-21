@@ -86,6 +86,8 @@ Code must compile against the **minimum** column: those are the versions in Debi
 | OpenCV | 4.10.0 | 4.12.0 | Image processing and codecs |
 | spdlog / fmt | 1.15.2 / 10.1 | 1.17.0 / 12.2.0 | Logging and formatting |
 | toml++ | 3.4.0 | 3.4.0 | Configuration files |
+| ONNX Runtime | 1.24.4 (prebuilt, fetched) | 1.24.4 (prebuilt, fetched) | STRATIA inference (ADR-004); Windows takes the NuGet package with the DirectML provider, Linux the release archive (CPU); fetched at configure time, needs network once |
+| DirectML | 1.15.4 (NuGet, fetched) | – | GPU execution provider of ONNX Runtime on Windows (any DirectX 12 GPU); redistributable under Microsoft's DirectML licence terms (`packaging/licences/DirectML-LICENSE.txt`) |
 | nlohmann-json | 3.11.3 | 3.12.0 | JSON sidecars and API payloads |
 | CFITSIO | 4.6.2 | 4.6.4 | FITS files |
 | libjpeg-turbo | 2.1.5 | 3.2.0 | JPEG and MJPEG (use the 2.1 TurboJPEG API: `tjCompress2`, `tjDecompress2`) |
