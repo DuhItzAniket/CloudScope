@@ -46,6 +46,36 @@ left; the number is the count of unread notifications, and clicking it opens the
 from the site and the time, and the keep-out cone around it. Without a calibration these items are not drawn and a
 notification says why.
 
+## STRATIA (AI)
+
+The STRATIA panel (View > Panels > STRATIA) runs the cloud model on the live frames (ADR-004). A model is a
+*package*: a folder with `model_card.json` and one `.onnx` file, as STRATIA's `scripts/export_onnx.py` writes it.
+
+- **Loading.** AI > Models… installs a package into the model store (`<session_root>/models/`), verifying the
+  checksum the package declares; *Activate* loads it now and remembers it in the configuration (`ai.model_dir`),
+  *Roll back* returns to the model that was active before, *Remove* deletes an inactive one. AI > Load model… loads
+  a folder once without installing it.
+- **Where it runs.** The engine is chosen by `ai.provider`: `auto` tries CUDA, then DirectML (Windows, any
+  DirectX 12 GPU), then the CPU, and the status bar says which one is in use (`AI: stratia 1.0.0-demo on DirectML,
+  42 ms`). Frames go to the model at most `ai.rate_hz` times per second; a frame that arrives while the model is
+  busy replaces the one waiting and is counted as dropped, never queued, so the preview never stalls.
+- **What is shown.** The panel gives the cloud genus with its probability (top three), the étages present, the
+  cover in oktas with the expected percentage, the cloud-base height with its 80 % and 95 % intervals, and the
+  reliability. On the live view, the masks (cloud white, Sun glare orange, invalid dark; cloud layers in colour
+  with *Cloud layers* on) are drawn over the picture, with a badge giving the headline result.
+- **Uncertain results.** When the model's reliability score is above the card's threshold, or the frame is a
+  night frame, the result is marked **UNCERTAIN**: the badge says so and the masks are hidden unless *Show masks
+  of uncertain results too* is on. An uncertain result is still logged, flagged.
+- **Geometry.** With a calibration file and the site and pointing of Preferences, the model receives the ray map
+  and the Sun's position for every frame; without them it receives "unknown", which it was trained to accept.
+- **Timelines and logging.** Every result is written to the catalogue (`catalogue.sqlite`, table `ai_results`,
+  with the session id when a capture is recording). The STRATIA timelines panel plots cover, cloud base with its
+  band and the top genus over the chosen window, live or replayed from the catalogue for a session.
+- **Benchmark.** Models… > Benchmark (or the panel's Benchmark…) times the selected model on every execution
+  provider and offers the table as a Markdown report; `cloudscope-aibench` does the same from the command line.
+
+Shortcuts: Ctrl+Shift+A pauses and resumes the model, M toggles the masks.
+
 ## Themes
 
 *View > Dark theme* and *View > Night-vision theme*. The night theme shows everything, the live picture
