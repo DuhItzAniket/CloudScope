@@ -473,81 +473,7 @@ void MainWindow::connect_parts()
         capture_panel_->set_plan_controls(CaptureKind::Single, 1, 5000, ImageFileFormat::Png);
         capture_panel_->start();
     });
-    // STRATIA
-    act("ai.run")->setCheckable(true);
-    act("ai.run")->setChecked(true);
-    act("ai.masks")->setCheckable(true);
-    act("ai.masks")->setChecked(ai_panel_->overlay_settings().masks);
-    live_view_->set_ai_overlay_settings(ai_panel_->overlay_settings());
-    connect(act("ai.load"), &QAction::triggered, ai_panel_->load_button(), &QPushButton::click);
-    connect(act("ai.run"), &QAction::toggled, ai_panel_, &AiPanel::set_running);
-    connect(act("ai.masks"), &QAction::toggled, this, [this](bool on) {
-        AiOverlaySettings settings = ai_panel_->overlay_settings();
-        if (settings.masks != on) {
-            settings.masks = on;
-            ai_panel_->set_overlay_settings(settings);
-            live_view_->set_ai_overlay_settings(settings);
-        }
-    });
-    connect(ai_panel_, &AiPanel::runningChanged, this, [this](bool on) {
-        ai_->set_running(on);
-        shortcuts_->action(QStringLiteral("ai.run"))->setChecked(on);
-        if (!on) {
-            live_view_->set_prediction(nullptr);
-        }
-        update_ai_status();
-    });
-    connect(ai_panel_, &AiPanel::overlaySettingsChanged, this, [this](const AiOverlaySettings& settings) {
-        live_view_->set_ai_overlay_settings(settings);
-        shortcuts_->action(QStringLiteral("ai.masks"))->setChecked(settings.masks);
-    });
-    connect(ai_panel_, &AiPanel::loadRequested, this, [this](const QString& folder) {
-        const auto loaded = ai_->load(std::filesystem::path(folder.toStdU16String()));
-        if (!loaded) {
-            notifications_->notify(LogLevel::Error,
-                                   tr("Model not loaded: %1").arg(QString::fromStdString(loaded.error().message)));
-        } else {
-            const ai::ServiceStatus status = ai_->status();
-            notifications_->notify(LogLevel::Info, tr("Model %1 %2 loaded on %3")
-                                                       .arg(QString::fromStdString(status.model_name),
-                                                            QString::fromStdString(status.model_version),
-                                                            QString::fromStdString(status.provider)));
-        }
-    });
-    connect(ai_panel_, &AiPanel::unloadRequested, this, [this] {
-        ai_->unload();
-        live_view_->set_prediction(nullptr);
-        ai_panel_->clear_prediction();
-    });
-    connect(ai_, &AiController::predictionReady, this, [this](const std::shared_ptr<const ai::Prediction>& prediction) {
-        ai_panel_->show_prediction(prediction);
-        live_view_->set_prediction(prediction);
-        ai_timeline_->add_prediction(*prediction);
-        log_prediction(*prediction);
-        update_ai_status();
-    });
-    connect(act("ai.models"), &QAction::triggered, this, [this] { show_models_dialog(false); });
-    connect(ai_panel_, &AiPanel::benchmarkRequested, this, [this] { show_models_dialog(true); });
-    connect(ai_, &AiController::statusChanged, this, &MainWindow::update_ai_status);
-    connect(ai_timeline_, &AiTimelinePanel::replayRequested, this, [this](const QString& session_id) {
-        Catalogue* catalogue = session_browser_->model()->catalogue();
-        if (catalogue == nullptr) {
-            notifications_->notify(LogLevel::Warn, tr("No catalogue to replay from"));
-            return;
-        }
-        AiResultQuery query;
-        if (!session_id.isEmpty()) {
-            query.session_id = session_id.toStdString();
-        }
-        const auto loaded = ai_timeline_->replay(*catalogue, query);
-        if (!loaded) {
-            notifications_->notify(LogLevel::Warn,
-                                   tr("Replay failed: %1").arg(QString::fromStdString(loaded.error().message)));
-        } else {
-            notifications_->notify(LogLevel::Info, tr("%1 AI results replayed").arg(*loaded));
-        }
-    });
-    ai_timeline_->set_sessions(session_browser_->model()->sessions());
+    connect_ai_parts();
     connect(act("help.about"), &QAction::triggered, this, [this] {
         const BuildInfo& info = build_info();
         QMessageBox::about(this, tr("About CloudScope Desktop"),
@@ -654,6 +580,85 @@ void MainWindow::on_frame_ready()
     histogram_panel_->show_frame(frame);
     image_tools_panel_->show_frame(frame);
     ai_->on_frame(frame);
+}
+
+void MainWindow::connect_ai_parts()
+{
+    const auto act = [this](const char* id) { return shortcuts_->action(QString::fromLatin1(id)); };
+    act("ai.run")->setCheckable(true);
+    act("ai.run")->setChecked(true);
+    act("ai.masks")->setCheckable(true);
+    act("ai.masks")->setChecked(ai_panel_->overlay_settings().masks);
+    live_view_->set_ai_overlay_settings(ai_panel_->overlay_settings());
+    connect(act("ai.load"), &QAction::triggered, ai_panel_->load_button(), &QPushButton::click);
+    connect(act("ai.run"), &QAction::toggled, ai_panel_, &AiPanel::set_running);
+    connect(act("ai.masks"), &QAction::toggled, this, [this](bool on) {
+        AiOverlaySettings settings = ai_panel_->overlay_settings();
+        if (settings.masks != on) {
+            settings.masks = on;
+            ai_panel_->set_overlay_settings(settings);
+            live_view_->set_ai_overlay_settings(settings);
+        }
+    });
+    connect(ai_panel_, &AiPanel::runningChanged, this, [this](bool on) {
+        ai_->set_running(on);
+        shortcuts_->action(QStringLiteral("ai.run"))->setChecked(on);
+        if (!on) {
+            live_view_->set_prediction(nullptr);
+        }
+        update_ai_status();
+    });
+    connect(ai_panel_, &AiPanel::overlaySettingsChanged, this, [this](const AiOverlaySettings& settings) {
+        live_view_->set_ai_overlay_settings(settings);
+        shortcuts_->action(QStringLiteral("ai.masks"))->setChecked(settings.masks);
+    });
+    connect(ai_panel_, &AiPanel::loadRequested, this, [this](const QString& folder) {
+        const auto loaded = ai_->load(std::filesystem::path(folder.toStdU16String()));
+        if (!loaded) {
+            notifications_->notify(LogLevel::Error,
+                                   tr("Model not loaded: %1").arg(QString::fromStdString(loaded.error().message)));
+        } else {
+            const ai::ServiceStatus status = ai_->status();
+            notifications_->notify(LogLevel::Info, tr("Model %1 %2 loaded on %3")
+                                                       .arg(QString::fromStdString(status.model_name),
+                                                            QString::fromStdString(status.model_version),
+                                                            QString::fromStdString(status.provider)));
+        }
+    });
+    connect(ai_panel_, &AiPanel::unloadRequested, this, [this] {
+        ai_->unload();
+        live_view_->set_prediction(nullptr);
+        ai_panel_->clear_prediction();
+    });
+    connect(ai_, &AiController::predictionReady, this, [this](const std::shared_ptr<const ai::Prediction>& prediction) {
+        ai_panel_->show_prediction(prediction);
+        live_view_->set_prediction(prediction);
+        ai_timeline_->add_prediction(*prediction);
+        log_prediction(*prediction);
+        update_ai_status();
+    });
+    connect(act("ai.models"), &QAction::triggered, this, [this] { show_models_dialog(false); });
+    connect(ai_panel_, &AiPanel::benchmarkRequested, this, [this] { show_models_dialog(true); });
+    connect(ai_, &AiController::statusChanged, this, &MainWindow::update_ai_status);
+    connect(ai_timeline_, &AiTimelinePanel::replayRequested, this, [this](const QString& session_id) {
+        Catalogue* catalogue = session_browser_->model()->catalogue();
+        if (catalogue == nullptr) {
+            notifications_->notify(LogLevel::Warn, tr("No catalogue to replay from"));
+            return;
+        }
+        AiResultQuery query;
+        if (!session_id.isEmpty()) {
+            query.session_id = session_id.toStdString();
+        }
+        const auto loaded = ai_timeline_->replay(*catalogue, query);
+        if (!loaded) {
+            notifications_->notify(LogLevel::Warn,
+                                   tr("Replay failed: %1").arg(QString::fromStdString(loaded.error().message)));
+        } else {
+            notifications_->notify(LogLevel::Info, tr("%1 AI results replayed").arg(*loaded));
+        }
+    });
+    ai_timeline_->set_sessions(session_browser_->model()->sessions());
 }
 
 void MainWindow::update_camera_status()

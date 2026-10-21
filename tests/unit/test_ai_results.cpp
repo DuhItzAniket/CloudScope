@@ -68,7 +68,12 @@ TEST_CASE("a prediction becomes a catalogue row and reads back unchanged", "[ai]
     CHECK(*(*catalogue)->ai_result_count("session-a") == 2);
     CHECK(*(*catalogue)->ai_result_count(std::string()) == 1);
 
-    const auto rows = (*catalogue)->ai_results({.session_id = std::string("session-a")});
+    const auto rows = (*catalogue)
+                          ->ai_results(AiResultQuery{.session_id = std::string("session-a"),
+                                                     .from = std::nullopt,
+                                                     .to = std::nullopt,
+                                                     .limit = 10000,
+                                                     .newest_first = false});
     REQUIRE(outcome(rows) == "ok");
     REQUIRE(rows->size() == 2);
     const AiResultEntry& r = rows->front();
@@ -96,12 +101,21 @@ TEST_CASE("a prediction becomes a catalogue row and reads back unchanged", "[ai]
     CHECK_THAT(r.run_ms, WithinAbs(42.0, 1e-9));
     CHECK_FALSE(rows->back().cbh_median_m.has_value());  // no cloud overhead: no height
 
-    const auto newest = (*catalogue)->ai_results({.limit = 1, .newest_first = true});
+    const auto newest = (*catalogue)
+                            ->ai_results(AiResultQuery{.session_id = std::nullopt,
+                                                       .from = std::nullopt,
+                                                       .to = std::nullopt,
+                                                       .limit = 1,
+                                                       .newest_first = true});
     REQUIRE(outcome(newest) == "ok");
     REQUIRE(newest->size() == 1);
     CHECK(newest->front().sequence == 3);
-    const auto window =
-        (*catalogue)->ai_results({.from = t0 + std::chrono::seconds(20), .to = t0 + std::chrono::seconds(60)});
+    const auto window = (*catalogue)
+                            ->ai_results(AiResultQuery{.session_id = std::nullopt,
+                                                       .from = t0 + std::chrono::seconds(20),
+                                                       .to = t0 + std::chrono::seconds(60),
+                                                       .limit = 10000,
+                                                       .newest_first = false});
     REQUIRE(outcome(window) == "ok");
     REQUIRE(window->size() == 1);
     CHECK(window->front().sequence == 2);

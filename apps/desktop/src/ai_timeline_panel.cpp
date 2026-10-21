@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <ranges>
 
 namespace cloudscope::desktop {
 
@@ -202,8 +203,8 @@ void AiTimelineWidget::paint(QPainter& painter, const QRectF& area) const
     for (const TimelinePoint& p : points) {
         if (!p.cbh_median_m) {
             if (band_open) {
-                for (auto it = lows.rbegin(); it != lows.rend(); ++it) {
-                    band.lineTo(*it);
+                for (const QPointF& low : std::views::reverse(lows)) {
+                    band.lineTo(low);
                 }
                 band.closeSubpath();
                 lows.clear();
@@ -231,8 +232,8 @@ void AiTimelineWidget::paint(QPainter& painter, const QRectF& area) const
         }
     }
     if (band_open) {
-        for (auto it = lows.rbegin(); it != lows.rend(); ++it) {
-            band.lineTo(*it);
+        for (const QPointF& low : std::views::reverse(lows)) {
+            band.lineTo(low);
         }
         band.closeSubpath();
     }
@@ -256,19 +257,18 @@ void AiTimelineWidget::paint(QPainter& painter, const QRectF& area) const
 
 // ------------------------------------------------------------------------------------------------- panel
 
-AiTimelinePanel::AiTimelinePanel(QWidget* parent) : QWidget(parent)
+AiTimelinePanel::AiTimelinePanel(QWidget* parent)
+    : QWidget(parent), chart_(new AiTimelineWidget(this)), window_(new QComboBox(this)), session_(new QComboBox(this))
 {
     setAccessibleName(tr("STRATIA timeline panel"));
     auto* layout = new QVBoxLayout(this);
     auto* controls = new QHBoxLayout();
-    window_ = new QComboBox(this);
     window_->setAccessibleName(tr("Timeline window"));
     window_->addItem(tr("10 minutes"), 600);
     window_->addItem(tr("1 hour"), 3600);
     window_->addItem(tr("6 hours"), 6 * 3600);
     window_->addItem(tr("24 hours"), 24 * 3600);
     window_->setCurrentIndex(1);
-    session_ = new QComboBox(this);
     session_->setAccessibleName(tr("Session to replay"));
     session_->addItem(tr("(live results)"), QString());
     replay_ = new QPushButton(tr("Replay session"), this);
@@ -281,7 +281,6 @@ AiTimelinePanel::AiTimelinePanel(QWidget* parent) : QWidget(parent)
     controls->addWidget(replay_);
     controls->addWidget(live_);
     layout->addLayout(controls);
-    chart_ = new AiTimelineWidget(this);
     chart_->set_model(&model_);
     layout->addWidget(chart_, 1);
     summary_ = new QLabel(tr("No results yet"), this);

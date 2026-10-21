@@ -178,10 +178,14 @@ void AiPanel::show_prediction(const std::shared_ptr<const ai::Prediction>& predi
                         .arg(p.frame.height)
                         .arg(p.total_ms, 0, 'f', 0)
                         .arg(p.run_ms, 0, 'f', 0));
-    const QString reliability = p.uncertain
-                                    ? (p.night ? tr("UNCERTAIN: night frame")
-                                               : tr("UNCERTAIN: out of domain (score %1)").arg(p.ood_score, 0, 'f', 2))
-                                    : tr("reliable (score %1)").arg(p.ood_score, 0, 'f', 2);
+    QString reliability;
+    if (!p.uncertain) {
+        reliability = tr("reliable (score %1)").arg(p.ood_score, 0, 'f', 2);
+    } else if (p.night) {
+        reliability = tr("UNCERTAIN: night frame");
+    } else {
+        reliability = tr("UNCERTAIN: out of domain (score %1)").arg(p.ood_score, 0, 'f', 2);
+    }
     reliability_->setText(reliability);
     reliability_->setStyleSheet(p.uncertain ? QStringLiteral("color: %1; font-weight: bold").arg(warning_.name())
                                             : QStringLiteral("color: %1").arg(text_.name()));

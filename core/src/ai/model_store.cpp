@@ -46,12 +46,15 @@ Expected<void> write_json(const std::filesystem::path& file, const nlohmann::jso
     return {};
 }
 
-std::string trim(std::string text)
+std::string trim(const std::string& text)
 {
-    const auto not_space = [](unsigned char c) { return !std::isspace(c); };
-    text.erase(text.begin(), std::ranges::find_if(text, not_space));
-    text.erase(std::find_if(text.rbegin(), text.rend(), not_space).base(), text.end());
-    return text;
+    const char* const blanks = " \t\r\n";
+    const auto first = text.find_first_not_of(blanks);
+    if (first == std::string::npos) {
+        return {};
+    }
+    const auto last = text.find_last_not_of(blanks);
+    return text.substr(first, last - first + 1);
 }
 
 // The checksum the package's source declares for its ONNX file, if any.
@@ -90,7 +93,8 @@ std::string model_id(const ModelCard& card)
 {
     std::string id = card.model_name + "-" + card.model_version;
     for (char& c : id) {
-        if (!(std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.')) {
+        const bool keep = std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '-' || c == '_' || c == '.';
+        if (!keep) {
             c = '_';
         }
     }
@@ -127,7 +131,7 @@ Expected<void> ModelStore::write_active(const ActiveState& state) const
     return write_json(root_ / "active.json", document);
 }
 
-Expected<InstalledModel> ModelStore::read_installed(const std::filesystem::path& folder) const
+Expected<InstalledModel> ModelStore::read_installed(const std::filesystem::path& folder)
 {
     auto document = read_json(folder / "install.json");
     if (!document) {
@@ -161,6 +165,7 @@ Expected<std::vector<InstalledModel>> ModelStore::list() const
     if (!state) {
         return fail(state.error());
     }
+    const ActiveState st = *state;
     for (const auto& entry : std::filesystem::directory_iterator(root_, error)) {
         if (!entry.is_directory() || !std::filesystem::is_regular_file(entry.path() / "install.json")) {
             continue;
@@ -169,7 +174,7 @@ Expected<std::vector<InstalledModel>> ModelStore::list() const
         if (!model) {
             return fail(model.error());
         }
-        model->active = state->current && *state->current == model->id;
+        model->active = st.current.has_value() && st.current.value() == model->id;
         out.push_back(std::move(*model));
     }
     std::ranges::sort(out, {}, &InstalledModel::id);
@@ -184,6 +189,19 @@ Expected<std::optional<InstalledModel>> ModelStore::find(const std::string& id) 
     }
     const auto it = std::ranges::find(*models, id, &InstalledModel::id);
     return it == models->end() ? std::optional<InstalledModel>{} : std::optional<InstalledModel>(*it);
+}
+
+Expected<InstalledModel> ModelStore::installed(const std::string& id) const
+{
+    auto found = find(id);
+    if (!found) {
+        return fail(found.error());
+    }
+    const std::optional<InstalledModel>& model = *found;
+    if (!model.has_value()) {
+        return fail(ErrorCode::NotFound, fmt::format("no installed model '{}'", id));
+    }
+    return model.value();
 }
 
 Expected<InstalledModel> ModelStore::install(const std::filesystem::path& package_path, bool activate_it)
@@ -242,15 +260,15 @@ Expected<InstalledModel> ModelStore::install(const std::filesystem::path& packag
     const std::u8string source = package->folder.u8string();
     model.source = std::string(source.begin(), source.end());  // UTF-8, whatever the platform's narrow encoding
     model.checksum_declared = declared.has_value();
-    nlohmann::json document{{"id", model.id},
-                            {"name", model.name},
-                            {"version", model.version},
-                            {"model_file", package->model_file.filename().string()},
-                            {"onnx_sha256", computed},
-                            {"card_sha256", file_sha256(folder / "model_card.json")},
-                            {"installed_utc", model.installed_utc},
-                            {"source", model.source},
-                            {"checksum_declared", model.checksum_declared}};
+    const nlohmann::json document{{"id", model.id},
+                                  {"name", model.name},
+                                  {"version", model.version},
+                                  {"model_file", package->model_file.filename().string()},
+                                  {"onnx_sha256", computed},
+                                  {"card_sha256", file_sha256(folder / "model_card.json")},
+                                  {"installed_utc", model.installed_utc},
+                                  {"source", model.source},
+                                  {"checksum_declared", model.checksum_declared}};
     if (auto written = write_json(folder / "install.json", document); !written) {
         return fail(written.error());
     }
@@ -265,12 +283,9 @@ Expected<InstalledModel> ModelStore::install(const std::filesystem::path& packag
 
 Expected<void> ModelStore::activate(const std::string& id)
 {
-    auto found = find(id);
+    auto found = installed(id);
     if (!found) {
         return fail(found.error());
-    }
-    if (!*found) {
-        return fail(ErrorCode::NotFound, fmt::format("no installed model '{}'", id));
     }
     if (auto ok = verify(id); !ok) {
         return fail(ok.error());
@@ -279,14 +294,15 @@ Expected<void> ModelStore::activate(const std::string& id)
     if (!state) {
         return fail(state.error());
     }
-    if (state->current && *state->current == id) {
+    ActiveState st = *state;
+    if (st.current.has_value() && st.current.value() == id) {
         return {};
     }
-    if (state->current) {
-        state->previous = state->current;
+    if (st.current) {
+        st.previous = st.current;
     }
-    state->current = id;
-    return write_active(*state);
+    st.current = id;
+    return write_active(st);
 }
 
 Expected<std::optional<InstalledModel>> ModelStore::active() const
@@ -295,10 +311,11 @@ Expected<std::optional<InstalledModel>> ModelStore::active() const
     if (!state) {
         return fail(state.error());
     }
-    if (!state->current) {
+    const ActiveState st = *state;
+    if (!st.current.has_value()) {
         return std::optional<InstalledModel>{};
     }
-    return find(*state->current);
+    return find(st.current.value());
 }
 
 Expected<std::optional<std::string>> ModelStore::previous() const
@@ -307,7 +324,8 @@ Expected<std::optional<std::string>> ModelStore::previous() const
     if (!state) {
         return fail(state.error());
     }
-    return state->previous;
+    const ActiveState st = *state;
+    return st.previous;
 }
 
 Expected<void> ModelStore::rollback()
@@ -316,22 +334,19 @@ Expected<void> ModelStore::rollback()
     if (!state) {
         return fail(state.error());
     }
-    if (!state->previous) {
+    ActiveState st = *state;
+    if (!st.previous.has_value()) {
         return fail(ErrorCode::Unavailable, "no previous model to roll back to");
     }
-    auto found = find(*state->previous);
-    if (!found) {
-        return fail(found.error());
+    const std::string previous_id = st.previous.value();
+    if (auto found = installed(previous_id); !found) {
+        return fail(ErrorCode::NotFound, fmt::format("the previous model '{}' is no longer installed", previous_id));
     }
-    if (!*found) {
-        return fail(ErrorCode::NotFound,
-                    fmt::format("the previous model '{}' is no longer installed", *state->previous));
-    }
-    if (auto ok = verify(*state->previous); !ok) {
+    if (auto ok = verify(previous_id); !ok) {
         return fail(ok.error());
     }
-    std::swap(state->current, state->previous);
-    return write_active(*state);
+    std::swap(st.current, st.previous);
+    return write_active(st);
 }
 
 Expected<void> ModelStore::remove(const std::string& id)
@@ -340,39 +355,34 @@ Expected<void> ModelStore::remove(const std::string& id)
     if (!state) {
         return fail(state.error());
     }
-    if (state->current && *state->current == id) {
+    ActiveState st = *state;
+    if (st.current.has_value() && st.current.value() == id) {
         return fail(ErrorCode::InvalidArgument,
                     fmt::format("'{}' is the active model; activate another one first", id));
     }
-    auto found = find(id);
+    auto found = installed(id);
     if (!found) {
         return fail(found.error());
     }
-    if (!*found) {
-        return fail(ErrorCode::NotFound, fmt::format("no installed model '{}'", id));
-    }
     std::error_code error;
-    std::filesystem::remove_all((*found)->folder, error);
+    std::filesystem::remove_all(found->folder, error);
     if (error) {
-        return fail(ErrorCode::Io, fmt::format("could not remove {}: {}", (*found)->folder.string(), error.message()));
+        return fail(ErrorCode::Io, fmt::format("could not remove {}: {}", found->folder.string(), error.message()));
     }
-    if (state->previous && *state->previous == id) {
-        state->previous.reset();
-        return write_active(*state);
+    if (st.previous.has_value() && st.previous.value() == id) {
+        st.previous.reset();
+        return write_active(st);
     }
     return {};
 }
 
 Expected<void> ModelStore::verify(const std::string& id) const
 {
-    auto found = find(id);
+    auto found = installed(id);
     if (!found) {
         return fail(found.error());
     }
-    if (!*found) {
-        return fail(ErrorCode::NotFound, fmt::format("no installed model '{}'", id));
-    }
-    const InstalledModel& model = **found;
+    const InstalledModel& model = *found;
     const std::string now = file_sha256(model.model_file);
     if (now != model.onnx_sha256) {
         return fail(ErrorCode::Validation,
@@ -380,7 +390,7 @@ Expected<void> ModelStore::verify(const std::string& id) const
                                 model.model_file.filename().string(), now.substr(0, 12),
                                 model.onnx_sha256.substr(0, 12)));
     }
-    auto document = read_json(model.folder / "install.json");
+    const auto document = read_json(model.folder / "install.json");
     if (document && document->contains("card_sha256") &&
         file_sha256(model.folder / "model_card.json") != document->at("card_sha256").get<std::string>()) {
         return fail(ErrorCode::Validation, fmt::format("model '{}': its model card changed since installation", id));

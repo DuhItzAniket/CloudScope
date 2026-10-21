@@ -155,7 +155,11 @@ TEST_CASE("the panel takes live results and replays a session from the catalogue
     panel.set_sessions({a, b});
     CHECK(panel.session_box()->count() == 3);
 
-    const auto replayed = panel.replay(**catalogue, AiResultQuery{.session_id = std::string("night-1")});
+    const auto replayed = panel.replay(**catalogue, AiResultQuery{.session_id = std::string("night-1"),
+                                                                  .from = std::nullopt,
+                                                                  .to = std::nullopt,
+                                                                  .limit = 10000,
+                                                                  .newest_first = false});
     REQUIRE(replayed.has_value());
     CHECK(*replayed == 5);
     CHECK(panel.model().size() == 5);
@@ -191,7 +195,12 @@ TEST_CASE("the main window logs every result into the catalogue and shows it on 
     const auto count = (*catalogue)->ai_result_count();
     REQUIRE(count.has_value());
     CHECK(*count == 2);
-    const auto rows = (*catalogue)->ai_results({.newest_first = true});
+    const auto rows = (*catalogue)
+                          ->ai_results(AiResultQuery{.session_id = std::nullopt,
+                                                     .from = std::nullopt,
+                                                     .to = std::nullopt,
+                                                     .limit = 10000,
+                                                     .newest_first = true});
     REQUIRE(rows.has_value());
     REQUIRE(rows->size() == 2);
     CHECK(rows->front().uncertain);

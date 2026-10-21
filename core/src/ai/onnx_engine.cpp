@@ -214,8 +214,8 @@ Expected<void> OnnxInference::load(const std::filesystem::path& model)
     if (!open_) {
         return not_open(info_);
     }
-    std::error_code error;
-    if (!std::filesystem::is_regular_file(model, error)) {
+    std::error_code fs_error;
+    if (!std::filesystem::is_regular_file(model, fs_error)) {
         return fail(ErrorCode::NotFound, fmt::format("model file {} does not exist", model.string()));
     }
     try {
@@ -255,7 +255,7 @@ Expected<void> OnnxInference::load(const std::filesystem::path& model)
         auto session = std::make_unique<Session>(Ort::Session(ort_env(), model.native().c_str(), options), model);
         session->provider_label =
             std::string(to_string(options_.provider)) + (adapter.empty() ? "" : " (" + adapter + ")");
-        Ort::AllocatorWithDefaultOptions allocator;
+        const Ort::AllocatorWithDefaultOptions allocator;
         for (std::size_t i = 0; i < session->session.GetInputCount(); ++i) {
             const auto name = session->session.GetInputNameAllocated(i, allocator);
             session->input_names.emplace_back(name.get());
@@ -270,10 +270,12 @@ Expected<void> OnnxInference::load(const std::filesystem::path& model)
         }
         session_ = std::move(session);
     } catch (const Ort::Exception& error) {
-        const ErrorCode code = error.GetOrtErrorCode() == ORT_NO_SUCHFILE        ? ErrorCode::NotFound
-                               : error.GetOrtErrorCode() == ORT_INVALID_PROTOBUF ? ErrorCode::Parse
-                               : options_.provider == Provider::Cpu              ? ErrorCode::Parse
-                                                                                 : ErrorCode::Unavailable;
+        ErrorCode code = ErrorCode::Unavailable;
+        if (error.GetOrtErrorCode() == ORT_NO_SUCHFILE) {
+            code = ErrorCode::NotFound;
+        } else if (error.GetOrtErrorCode() == ORT_INVALID_PROTOBUF || options_.provider == Provider::Cpu) {
+            code = ErrorCode::Parse;
+        }
         return fail(code, fmt::format("ONNX Runtime could not load {} on {}: {}", model.string(),
                                       to_string(options_.provider), error.what()));
     } catch (const std::exception& error) {
@@ -339,15 +341,16 @@ Expected<std::vector<hal::Tensor>> OnnxInference::run(const std::vector<hal::Ten
     try {
         const Ort::MemoryInfo memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
         std::vector<Ort::Value> values;
+        std::vector<std::vector<float>> buffers;  // ONNX Runtime wants writable input memory
         std::vector<const char*> input_names;
         std::vector<const char*> output_names;
         values.reserve(ordered.size());
+        buffers.reserve(ordered.size());
         for (std::size_t i = 0; i < ordered.size(); ++i) {
             const hal::Tensor& tensor = *ordered[i];
-            // ONNX Runtime reads the buffer during Run only; the caller's vector outlives the call.
-            values.push_back(Ort::Value::CreateTensor<float>(memory, const_cast<float*>(tensor.data.data()),
-                                                             tensor.data.size(), tensor.shape.data(),
-                                                             tensor.shape.size()));
+            buffers.push_back(tensor.data);
+            values.push_back(Ort::Value::CreateTensor<float>(memory, buffers.back().data(), buffers.back().size(),
+                                                             tensor.shape.data(), tensor.shape.size()));
             input_names.push_back(session_->input_names[i].c_str());
         }
         for (const std::string& name : session_->output_names) {
@@ -362,7 +365,7 @@ Expected<std::vector<hal::Tensor>> OnnxInference::run(const std::vector<hal::Ten
             const auto info = results[i].GetTensorTypeAndShapeInfo();
             hal::Tensor out{.name = session_->output_names[i], .shape = info.GetShape(), .data = {}};
             const auto count = info.GetElementCount();
-            const float* data = results[i].GetTensorData<float>();
+            const auto* data = results[i].GetTensorData<float>();
             out.data.assign(data, data + count);
             outputs.push_back(std::move(out));
         }
@@ -383,7 +386,7 @@ Expected<std::optional<std::string>> OnnxInference::metadata(std::string_view ke
         return fail(ErrorCode::Unavailable, fmt::format("inference engine '{}' has no model loaded", info_.id));
     }
     try {
-        Ort::AllocatorWithDefaultOptions allocator;
+        const Ort::AllocatorWithDefaultOptions allocator;
         const Ort::ModelMetadata metadata = session_->session.GetModelMetadata();
         const auto value = metadata.LookupCustomMetadataMapAllocated(std::string(key).c_str(), allocator);
         if (!value) {
@@ -420,8 +423,8 @@ Expected<void> OnnxInference::load(const std::filesystem::path& model)
     if (!open_) {
         return not_open(info_);
     }
-    std::error_code error;
-    if (!std::filesystem::is_regular_file(model, error)) {
+    std::error_code fs_error;
+    if (!std::filesystem::is_regular_file(model, fs_error)) {
         return fail(ErrorCode::NotFound, fmt::format("model file {} does not exist", model.string()));
     }
     return fail(ErrorCode::Unsupported, "this build of CloudScope has no ONNX Runtime");
@@ -513,7 +516,7 @@ std::shared_ptr<OnnxDriver> OnnxDriver::make(int threads)
 std::vector<hal::DeviceInfo> OnnxDriver::enumerate()
 {
     std::vector<hal::DeviceInfo> out;
-    for (Provider provider : available_providers()) {
+    for (const Provider provider : available_providers()) {
         out.push_back({.id = device_id(provider),
                        .kind = hal::DeviceKind::Inference,
                        .name = fmt::format("ONNX Runtime ({})", to_string(provider)),
@@ -525,7 +528,7 @@ std::vector<hal::DeviceInfo> OnnxDriver::enumerate()
 
 Expected<std::shared_ptr<hal::IDevice>> OnnxDriver::create(std::string_view id)
 {
-    for (Provider provider : available_providers()) {
+    for (const Provider provider : available_providers()) {
         if (device_id(provider) == id) {
             return std::shared_ptr<hal::IDevice>(
                 OnnxInference::make({.provider = provider, .threads = threads_, .device_id = -1}));

@@ -18,7 +18,7 @@ template <std::size_t N>
 std::string joined(const std::array<std::string_view, N>& items)
 {
     std::string out;
-    for (std::string_view item : items) {
+    for (const std::string_view item : items) {
         out += out.empty() ? "" : ", ";
         out += item;
     }
@@ -212,14 +212,14 @@ Expected<void> check_contract(const ModelCard& card)
                     fmt::format("input {} x {} is not a multiple of the patch size {} and of {}", in.width, in.height,
                                 in.patch_size, kDenseDivisor));
     }
-    for (double s : in.std) {
+    for (const double s : in.std) {
         if (!(s > 0.0)) {
             return fail(ErrorCode::Unsupported, "input.std must be positive");
         }
     }
     const std::vector<double>& edges = card.cbh_bin_edges_m;
-    if (edges.size() < 3 || !std::is_sorted(edges.begin(), edges.end()) ||
-        std::adjacent_find(edges.begin(), edges.end()) != edges.end() || edges.front() < 0.0) {
+    if (edges.size() < 3 || !std::ranges::is_sorted(edges) || std::ranges::adjacent_find(edges) != edges.end() ||
+        edges.front() < 0.0) {
         return fail(ErrorCode::Unsupported,
                     "cbh_bin_edges_m must be at least three strictly ascending non-negative edges");
     }
@@ -232,7 +232,7 @@ Expected<void> check_contract(const ModelCard& card)
 Expected<void> check_model_io(const ModelCard& card, const hal::InferenceCapabilities& capabilities)
 {
     const auto find = [](const std::vector<hal::TensorInfo>& tensors, const std::string& name) {
-        return std::find_if(tensors.begin(), tensors.end(), [&](const hal::TensorInfo& t) { return t.name == name; });
+        return std::ranges::find_if(tensors, [&](const hal::TensorInfo& t) { return t.name == name; });
     };
     for (const hal::TensorInfo& wanted : card.expected_inputs()) {
         const auto it = find(capabilities.inputs, wanted.name);

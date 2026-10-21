@@ -28,7 +28,6 @@
 using namespace cloudscope;
 using namespace cloudscope::desktop;
 using cloudscope::desktop::test::DesktopFixture;
-using cloudscope::test::data_path;
 
 namespace {
 
@@ -85,14 +84,25 @@ TEST_CASE("the overlay picture tints cloud and glare, and hides masks of uncerta
     CHECK(qAlpha(image.pixel(64, 10)) == 0);                    // sky: clear
     CHECK(qAlpha(image.pixel(64, 100)) > 0);                    // cloud: tinted
     CHECK(qRed(image.pixel(5, 5)) > qBlue(image.pixel(5, 5)));  // glare: orange
-    const QImage layers = ai_overlay_image(*p, AiOverlaySettings{.masks = false, .layers = true});
+    const QImage layers = ai_overlay_image(
+        *p, AiOverlaySettings{
+                .masks = false, .layers = true, .badge = true, .opacity_percent = 40, .show_when_uncertain = false});
     CHECK(qAlpha(layers.pixel(64, 100)) > 0);
     CHECK(qAlpha(layers.pixel(5, 5)) == 0);  // glare only with the masks
-    CHECK(ai_overlay_image(*p, AiOverlaySettings{.masks = false, .layers = false}).isNull());
+    CHECK(ai_overlay_image(
+              *p,
+              AiOverlaySettings{
+                  .masks = false, .layers = false, .badge = true, .opacity_percent = 40, .show_when_uncertain = false})
+              .isNull());
 
     const auto uncertain = sample_prediction(true);
     CHECK(ai_overlay_image(*uncertain, AiOverlaySettings{}).isNull());
-    CHECK_FALSE(ai_overlay_image(*uncertain, AiOverlaySettings{.show_when_uncertain = true}).isNull());
+    CHECK_FALSE(ai_overlay_image(*uncertain, AiOverlaySettings{.masks = true,
+                                                               .layers = false,
+                                                               .badge = true,
+                                                               .opacity_percent = 40,
+                                                               .show_when_uncertain = true})
+                    .isNull());
 
     CHECK(ai_badge_text(*p).contains(QStringLiteral("Cu")));
     CHECK(ai_badge_text(*p).contains(QStringLiteral("3 okta")));
@@ -116,7 +126,8 @@ TEST_CASE("the live view paints the overlay over the picture and the badge in th
     scene.overlays = {};
     scene.overlays.reticle = false;
     scene.prediction = sample_prediction(false);
-    scene.ai_overlay = AiOverlaySettings{.badge = false, .opacity_percent = 100};
+    scene.ai_overlay = AiOverlaySettings{
+        .masks = true, .layers = false, .badge = false, .opacity_percent = 100, .show_when_uncertain = false};
     scene.ai_image = ai_overlay_image(*scene.prediction, scene.ai_overlay);
     QImage rendered(256, 256, QImage::Format_RGB32);
     {
@@ -174,7 +185,8 @@ TEST_CASE("the STRATIA panel shows a result with its uncertainty and reports the
     panel.masks_checkbox()->setChecked(false);
     REQUIRE(overlay_spy.count() == 1);
     CHECK_FALSE(panel.overlay_settings().masks);
-    panel.set_overlay_settings(AiOverlaySettings{.masks = true, .layers = true, .opacity_percent = 70});
+    panel.set_overlay_settings(AiOverlaySettings{
+        .masks = true, .layers = true, .badge = true, .opacity_percent = 70, .show_when_uncertain = false});
     CHECK(overlay_spy.count() == 1);  // set_overlay_settings does not emit
     CHECK(panel.overlay_settings().layers);
     CHECK(panel.overlay_settings().opacity_percent == 70);

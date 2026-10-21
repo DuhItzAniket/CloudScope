@@ -27,6 +27,13 @@ const hal::Tensor* find_output(const std::vector<hal::Tensor>& outputs, std::str
     return it == outputs.end() ? nullptr : &*it;
 }
 
+ServiceStatus status_with_message(std::string message)
+{
+    ServiceStatus status;
+    status.message = std::move(message);
+    return status;
+}
+
 double now_ms(std::chrono::steady_clock::time_point since)
 {
     return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - since).count();
@@ -46,6 +53,42 @@ double height_at_cdf(const std::vector<double>& cdf, const std::vector<double>& 
         previous = cdf[k];
     }
     return edges.back();
+}
+
+// The per-pixel classes of the two dense heads: sky parse everywhere, the layer on cloud pixels only.
+void decode_masks(const hal::Tensor& sky, const hal::Tensor& layer, int dh, int dw, std::size_t dense, Prediction& p)
+{
+    p.sky_parse = cv::Mat(dh, dw, CV_8UC1);
+    p.layer = cv::Mat(dh, dw, CV_8UC1, cv::Scalar(255));
+    std::array<std::size_t, kSkyParseClasses.size()> counts{};
+    for (int y = 0; y < dh; ++y) {
+        auto* sky_row = p.sky_parse.ptr<std::uint8_t>(y);
+        auto* layer_row = p.layer.ptr<std::uint8_t>(y);
+        for (int x = 0; x < dw; ++x) {
+            const std::size_t at =
+                static_cast<std::size_t>(y) * static_cast<std::size_t>(dw) + static_cast<std::size_t>(x);
+            int best = 0;
+            for (std::size_t c = 1; c < kSkyParseClasses.size(); ++c) {
+                if (sky.data[c * dense + at] > sky.data[static_cast<std::size_t>(best) * dense + at]) {
+                    best = static_cast<int>(c);
+                }
+            }
+            sky_row[x] = static_cast<std::uint8_t>(best);
+            ++counts[static_cast<std::size_t>(best)];
+            if (best == 2) {  // cloud: the layer is meaningful here only
+                int top = 0;
+                for (std::size_t c = 1; c < kLayerClasses.size(); ++c) {
+                    if (layer.data[c * dense + at] > layer.data[static_cast<std::size_t>(top) * dense + at]) {
+                        top = static_cast<int>(c);
+                    }
+                }
+                layer_row[x] = static_cast<std::uint8_t>(top);
+            }
+        }
+    }
+    for (std::size_t c = 0; c < counts.size(); ++c) {
+        p.sky_fractions[c] = static_cast<float>(counts[c]) / static_cast<float>(dense);
+    }
 }
 
 }  // namespace
@@ -68,27 +111,29 @@ std::vector<hal::Tensor> make_inputs(const cv::Mat& picture, const ModelCard& ca
         rgb.convertTo(rgb, CV_8U);
     }
     hal::Tensor image{.name = std::string(kInputNames[0]), .shape = {1, 3, h, w}, .data = {}};
-    image.data.resize(static_cast<std::size_t>(3) * h * w);
-    const auto plane = static_cast<std::size_t>(h) * w;
+    image.data.resize(static_cast<std::size_t>(3) * static_cast<std::size_t>(h) * static_cast<std::size_t>(w));
+    const auto plane = static_cast<std::size_t>(h) * static_cast<std::size_t>(w);
     std::array<float, 3> scale{};
     std::array<float, 3> offset{};
-    for (int c = 0; c < 3; ++c) {
+    for (std::size_t c = 0; c < 3; ++c) {
         scale[c] = static_cast<float>(1.0 / (255.0 * card.input.std[c]));
         offset[c] = static_cast<float>(-card.input.mean[c] / card.input.std[c]);
     }
     for (int y = 0; y < h; ++y) {
         const cv::Vec3b* row = rgb.ptr<cv::Vec3b>(y);
         for (int x = 0; x < w; ++x) {
-            const std::size_t at = static_cast<std::size_t>(y) * w + x;
-            for (int c = 0; c < 3; ++c) {
-                image.data[c * plane + at] = static_cast<float>(row[x][c]) * scale[c] + offset[c];
+            const std::size_t at =
+                static_cast<std::size_t>(y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x);
+            for (std::size_t c = 0; c < 3; ++c) {
+                image.data[c * plane + at] = static_cast<float>(row[x][static_cast<int>(c)]) * scale[c] + offset[c];
             }
         }
     }
     const int g_h = h / card.input.patch_size;
     const int g_w = w / card.input.patch_size;
     hal::Tensor ray_map{.name = std::string(kInputNames[1]), .shape = {1, kRayMapChannels, g_h, g_w}, .data = {}};
-    const std::size_t ray_count = static_cast<std::size_t>(kRayMapChannels) * g_h * g_w;
+    const std::size_t ray_count =
+        static_cast<std::size_t>(kRayMapChannels) * static_cast<std::size_t>(g_h) * static_cast<std::size_t>(g_w);
     if (geometry.valid && geometry.ray_map.size() == ray_count) {
         ray_map.data = geometry.ray_map;
     } else {
@@ -108,14 +153,14 @@ std::optional<CbhEstimate> cbh_estimate(const std::vector<float>& probs, const M
     if (static_cast<int>(probs.size()) != k + 1 || k < 1) {
         return std::nullopt;
     }
-    const double p_cloud = 1.0 - probs[static_cast<std::size_t>(no_cloud_index(k))];
+    const double p_cloud = 1.0 - static_cast<double>(probs[static_cast<std::size_t>(no_cloud_index(k))]);
     if (!(p_cloud > 0.5)) {
         return std::nullopt;
     }
     std::vector<double> cdf(static_cast<std::size_t>(k));
     double running = 0.0;
     for (int i = 0; i < k; ++i) {
-        running += probs[static_cast<std::size_t>(i)] / p_cloud;
+        running += static_cast<double>(probs[static_cast<std::size_t>(i)]) / p_cloud;
         cdf[static_cast<std::size_t>(i)] = std::min(running, 1.0);
     }
     cdf.back() = 1.0;
@@ -148,7 +193,7 @@ Expected<Prediction> decode_outputs(const std::vector<hal::Tensor>& outputs, con
             return fail(ErrorCode::Validation,
                         fmt::format("'{}' holds {} values, {} expected", name, t->data.size(), count));
         }
-        for (float v : t->data) {
+        for (const float v : t->data) {
             if (!std::isfinite(v)) {
                 return fail(ErrorCode::Validation, fmt::format("'{}' holds a non-finite value", name));
             }
@@ -184,7 +229,7 @@ Expected<Prediction> decode_outputs(const std::vector<hal::Tensor>& outputs, con
 
     const int dh = card.input.height / kDenseDivisor;
     const int dw = card.input.width / kDenseDivisor;
-    const auto dense = static_cast<std::size_t>(dh) * dw;
+    const auto dense = static_cast<std::size_t>(dh) * static_cast<std::size_t>(dw);
     const auto sky = need(kOutputNames[3], kSkyParseClasses.size() * dense);
     if (!sky) {
         return fail(sky.error());
@@ -193,42 +238,13 @@ Expected<Prediction> decode_outputs(const std::vector<hal::Tensor>& outputs, con
     if (!layer) {
         return fail(layer.error());
     }
-    p.sky_parse = cv::Mat(dh, dw, CV_8UC1);
-    p.layer = cv::Mat(dh, dw, CV_8UC1, cv::Scalar(255));
-    std::array<std::size_t, kSkyParseClasses.size()> counts{};
-    for (int y = 0; y < dh; ++y) {
-        auto* sky_row = p.sky_parse.ptr<std::uint8_t>(y);
-        auto* layer_row = p.layer.ptr<std::uint8_t>(y);
-        for (int x = 0; x < dw; ++x) {
-            const std::size_t at = static_cast<std::size_t>(y) * dw + x;
-            int best = 0;
-            for (std::size_t c = 1; c < kSkyParseClasses.size(); ++c) {
-                if ((*sky)->data[c * dense + at] > (*sky)->data[static_cast<std::size_t>(best) * dense + at]) {
-                    best = static_cast<int>(c);
-                }
-            }
-            sky_row[x] = static_cast<std::uint8_t>(best);
-            ++counts[static_cast<std::size_t>(best)];
-            if (best == 2) {  // cloud: the layer is meaningful here only
-                int top = 0;
-                for (std::size_t c = 1; c < kLayerClasses.size(); ++c) {
-                    if ((*layer)->data[c * dense + at] > (*layer)->data[static_cast<std::size_t>(top) * dense + at]) {
-                        top = static_cast<int>(c);
-                    }
-                }
-                layer_row[x] = static_cast<std::uint8_t>(top);
-            }
-        }
-    }
-    for (std::size_t c = 0; c < counts.size(); ++c) {
-        p.sky_fractions[c] = static_cast<float>(counts[c]) / static_cast<float>(dense);
-    }
+    decode_masks(**sky, **layer, dh, dw, dense, p);
     const auto cbh = need(kOutputNames[5], static_cast<std::size_t>(card.cbh_bins()) + 1);
     if (!cbh) {
         return fail(cbh.error());
     }
     p.cbh_probs = (*cbh)->data;
-    p.p_cloud_overhead = 1.0 - p.cbh_probs.back();
+    p.p_cloud_overhead = 1.0 - static_cast<double>(p.cbh_probs.back());
     p.cbh = cbh_estimate(p.cbh_probs, card);
     const auto ood = need(kOutputNames[6], 1);
     if (!ood) {
@@ -240,7 +256,7 @@ Expected<Prediction> decode_outputs(const std::vector<hal::Tensor>& outputs, con
         const double luminance = picture->channels() >= 3 ? (mean[0] + mean[1] + mean[2]) / 3.0 : mean[0];
         p.night = luminance / 255.0 < kNightLuminance;
     }
-    p.uncertain = p.night || p.ood_score > card.ood_threshold;
+    p.uncertain = p.night || static_cast<double>(p.ood_score) > card.ood_threshold;
     return p;
 }
 
@@ -285,15 +301,15 @@ Expected<void> InferenceService::load(const std::filesystem::path& package_path,
     auto package = open_model_package(package_path);
     if (!package) {
         const std::lock_guard lock(mutex_);
-        status_ = {.message = package.error().to_string()};
+        status_ = status_with_message(package.error().to_string());
         return fail(package.error());
     }
     const std::vector<std::string> candidates = engine_candidates(registry, settings.provider);
     if (candidates.empty()) {
         const std::lock_guard lock(mutex_);
-        status_ = {.message = onnx_runtime_available()
-                                  ? fmt::format("no inference engine offers provider '{}'", settings.provider)
-                                  : "this build has no ONNX Runtime"};
+        status_ = status_with_message(onnx_runtime_available()
+                                          ? fmt::format("no inference engine offers provider '{}'", settings.provider)
+                                          : "this build has no ONNX Runtime");
         return fail(ErrorCode::Unavailable, status_.message);
     }
     std::string reasons;
@@ -317,7 +333,7 @@ Expected<void> InferenceService::load(const std::filesystem::path& package_path,
         reasons += fmt::format("{}: {}; ", id, loaded.error().message);
     }
     const std::lock_guard lock(mutex_);
-    status_ = {.message = "no engine could run the model: " + reasons};
+    status_ = status_with_message("no engine could run the model: " + reasons);
     return fail(ErrorCode::Unavailable, status_.message);
 }
 
@@ -424,7 +440,7 @@ void InferenceService::unload()
         engine = std::move(engine_);
         package_.reset();
         pending_.reset();
-        status_ = {.message = "no model loaded"};
+        status_ = status_with_message("no model loaded");
     }
     if (engine) {
         engine->close();

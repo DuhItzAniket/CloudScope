@@ -56,8 +56,8 @@
     },
     {
       "file": "stratia/model_card.json",
-      "bytes": 3007,
-      "sha256": "fc046c9ab8d1056713a1d9f681ee2252635b78b4a4642607bc5935443f76d866",
+      "bytes": 2874,
+      "sha256": "105075371e8a223762887a86075b126d7ecd9c557c7369b453d53764d336a364",
       "format": "JSON",
       "shows": "the model card of the dummy model (stratia-contract v1.0, validated against schemas/model_card.schema.json)",
       "source": "STRATIA repository, scripts/export_onnx.py --dummy (P096, dummy card with folded temperatures, P096)",
@@ -65,8 +65,8 @@
     },
     {
       "file": "stratia/reference.json",
-      "bytes": 6188,
-      "sha256": "e91a11436f56263107ba1916dfdfa080bfcf102aaa9dba858e94b08bfb0c406f",
+      "bytes": 5883,
+      "sha256": "341da9c9d71dcfa1bd4ad7027bf90763b80612ce63f8e7f351af2f492da5ffb6",
       "format": "JSON",
       "shows": "reference outputs of the dummy model on ONNX Runtime CPU for closed-form inputs (STRATIA scripts/make_contract_reference.py); the P066 engine must match them to 1e-4",
       "source": "STRATIA repository, scripts/make_contract_reference.py (P096)",
@@ -74,8 +74,8 @@
     },
     {
       "file": "stratia/ray_map_reference.json",
-      "bytes": 64674,
-      "sha256": "da83d4c550f1562c7265685c33a5dfc7998ba831f6a9ed48d8f8a4d46db55c2a",
+      "bytes": 64673,
+      "sha256": "ae78199701ee87d5d809ed5dcc1da020d6ee0ae64a5dd5da1c647859c50936f7",
       "format": "JSON",
       "shows": "contract ray maps of the nominal B0268 camera for two poses in CloudScope's convention, from STRATIA's reference implementation (P067 cross-repository vectors, tolerance 1e-5)",
       "source": "STRATIA repository, scripts/make_ray_map_reference.py (P096)",

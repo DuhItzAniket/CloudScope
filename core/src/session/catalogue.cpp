@@ -673,14 +673,14 @@ Expected<std::int64_t> Catalogue::add_ai_result(const AiResultEntry& result)
     query.addBindValue(result.cover_fraction);
     query.addBindValue(result.genus_top);
     query.addBindValue(result.genus_prob);
-    for (double p : result.etage_probs) {
+    for (const double p : result.etage_probs) {
         query.addBindValue(p);
     }
     query.addBindValue(result.p_cloud_overhead);
     query.addBindValue(optional_variant(result.cbh_median_m));
     query.addBindValue(optional_variant(result.cbh_low_80_m));
     query.addBindValue(optional_variant(result.cbh_high_80_m));
-    for (double f : result.sky_fractions) {
+    for (const double f : result.sky_fractions) {
         query.addBindValue(f);
     }
     query.addBindValue(result.ood_score);

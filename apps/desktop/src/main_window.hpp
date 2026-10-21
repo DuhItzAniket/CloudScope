@@ -116,6 +116,7 @@ private:
     void build_docks();
     void build_menus();
     void connect_parts();
+    void connect_ai_parts();  // the STRATIA panel, controller, timelines and dialog
     void apply_theme_to_parts();
     void update_camera_status();
     void update_overlay_sources();

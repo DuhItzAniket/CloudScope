@@ -94,22 +94,21 @@ QImage ai_overlay_image(const ai::Prediction& prediction, const AiOverlaySetting
     for (int y = 0; y < sky.rows; ++y) {
         const auto* row = sky.ptr<std::uint8_t>(y);
         const std::uint8_t* layer_row = layers ? prediction.layer.ptr<std::uint8_t>(y) : nullptr;
-        auto* out = reinterpret_cast<QRgb*>(image.scanLine(y));
         for (int x = 0; x < sky.cols; ++x) {
             switch (row[x]) {
             case 0:
-                out[x] = invalid;
+                image.setPixel(x, y, invalid);
                 break;
             case 2:
                 if (layers && layer_row[x] < 3) {
-                    out[x] = layer_colours[layer_row[x]];
+                    image.setPixel(x, y, layer_colours[layer_row[x]]);
                 } else if (settings.masks) {
-                    out[x] = cloud;
+                    image.setPixel(x, y, cloud);
                 }
                 break;
             case 3:
                 if (settings.masks) {
-                    out[x] = glare;
+                    image.setPixel(x, y, glare);
                 }
                 break;
             default:

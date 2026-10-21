@@ -18,7 +18,6 @@
 
 #include <opencv2/imgcodecs.hpp>
 
-#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -67,24 +66,24 @@ int run(int argc, char** argv)
                                     QStringLiteral("file"));
     parser.addOptions({model, provider, runs, warmup, threads, width, height, picture, json, report});
     if (!parser.parse(QCoreApplication::arguments())) {
-        std::fprintf(stderr, "%s\nTry 'cloudscope-aibench --help'.\n", parser.errorText().toUtf8().constData());
+        std::cerr << parser.errorText().toStdString() << "\nTry 'cloudscope-aibench --help'.\n";
         return 2;
     }
     if (parser.isSet(help)) {
         parser.showHelp(0);
     }
     if (!parser.isSet(model)) {
-        std::fprintf(stderr, "--model is required.\nTry 'cloudscope-aibench --help'.\n");
+        std::cerr << "--model is required.\nTry 'cloudscope-aibench --help'.\n";
         return 2;
     }
     auto package = ai::open_model_package(path_of(parser.value(model)));
     if (!package) {
-        std::fprintf(stderr, "%s\n", package.error().to_string().c_str());
+        std::cerr << package.error().to_string() << '\n';
         return 2;
     }
     hal::DeviceRegistry registry;
     if (auto added = registry.add_driver(ai::OnnxDriver::make(parser.value(threads).toInt())); !added) {
-        std::fprintf(stderr, "%s\n", added.error().to_string().c_str());
+        std::cerr << added.error().to_string() << '\n';
         return 3;
     }
     ai::BenchmarkOptions options;
@@ -97,13 +96,13 @@ int run(int argc, char** argv)
     if (parser.isSet(picture)) {
         frame = cv::imread(path_of(parser.value(picture)).string(), cv::IMREAD_COLOR);
         if (frame.empty()) {
-            std::fprintf(stderr, "could not read the picture %s\n", parser.value(picture).toUtf8().constData());
+            std::cerr << "could not read the picture " << parser.value(picture).toStdString() << '\n';
             return 2;
         }
     }
     auto result = ai::benchmark_model(*package, registry, options, frame.empty() ? nullptr : &frame);
     if (!result) {
-        std::fprintf(stderr, "%s\n", result.error().to_string().c_str());
+        std::cerr << result.error().to_string() << '\n';
         return 1;
     }
     if (parser.isSet(json)) {
@@ -115,7 +114,7 @@ int run(int argc, char** argv)
         std::ofstream out(path_of(parser.value(report)));
         out << ai::benchmark_markdown(*result);
         if (!out) {
-            std::fprintf(stderr, "could not write %s\n", parser.value(report).toUtf8().constData());
+            std::cerr << "could not write " << parser.value(report).toStdString() << '\n';
             return 3;
         }
     }
@@ -131,7 +130,7 @@ int main(int argc, char** argv)
     try {
         return run(argc, argv);
     } catch (const std::exception& error) {
-        std::fprintf(stderr, "cloudscope-aibench: %s\n", error.what());
+        std::cerr << "cloudscope-aibench: " << error.what() << '\n';
         return 3;
     }
 }

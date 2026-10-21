@@ -32,6 +32,9 @@ AiModelsDialog::AiModelsDialog(std::filesystem::path store_root, const hal::Devi
       store_(std::move(store_root)),
       registry_(registry),
       ui_(this),
+      table_(new QTableWidget(0, 5, this)),
+      message_(new QLabel(this)),
+      output_(new QPlainTextEdit(this)),
       worker_(std::make_unique<ThreadPool>("ai-benchmark", 1))
 {
     setWindowTitle(tr("STRATIA models"));
@@ -39,7 +42,6 @@ AiModelsDialog::AiModelsDialog(std::filesystem::path store_root, const hal::Devi
     resize(820, 560);
     auto* layout = new QVBoxLayout(this);
     layout->addWidget(new QLabel(tr("Installed models in %1").arg(folder_text(store_.root())), this));
-    table_ = new QTableWidget(0, 5, this);
     table_->setAccessibleName(tr("Installed models"));
     table_->setHorizontalHeaderLabels({tr("Model"), tr("Version"), tr("Active"), tr("Installed"), tr("Checksum")});
     table_->horizontalHeader()->setStretchLastSection(true);
@@ -65,11 +67,9 @@ AiModelsDialog::AiModelsDialog(std::filesystem::path store_root, const hal::Devi
     }
     buttons->addStretch(1);
     layout->addLayout(buttons);
-    message_ = new QLabel(this);
     message_->setWordWrap(true);
     message_->setAccessibleName(tr("Models message"));
     layout->addWidget(message_);
-    output_ = new QPlainTextEdit(this);
     output_->setReadOnly(true);
     output_->setAccessibleName(tr("Benchmark result"));
     output_->setPlaceholderText(tr("The benchmark table appears here"));
@@ -129,9 +129,14 @@ void AiModelsDialog::refresh()
                         new QTableWidgetItem(text(model.onnx_sha256.substr(0, 12)) +
                                              (model.checksum_declared ? tr(" (declared)") : tr(" (computed)"))));
     }
-    const auto previous = store_.previous();
-    message_->setText(previous && *previous ? tr("Previous model: %1 (Roll back returns to it)").arg(text(**previous))
-                                            : tr("No previous model to roll back to"));
+    QString previous_text = tr("No previous model to roll back to");
+    if (const auto previous = store_.previous(); previous) {
+        const std::optional<std::string>& name = *previous;
+        if (name.has_value()) {
+            previous_text = tr("Previous model: %1 (Roll back returns to it)").arg(text(name.value()));
+        }
+    }
+    message_->setText(previous_text);
     if (selected) {
         select(*selected);
     } else if (table_->rowCount() > 0) {
@@ -194,9 +199,11 @@ Expected<void> AiModelsDialog::activate_selected()
         return done;
     }
     refresh();
-    const auto model = store_.find(*id);
-    if (model && *model) {
-        Q_EMIT activeModelChanged(folder_text((*model)->folder));
+    if (const auto model = store_.find(*id); model) {
+        const std::optional<ai::InstalledModel>& installed = *model;
+        if (installed.has_value()) {
+            Q_EMIT activeModelChanged(folder_text(installed.value().folder));
+        }
     }
     return {};
 }
@@ -207,9 +214,11 @@ Expected<void> AiModelsDialog::rollback()
         return done;
     }
     refresh();
-    const auto active = store_.active();
-    if (active && *active) {
-        Q_EMIT activeModelChanged(folder_text((*active)->folder));
+    if (const auto active = store_.active(); active) {
+        const std::optional<ai::InstalledModel>& installed = *active;
+        if (installed.has_value()) {
+            Q_EMIT activeModelChanged(folder_text(installed.value().folder));
+        }
     }
     return {};
 }
@@ -229,14 +238,19 @@ Expected<void> AiModelsDialog::remove_selected()
 
 std::optional<ai::InstalledModel> AiModelsDialog::benchmark_target() const
 {
-    if (const auto id = selected_id()) {
-        const auto found = store_.find(*id);
-        if (found && *found) {
-            return **found;
+    if (const auto id = selected_id(); id.has_value()) {
+        if (const auto found = store_.find(id.value()); found) {
+            const std::optional<ai::InstalledModel>& installed = *found;
+            if (installed.has_value()) {
+                return installed;
+            }
         }
     }
     const auto active = store_.active();
-    return active ? *active : std::nullopt;
+    if (!active) {
+        return std::nullopt;
+    }
+    return *active;
 }
 
 void AiModelsDialog::run_benchmark(const ai::BenchmarkOptions& options)

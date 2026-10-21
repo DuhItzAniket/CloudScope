@@ -52,19 +52,21 @@ std::shared_ptr<OnnxInference> cpu_engine()
 std::vector<hal::Tensor> reference_inputs(int size = 512, int patch = 16)
 {
     hal::Tensor image{.name = "image", .shape = {1, 3, size, size}, .data = {}};
-    image.data.resize(static_cast<std::size_t>(3) * size * size);
+    image.data.resize(static_cast<std::size_t>(3) * static_cast<std::size_t>(size) * static_cast<std::size_t>(size));
     for (int c = 0; c < 3; ++c) {
         for (int y = 0; y < size; ++y) {
             for (int x = 0; x < size; ++x) {
                 const int v = (7 * x + 13 * y + 29 * c) % 251;
-                image.data[(static_cast<std::size_t>(c) * size + y) * size + x] =
-                    static_cast<float>(v / 250.0 * 2.0 - 1.0);
+                image
+                    .data[(static_cast<std::size_t>(c) * static_cast<std::size_t>(size) + static_cast<std::size_t>(y)) *
+                              static_cast<std::size_t>(size) +
+                          static_cast<std::size_t>(x)] = static_cast<float>(v / 250.0 * 2.0 - 1.0);
             }
         }
     }
     const int g = size / patch;
     hal::Tensor rays{.name = "ray_map", .shape = {1, 4, g, g}, .data = {}};
-    rays.data.assign(static_cast<std::size_t>(4) * g * g, 0.0F);
+    rays.data.assign(static_cast<std::size_t>(4) * static_cast<std::size_t>(g) * static_cast<std::size_t>(g), 0.0F);
     for (int r = 0; r < g; ++r) {
         for (int col = 0; col < g; ++col) {
             if ((r + col) % 7 == 0) {
@@ -74,8 +76,9 @@ std::vector<hal::Tensor> reference_inputs(int size = 512, int patch = 16)
             const double dy = (r + 0.5) / g - 0.5;
             const double dz = 0.8;
             const double norm = std::sqrt(dx * dx + dy * dy + dz * dz);
-            const std::size_t at = static_cast<std::size_t>(r) * g + col;
-            const std::size_t plane = static_cast<std::size_t>(g) * g;
+            const std::size_t at =
+                static_cast<std::size_t>(r) * static_cast<std::size_t>(g) + static_cast<std::size_t>(col);
+            const std::size_t plane = static_cast<std::size_t>(g) * static_cast<std::size_t>(g);
             rays.data[at] = static_cast<float>(dx / norm);
             rays.data[plane + at] = static_cast<float>(dy / norm);
             rays.data[2 * plane + at] = static_cast<float>(dz / norm);
@@ -174,7 +177,7 @@ TEST_CASE("the dummy model declares the contract's tensors and matches the Pytho
         for (std::size_t c = 0; c < channels; ++c) {
             double sum = 0.0;
             for (std::size_t i = 0; i < h * w; ++i) {
-                sum += got.data[c * h * w + i];
+                sum += static_cast<double>(got.data[c * h * w + i]);
             }
             INFO(name << " channel " << c << " mean");
             CHECK_THAT(sum / static_cast<double>(h * w),
@@ -209,14 +212,14 @@ TEST_CASE("inputs are built as the card says and outputs decode into a predictio
     const double red = (200.0 / 255.0 - package.card.input.mean[0]) / package.card.input.std[0];
     CHECK_THAT(inputs[0].data[0], WithinAbs(red, 1e-5));
     const double blue = (30.0 / 255.0 - package.card.input.mean[2]) / package.card.input.std[2];
-    CHECK_THAT(inputs[0].data[2 * 512 * 512], WithinAbs(blue, 1e-5));
+    CHECK_THAT(inputs[0].data[std::size_t{2} * 512 * 512], WithinAbs(blue, 1e-5));
     for (float v : inputs[1].data) {
         CHECK(v == 0.0F);  // no geometry: an all-zero ray map
     }
 
     GeometryInputs geometry;
     geometry.valid = true;
-    geometry.ray_map.assign(4 * 32 * 32, 0.5F);
+    geometry.ray_map.assign(std::size_t{4} * 32 * 32, 0.5F);
     geometry.meta = {0.6F, 0.8F, 1.0F};
     const std::vector<hal::Tensor> with_geometry = make_inputs(picture, package.card, geometry);
     CHECK(with_geometry[1].data[7] == 0.5F);
@@ -231,7 +234,7 @@ TEST_CASE("inputs are built as the card says and outputs decode into a predictio
     oktas[3] = 0.6F;
     oktas[4] = 0.4F;
     outputs.push_back({.name = "oktas_probs", .shape = {1, 9}, .data = oktas});
-    const std::size_t dense = 128 * 128;
+    const std::size_t dense = std::size_t{128} * 128;
     std::vector<float> sky(4 * dense, 0.0F);
     for (std::size_t i = 0; i < dense; ++i) {
         sky[(i < dense / 2 ? 1 : 2) * dense + i] = 5.0F;  // top half sky, bottom half cloud
@@ -273,7 +276,7 @@ TEST_CASE("inputs are built as the card says and outputs decode into a predictio
     CHECK(prediction->cbh->low_95_m <= prediction->cbh->low_80_m);
     CHECK(prediction->cbh->high_95_m >= prediction->cbh->high_80_m);
     CHECK_FALSE(prediction->night);
-    CHECK(prediction->uncertain == (0.5F > package.card.ood_threshold));
+    CHECK(prediction->uncertain == (0.5 > package.card.ood_threshold));
 
     outputs.back().data = {static_cast<float>(package.card.ood_threshold + 1.0)};
     CHECK(decode_outputs(outputs, package.card, &picture)->uncertain);

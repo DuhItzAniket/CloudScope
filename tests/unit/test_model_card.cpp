@@ -71,7 +71,7 @@ TEST_CASE("STRATIA's dummy model card loads, validates and keeps its numbers", "
     CHECK_THAT(card->cbh_bin_edges_m.back(), Catch::Matchers::WithinAbs(12000.0, 1e-9));
     CHECK(card->calibration.folded_into_graph);
     CHECK(card->calibration.temperatures.at("genus") > 1.0);
-    CHECK(card->licences.size() >= 1);
+    CHECK_FALSE(card->licences.empty());
     CHECK(card->training_data.size() == 1);
     CHECK(card->expected_outputs()[5].shape == std::vector<std::int64_t>{-1, 25});
 }

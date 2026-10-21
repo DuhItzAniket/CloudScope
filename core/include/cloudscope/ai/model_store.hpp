@@ -58,7 +58,8 @@ private:
     };
     [[nodiscard]] Expected<ActiveState> read_active() const;
     [[nodiscard]] Expected<void> write_active(const ActiveState& state) const;
-    [[nodiscard]] Expected<InstalledModel> read_installed(const std::filesystem::path& folder) const;
+    [[nodiscard]] static Expected<InstalledModel> read_installed(const std::filesystem::path& folder);
+    [[nodiscard]] Expected<InstalledModel> installed(const std::string& id) const;  // NotFound when absent
 
     std::filesystem::path root_;
 };

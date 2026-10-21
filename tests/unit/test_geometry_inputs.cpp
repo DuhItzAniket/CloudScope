@@ -78,8 +78,11 @@ TEST_CASE("the ray map matches STRATIA's reference vectors for the nominal B0268
     const nlohmann::json reference = nlohmann::json::parse(in);
     const CameraModel model = nominal_b0268();
     CHECK(model.width == 4656);
-    const RayMapSpec spec{
-        .height = reference.at("size"), .width = reference.at("size"), .patch = reference.at("patch")};
+    const RayMapSpec spec{.height = reference.at("size"),
+                          .width = reference.at("size"),
+                          .patch = reference.at("patch"),
+                          .min_elevation_deg = 0.0,
+                          .mask_subgrid = 4};
     for (const nlohmann::json& c : reference.at("cases")) {
         INFO(c.at("name").get<std::string>());
         const Quaternion pose = cloudscope_pose(c.at("azimuth_deg"), c.at("elevation_deg"), c.at("roll_deg"));
@@ -89,7 +92,7 @@ TEST_CASE("the ray map matches STRATIA's reference vectors for the nominal B0268
         sun.elevation_deg = sun.apparent_elevation_deg;
         const GeometryInputs inputs = geometry_inputs(&model, &pose, &sun, spec);
         REQUIRE(inputs.valid);
-        REQUIRE(inputs.ray_map.size() == 4 * 32 * 32);
+        REQUIRE(inputs.ray_map.size() == std::size_t{4} * 32 * 32);
         const nlohmann::json& want = c.at("ray_map");
         std::size_t valid = 0;
         double worst = 0.0;
@@ -122,7 +125,7 @@ TEST_CASE("unknown geometry gives the all-zero inputs; a mask and a horizon limi
 
     const GeometryInputs none = geometry_inputs(nullptr, &pose, &sun);
     CHECK_FALSE(none.valid);
-    CHECK(none.ray_map.size() == 4 * 32 * 32);
+    CHECK(none.ray_map.size() == std::size_t{4} * 32 * 32);
     for (float v : none.ray_map) {
         CHECK(v == 0.0F);
     }
@@ -134,8 +137,8 @@ TEST_CASE("unknown geometry gives the all-zero inputs; a mask and a horizon limi
     REQUIRE(all.valid);
     std::size_t valid_all = 0;
     for (std::size_t i = 0; i < 1024; ++i) {
-        valid_all += all.ray_map[3 * 1024 + i] > 0.5F ? 1 : 0;
-        if (all.ray_map[3 * 1024 + i] > 0.5F) {
+        valid_all += all.ray_map[std::size_t{3} * 1024 + i] > 0.5F ? std::size_t{1} : std::size_t{0};
+        if (all.ray_map[std::size_t{3} * 1024 + i] > 0.5F) {
             const double n = std::hypot(all.ray_map[i], all.ray_map[1024 + i], all.ray_map[2048 + i]);
             CHECK_THAT(n, WithinAbs(1.0, 1e-5));  // unit directions
         }
@@ -148,22 +151,22 @@ TEST_CASE("unknown geometry gives the all-zero inputs; a mask and a horizon limi
     const GeometryInputs masked = geometry_inputs(&model, &pose, &sun, {}, &mask);
     std::size_t valid_masked = 0;
     for (std::size_t i = 0; i < 1024; ++i) {
-        valid_masked += masked.ray_map[3 * 1024 + i] > 0.5F ? 1 : 0;
+        valid_masked += masked.ray_map[std::size_t{3} * 1024 + i] > 0.5F ? std::size_t{1} : std::size_t{0};
     }
     CHECK(valid_masked == 512);
-    CHECK(masked.ray_map[3 * 1024] == 0.0F);       // top-left patch: hidden
-    CHECK(masked.ray_map[3 * 1024 + 31] == 1.0F);  // top-right patch: visible
+    CHECK(masked.ray_map[std::size_t{3} * 1024] == 0.0F);       // top-left patch: hidden
+    CHECK(masked.ray_map[std::size_t{3} * 1024 + 31] == 1.0F);  // top-right patch: visible
 
     // a horizon limit removes the lowest directions of a tilted camera
     const Quaternion tilted = cloudscope_pose(180.0, 30.0, 0.0);
-    const RayMapSpec limited{.min_elevation_deg = 10.0};
+    const RayMapSpec limited{.height = 512, .width = 512, .patch = 16, .min_elevation_deg = 10.0, .mask_subgrid = 4};
     const GeometryInputs low = geometry_inputs(&model, &tilted, &sun, {});
     const GeometryInputs cut = geometry_inputs(&model, &tilted, &sun, limited);
     std::size_t valid_low = 0;
     std::size_t valid_cut = 0;
     for (std::size_t i = 0; i < 1024; ++i) {
-        valid_low += low.ray_map[3 * 1024 + i] > 0.5F ? 1 : 0;
-        valid_cut += cut.ray_map[3 * 1024 + i] > 0.5F ? 1 : 0;
+        valid_low += low.ray_map[std::size_t{3} * 1024 + i] > 0.5F ? std::size_t{1} : std::size_t{0};
+        valid_cut += cut.ray_map[std::size_t{3} * 1024 + i] > 0.5F ? std::size_t{1} : std::size_t{0};
     }
     CHECK(valid_cut < valid_low);
     CHECK(valid_cut > 0);

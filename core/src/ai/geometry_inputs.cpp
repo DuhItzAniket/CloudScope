@@ -45,7 +45,7 @@ std::vector<float> ray_map(const CameraModel& model, const Quaternion& camera_to
 {
     const int g_h = spec.height / spec.patch;
     const int g_w = spec.width / spec.patch;
-    const std::size_t plane = static_cast<std::size_t>(g_h) * g_w;
+    const std::size_t plane = static_cast<std::size_t>(g_h) * static_cast<std::size_t>(g_w);
     std::vector<float> out(4 * plane, 0.0F);
     const FullFrameAffine affine = full_frame_affine(model.width, model.height, spec.width, spec.height);
     const double half = (spec.patch - 1) / 2.0;
@@ -89,7 +89,8 @@ std::vector<float> ray_map(const CameraModel& model, const Quaternion& camera_to
             if (!(elevation >= spec.min_elevation_deg)) {
                 continue;
             }
-            const std::size_t at = static_cast<std::size_t>(r) * g_w + c;
+            const std::size_t at =
+                static_cast<std::size_t>(r) * static_cast<std::size_t>(g_w) + static_cast<std::size_t>(c);
             out[at] = static_cast<float>(aligned.x);
             out[plane + at] = static_cast<float>(aligned.y);
             out[2 * plane + at] = static_cast<float>(aligned.z);
@@ -103,7 +104,8 @@ GeometryInputs geometry_inputs(const CameraModel* model, const Quaternion* camer
                                const RayMapSpec& spec, const cv::Mat* mask)
 {
     GeometryInputs inputs;
-    const std::size_t count = static_cast<std::size_t>(4) * (spec.height / spec.patch) * (spec.width / spec.patch);
+    const std::size_t count = static_cast<std::size_t>(4) * static_cast<std::size_t>(spec.height / spec.patch) *
+                              static_cast<std::size_t>(spec.width / spec.patch);
     if (model == nullptr || camera_to_enu == nullptr || sun == nullptr || model->width <= 0 || model->height <= 0 ||
         !std::isfinite(sun->azimuth_deg) || !std::isfinite(sun->apparent_elevation_deg)) {
         inputs.ray_map.assign(count, 0.0F);
