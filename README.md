@@ -45,6 +45,7 @@ Runs on Windows/Linux laptops and Raspberry Pi 5. Microcontrollers (ESP32, Ardui
 | `tools/dev/` | Developer tools: formatting (`format.py`), static analysis (`tidy.py`) |
 | `packaging/licences/` | Reviewed table of third-party components and the licence policy (ADR-010) |
 | `.github/workflows/` | CI: Windows, Debian 13 (x64 and arm64), Ubuntu 26.04, Python tools |
+| `apps/aibench/` | `cloudscope-aibench`: STRATIA inference benchmark per execution provider (P070) |
 | `tools/sky_logger/` | Interim sky logger: start collecting sky images now ([README](tools/sky_logger/README.md)) |
 | `legacy/` | Frozen v0.1 AI-Day prototype (Python training scripts, Qt/QML desktop app, ONNX models, reports) |
 
