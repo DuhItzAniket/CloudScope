@@ -4,6 +4,30 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### P072 — Gate F — AI pipeline (2026-10-21)
+- Gate F (`docs/reviews/gate_F.md`): end-to-end on replayed B0268 frames and on the live camera with the exported STRATIA model; decision GO.
+
+### P071 — Model manager (2026-10-21)
+- Model store with checksums (`core/ai/model_store`): install with verification against the package's declared SHA-256, activate (loaded now and remembered in `ai.model_dir`), roll back to the previous model, remove; the Models dialog.
+
+### P070 — Inference benchmark tool (2026-10-21)
+- `cloudscope-aibench` and the dialog's Benchmark time a model on every execution provider (load, p50, p95, min, max); the laptop's report for the exported STRATIA model is `docs/reviews/ai_benchmark.md`.
+
+### P069 — AI logging & charts (2026-10-21)
+- Every result logged into the catalogue (`ai_results` table, with the session id while recording); the STRATIA timelines panel plots cover, cloud base with its 80 % band and the top genus, live or replayed from the catalogue.
+
+### P068 — AI overlays (2026-10-21)
+- The STRATIA panel (genus with confidence, étages, cover, cloud base with intervals, reliability), the mask and layer overlay with a headline badge on the live view, the AI menu and status-bar segment; uncertain results show the badge and hide the masks (FR-AI-06).
+
+### P067 — Metadata provider (2026-10-21)
+- Ray map and Sun metadata from the calibration, the pose and the Sun (`core/ai/geometry_inputs`), matching STRATIA's reference implementation on shared vectors for the nominal B0268 camera; unknown geometry is the all-zero tensor.
+
+### P066 — Inference engine (2026-10-21)
+- ONNX Runtime 1.24.4 fetched at configure time (Windows: the DirectML NuGet package with the CPU and DirectML providers; Linux: the CPU archive), `OnnxInference` devices per provider, `InferenceService` (first engine that loads the model in the order CUDA, DirectML, CPU; latest-frame-only at `ai.rate_hz`), input building and output decoding per the card; `[ai]` configuration section; outputs equal STRATIA's reference to 1e-4.
+
+### P065 — Contract implementation (2026-10-21)
+- Model cards and the stratia-contract v1 constants (`core/ai/contract`, `core/ai/model_card`): schema validation, contract checks (major version, class orders, input size, bin edges), model packages; STRATIA's dummy model, card, reference outputs and ray-map vectors as fixtures (`tests/data/stratia/`).
+
 ### P046 — Gate D — Workbench review (2026-10-12)
 - Gate D (`docs/reviews/gate_D.md`): the workbench against the SharpCap-class must-have list of P006: 14 of 14 items in the desktop stage's scope done with evidence; decision GO for Stage E.
 

@@ -58,6 +58,10 @@ The rules of the hardware interfaces are test functions in `tests/contract/hal_c
 - **Synthetic sky images** (`cloudscope/sim/synthetic_sky.hpp`) come with ground truth: cloud mask and fraction, Sun centre and radius, exact number of saturated pixels. Use them whenever a test needs to know the right answer, and for benchmarks at any resolution.
 - Real camera recordings are never committed.
 
+The STRATIA tests use the untrained dummy model `tests/data/stratia/stratia_dummy.onnx` (STRATIA P096) with its
+card and reference outputs; the real model is never in the repository. Tests that need ONNX Runtime skip in a
+build without it.
+
 ## Coverage
 
 Requirement NFR-MNT-03: at least 70 % of the lines of the core library are executed by the tests. CI measures this on every push (job *Coverage*: GCC, gcov, gcovr), fails below the threshold, and uploads the line-by-line HTML report as the artifact `cloudscope-coverage`. `python tools/ci/status.py` shows the figure.

@@ -50,5 +50,13 @@ One document per phase of [`../PLAN.md`](../PLAN.md), named `P###-<slug>.md` and
 | [P044](P044-ux-polish.md) | UX polish | DONE |
 | [P045](P045-ui-tests.md) | UI test automation | DONE |
 | [P046](P046-gate-d.md) | Gate D — Workbench review | DONE |
+| [P065](P065-contract-implementation.md) | Contract implementation | DONE |
+| [P066](P066-inference-engine.md) | Inference engine | DONE |
+| [P067](P067-metadata-provider.md) | Metadata provider | DONE |
+| [P068](P068-ai-overlays.md) | AI overlays | DONE |
+| [P069](P069-ai-logging-charts.md) | AI logging & charts | DONE |
+| [P070](P070-inference-benchmark.md) | Inference benchmark tool | DONE |
+| [P071](P071-model-manager.md) | Model manager | DONE |
+| [P072](P072-gate-f.md) | Gate F — AI pipeline | DONE |
 
 The prototype's own 40 phase reports are archived in [`../../legacy/history/`](../../legacy/history/).
