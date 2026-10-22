@@ -43,6 +43,8 @@ sessions/
 *.onnx
 !legacy/models/cloudscope_b0268_expa3.onnx
 !legacy/models/cloudscope_seg_v2.onnx
+# STRATIA's untrained dummy model: the host contract fixture (P065)
+!tests/data/stratia/stratia_dummy.onnx
 
 # ---------- Legacy (v0.1-aiday) generated data ----------
 legacy/data/raw/
