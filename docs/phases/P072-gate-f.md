@@ -33,8 +33,10 @@ had passed 0, the integrated GPU) and the timed provider check that keeps a GPU 
   their configurations; the mixed listing accepts the `onnx` driver).
 - `python tools/dev/format.py --check`: all formatted; `tools/ci/licence_check.py windows` on the Release
   binaries: PASS (ONNX Runtime and DirectML listed).
-- CI after the push: the run of this push is recorded in PROJECT_STATE.md (Last CI result checked) once it has
-  finished.
+- CI after the push: run 27 (ce79df4) was red on nine jobs; three follow-ups fixed it (fixture line endings and
+  GCC/clang-tidy strictness, the dummy model fixture that `.gitignore` had kept out of the repository, GCC 14's
+  `-Wnull-dereference` in Release and the thread sanitizer with a loaded model). Run 30 on `681858d`: all ten jobs
+  green (recorded in PROJECT_STATE.md, Last CI result checked).
 
 ## Exit criteria
 - [x] Signed: decision GO in `docs/reviews/gate_F.md` (owner sign-off at the demo).
