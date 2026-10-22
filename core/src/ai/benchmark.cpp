@@ -22,17 +22,17 @@ double ms_since(std::chrono::steady_clock::time_point since)
     return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - since).count();
 }
 
-double percentile(std::vector<double> values, double fraction)
+// Linear interpolation between the neighbouring order statistics of an ascending vector.
+double percentile(const std::vector<double>& sorted, double fraction)
 {
-    if (values.empty()) {
+    if (sorted.empty()) {
         return 0.0;
     }
-    std::ranges::sort(values);
-    const double position = fraction * static_cast<double>(values.size() - 1);
+    const double position = fraction * static_cast<double>(sorted.size() - 1);
     const auto low = static_cast<std::size_t>(std::floor(position));
-    const auto high = std::min(low + 1, values.size() - 1);
+    const auto high = std::min(low + 1, sorted.size() - 1);
     const double t = position - static_cast<double>(low);
-    return values[low] + t * (values[high] - values[low]);
+    return sorted[low] + t * (sorted[high] - sorted[low]);
 }
 
 }  // namespace
@@ -122,13 +122,15 @@ Expected<BenchmarkReport> benchmark_model(const ModelPackage& package, const hal
             times.push_back(ms_since(started));
         }
         if (!failed && !times.empty()) {
+            // Sorted in place: a copy of the vector here is flagged by GCC 14's -Wnull-dereference at -O3.
+            std::ranges::sort(times);
             row.ok = true;
             row.runs = static_cast<int>(times.size());
             row.mean_ms = std::accumulate(times.begin(), times.end(), 0.0) / static_cast<double>(times.size());
             row.p50_ms = percentile(times, 0.5);
             row.p95_ms = percentile(times, 0.95);
-            row.min_ms = *std::ranges::min_element(times);
-            row.max_ms = *std::ranges::max_element(times);
+            row.min_ms = times.front();
+            row.max_ms = times.back();
         }
         (*engine)->close();
         report.rows.push_back(row);

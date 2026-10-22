@@ -26,9 +26,15 @@ extern "C" const char* __tsan_default_suppressions()
     //     on the UI thread stays checked.
     //
     // ONNX Runtime (P066) brings its own thread pool and is not built with the sanitizer: calls from inside it are
-    // ignored like TBB's; CloudScope's inference service around it stays checked.
+    // ignored like TBB's; CloudScope's inference service around it stays checked. One consequence (CI run 29, the
+    // first with a model loaded): a pool thread takes a std::mutex inside the library, which is ignored, and then
+    // waits on a std::condition_variable through libstdc++'s out-of-line wait, which the sanitizer does see; it
+    // reports "unlock of an unlocked mutex" for a lock it never saw taken, and the job halts on the first report.
+    // The report shows only the libstdc++ frame (the pool thread runs no instrumented code), so the suppression
+    // names that function: mutex misuse at a condition variable wait is not reported. Data races stay reported.
     return "called_from_lib:libtbb.so\n"
            "called_from_lib:libonnxruntime.so\n"
+           "mutex:std::condition_variable::wait\n"
            "called_from_lib:libQt6Core.so\n"
            "called_from_lib:libQt6Gui.so\n"
            "race:*QtPrivate::QCallableObject*\n"

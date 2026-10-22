@@ -17,10 +17,14 @@ namespace cloudscope::ai {
 
 namespace {
 
-std::string json_text(const std::filesystem::path& file)
+// The first line of a text file, empty when it cannot be read. (Reading the whole file through
+// std::istreambuf_iterator trips GCC 14's -Wnull-dereference at -O3; getline stays in libstdc++.)
+std::string first_line(const std::filesystem::path& file)
 {
     std::ifstream in(file);
-    return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+    std::string line;
+    std::getline(in, line);
+    return line;
 }
 
 Expected<nlohmann::json> read_json(const std::filesystem::path& file)
@@ -62,7 +66,7 @@ std::optional<std::string> declared_checksum(const ModelPackage& package)
 {
     const std::filesystem::path sidecar = package.model_file.string() + ".sha256";
     if (std::filesystem::is_regular_file(sidecar)) {
-        const std::string text = trim(json_text(sidecar));
+        const std::string text = trim(first_line(sidecar));
         const auto space = text.find_first_of(" \t");
         return text.substr(0, space == std::string::npos ? text.size() : space);
     }
