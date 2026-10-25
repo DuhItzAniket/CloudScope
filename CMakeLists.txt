@@ -33,6 +33,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+# Every executable copies the Qt DLLs next to itself after linking (cmake/CloudScopeRuntime.cmake), into that one
+# shared folder. Ninja links in parallel, so two of those copies can meet on the same DLL, and on Windows the
+# second one fails to open it ("permission denied" on Qt6Widgetsd.dll, CI run 32 on a documentation-only commit).
+# Linking one executable at a time keeps the post-build copies apart; compiling stays parallel.
+if(WIN32 AND CMAKE_GENERATOR MATCHES "Ninja")
+  set_property(GLOBAL APPEND PROPERTY JOB_POOLS cloudscope_link=1)
+  set(CMAKE_JOB_POOL_LINK cloudscope_link)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CloudScopeArchitecture)
 include(CloudScopeCompilerOptions)
