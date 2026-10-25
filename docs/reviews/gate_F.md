@@ -72,3 +72,34 @@ Earlier, uncapped runs of the same pipeline logged 700 replayed results in 13 mi
 
 GO: the AI pipeline runs end to end on recorded sequences and on the live camera, with honest states and logged
 results; the demo configuration is the one used here (`[ai] model_dir`, calibration file, site), on the RTX 4050.
+
+## Demo rehearsal (2026-10-25)
+
+Model `stratia-1.0.1-demo` (STRATIA P084: the Gate G4 heads adapted on the B0268 afternoons of 18, 19 and 21
+October; 1.0.0-demo kept in the store for *Roll back*), installed in the model store under the Pictures folder and
+remembered in the user `config.toml` with the nominal B0268 calibration, the BLR01 site, a zenith pointing and the
+19 October captures as the replay fallback. Release build, headless `--exit-after` runs on the laptop:
+
+| Run | Result |
+|---|---|
+| Model load | 1.0.1-demo on DirectML (RTX 4050); the provider check measured 37–51 ms against 184–225 ms on the CPU and kept the GPU |
+| Replay camera (`sim:camera:replay`, 19 Oct frames) | 79 frames at 2 fps, 4656 × 3496, 0 lost |
+| Live B0268 indoors | 1,108 frames at 27.8 fps, 1920 × 1080, 0 lost |
+| Live B0268 outdoors, 16:17 IST | 1,668 frames at 27.9 fps, 0 lost; Sun 22° up |
+
+Three full-resolution frames of that sky (an altocumulus / stratocumulus field with blue gaps and haze near the
+Sun, kept in `C:\CloudScopeCaptures\rehearsal`) through the installed graph: genus Cu 0.70 / Ci 0.6 / Ac 0.46,
+étages low 0.95 and high 0.8, cover 6 oktas (expected value 4.4, 52 % cloud pixels), cloud base about 500 m, no
+glare pixels, OOD score 0.4 against the threshold 1.50 (confident, no UNCERTAIN badge), stable across the three
+frames. One observation: `cloudscope-info --devices` twice omitted the Arducam while Windows listed it as present
+and the application opened it directly; the enumeration miss is transient, so start with the camera connected and
+use Camera > Refresh if it is missing (the open item above stands).
+
+Demo wording: the model is adapted to this camera on three afternoons; on those days it matches the raters'
+étage sets and cover closely, on an unseen day the evidence is weaker (STRATIA P084); the UNCERTAIN badge is the
+honest state on what it has not seen.
+
+## Owner sign-off
+
+- [ ] Signed by the owner at the AI-day demo: ______________ (date, initials)
+

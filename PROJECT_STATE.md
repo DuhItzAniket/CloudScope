@@ -4,7 +4,7 @@
 |---|---|
 | Current stage | Stage F — STRATIA integration (P065–P072) complete as of 2026-10-21 (Gate F: GO) for the AI-day demo of 2026-10-30; Stage E — Hardware control system (P047–P064) postponed at the owner's request (2026-10-16); Stage D complete (Gate D: GO); Stage C complete on the laptop (P032 PARTIAL); Stages A and B complete |
 | Last completed phase | P072 — Gate F — AI pipeline |
-| Next phase | AI-day demo (2026-10-30) with the B0268 and `models/stratia-1.0.0-demo`; then Stage E — P047 CSDP spec v1 when the owner returns to hardware; owner items of Stage C unchanged |
+| Next phase | AI-day demo (2026-10-30) with the B0268 and `stratia-1.0.1-demo` (STRATIA P084, installed in the model store; rehearsed 2026-10-25, `docs/reviews/gate_F.md`); owner sign-off of Gate F at the demo; then Stage E — P047 CSDP spec v1 when the owner returns to hardware; owner items of Stage C unchanged |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |
 | Last CI result checked | `681858d` (Stage F follow-up 3, run #30): all ten jobs green (Debian 13 x64 and arm64, Ubuntu 26.04 with Qt 6.10, Windows x64, address/undefined and thread sanitizers, coverage, format and static analysis, secret scan, Python tools) after three follow-up fixes (15cef39 fixture line endings and GCC/clang-tidy strictness, bdb4e3a the dummy model fixture that `.gitignore` had kept out of the repository, 681858d GCC 14 Release warnings and the thread sanitizer with a loaded model) |
