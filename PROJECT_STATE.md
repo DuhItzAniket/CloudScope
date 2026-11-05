@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Current stage | Stage F — STRATIA integration (P065–P072) complete as of 2026-10-21 (Gate F: GO) for the AI-day demo of 2026-10-30; Stage E — Hardware control system (P047–P064) postponed at the owner's request (2026-10-16); Stage D complete (Gate D: GO); Stage C complete on the laptop (P032 PARTIAL); Stages A and B complete |
-| Last completed phase | P072 — Gate F — AI pipeline |
+| Last completed phase | P072 — Gate F — AI pipeline; follow-up 2026-11-05: image-guided mask refinement and the Sun-glare rule (`core/ai/mask_refine`, after the owner found the drawn masks blocky and the glare parsed as cloud; `docs/reviews/mask_refine.md`) |
 | Next phase | AI-day demo (2026-10-30) with the B0268 and `stratia-1.0.1-demo` (STRATIA P084, installed in the model store; rehearsed 2026-10-25, `docs/reviews/gate_F.md`); owner sign-off of Gate F at the demo; then Stage E — P047 CSDP spec v1 when the owner returns to hardware; owner items of Stage C unchanged |
 | Branch | `master` |
 | Legacy prototype | `legacy/`, tag `v0.1-aiday` |

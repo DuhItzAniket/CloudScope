@@ -66,9 +66,13 @@ struct Prediction {
     double p_cloud_overhead = 0.0;
     std::optional<CbhEstimate> cbh;  // when p_cloud_overhead > 0.5
 
-    cv::Mat sky_parse;  // CV_8UC1 class index per pixel at H/4 x W/4 (kSkyParseClasses)
+    cv::Mat sky_parse;  // CV_8UC1 class index per pixel (kSkyParseClasses): the model's input size when refined,
+                        // else the model's H/4 x W/4
     cv::Mat layer;      // CV_8UC1 layer index (kLayerClasses) on cloud pixels, 255 elsewhere
     std::array<float, kSkyParseClasses.size()> sky_fractions{};
+    bool masks_refined = false;          // image-guided refinement applied (mask_refine.hpp)
+    std::optional<cv::Point> sun_pixel;  // where the glare rule found the Sun in the model's input, when it did
+    int glare_rule_pixels = 0;           // cloud pixels the glare rule turned into sun_glare
 
     float ood_score = 0.0F;
     bool uncertain = false;  // ood_score above the card's threshold, or a night frame (FR-AI-06)
@@ -98,13 +102,17 @@ struct ServiceStats {
     double last_run_ms = 0.0;
 };
 
-// Contract inputs for one picture (BGR or grey 8-bit), normalised as the card says.
+// Contract inputs for one picture (BGR or grey 8-bit), normalised as the card says. `input_rgb`, when given,
+// receives the 8-bit RGB picture at the card's input size (the host's guide for the mask refinement).
 [[nodiscard]] std::vector<hal::Tensor> make_inputs(const cv::Mat& picture, const ModelCard& card,
-                                                   const GeometryInputs& geometry);
+                                                   const GeometryInputs& geometry, cv::Mat* input_rgb = nullptr);
 
-// The seven outputs of one run, decoded. `night` is computed from `picture` when given.
+// The seven outputs of one run, decoded. `night` is computed from `picture` when given. With `input_rgb` (as
+// `make_inputs` returns it) the masks are refined to its size by the picture (mask_refine.hpp), and with the
+// frame's `geometry` the glare rule runs on them.
 [[nodiscard]] Expected<Prediction> decode_outputs(const std::vector<hal::Tensor>& outputs, const ModelCard& card,
-                                                  const cv::Mat* picture = nullptr);
+                                                  const cv::Mat* picture = nullptr, const cv::Mat* input_rgb = nullptr,
+                                                  const GeometryInputs* geometry = nullptr);
 
 // Median and intervals of the cloud-base distribution (conformal radii from the card, CDF units).
 [[nodiscard]] std::optional<CbhEstimate> cbh_estimate(const std::vector<float>& probs, const ModelCard& card);

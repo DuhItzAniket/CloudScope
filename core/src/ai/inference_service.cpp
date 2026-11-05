@@ -1,5 +1,6 @@
 #include "cloudscope/ai/inference_service.hpp"
 
+#include "cloudscope/ai/mask_refine.hpp"
 #include "cloudscope/common/log.hpp"
 
 #include <fmt/format.h>
@@ -91,9 +92,80 @@ void decode_masks(const hal::Tensor& sky, const hal::Tensor& layer, int dh, int 
     }
 }
 
+// Softmax over the classes of a [classes x dh x dw] tensor, one CV_32FC1 map per class.
+std::vector<cv::Mat> probability_maps(const hal::Tensor& logits, std::size_t classes, int dh, int dw)
+{
+    const auto dense = static_cast<std::size_t>(dh) * static_cast<std::size_t>(dw);
+    std::vector<cv::Mat> maps;
+    maps.reserve(classes);
+    for (std::size_t c = 0; c < classes; ++c) {
+        maps.emplace_back(dh, dw, CV_32FC1);
+    }
+    std::vector<float> scores(classes);
+    for (std::size_t i = 0; i < dense; ++i) {
+        float top = logits.data[i];
+        for (std::size_t c = 1; c < classes; ++c) {
+            top = std::max(top, logits.data[c * dense + i]);
+        }
+        float sum = 0.0F;
+        for (std::size_t c = 0; c < classes; ++c) {
+            scores[c] = std::exp(logits.data[c * dense + i] - top);
+            sum += scores[c];
+        }
+        const int y = static_cast<int>(i / static_cast<std::size_t>(dw));
+        const int x = static_cast<int>(i % static_cast<std::size_t>(dw));
+        for (std::size_t c = 0; c < classes; ++c) {
+            maps[c].ptr<float>(y)[x] = scores[c] / sum;
+        }
+    }
+    return maps;
+}
+
+// The masks at the model's input size, refined by the picture, and the glare rule when the geometry is known
+// (mask_refine.hpp); the fractions are recomputed over the refined mask.
+void refine_masks(const hal::Tensor& sky, const hal::Tensor& layer, int dh, int dw, const cv::Mat& input_rgb,
+                  const GeometryInputs* geometry, const ModelCard& card, Prediction& p)
+{
+    const MaskRefineSettings settings;
+    cv::Mat grey;
+    cv::cvtColor(input_rgb, grey, cv::COLOR_RGB2GRAY);
+    grey.convertTo(grey, CV_32F, 1.0 / 255.0);
+    const cv::Mat sky_fine = refine_classes(probability_maps(sky, kSkyParseClasses.size(), dh, dw), grey, settings);
+    const cv::Mat layer_fine = refine_classes(probability_maps(layer, kLayerClasses.size(), dh, dw), grey, settings);
+    constexpr int kCloud = 2;
+    p.sky_parse = sky_fine;
+    p.layer = cv::Mat(sky_fine.size(), CV_8UC1, cv::Scalar(255));
+    const cv::Mat on_cloud = sky_fine == kCloud;
+    layer_fine.copyTo(p.layer, on_cloud);
+    p.masks_refined = true;
+    p.sun_pixel.reset();
+    p.glare_rule_pixels = 0;
+    if (geometry != nullptr && geometry->valid && card.input.patch_size > 0) {
+        const RayField rays = ray_field(*geometry, card.input.height / card.input.patch_size,
+                                        card.input.width / card.input.patch_size, sky_fine.size());
+        const cv::Mat lum = luminance_of(input_rgb);
+        if (const auto sun = find_sun(lum, rays, *geometry, settings)) {
+            p.sun_pixel = *sun;
+            p.glare_rule_pixels = apply_glare_rule(p.sky_parse, lum, rays, *sun, settings);
+        }
+    }
+    std::array<std::size_t, kSkyParseClasses.size()> counts{};
+    for (int y = 0; y < p.sky_parse.rows; ++y) {
+        const auto* row = p.sky_parse.ptr<std::uint8_t>(y);
+        for (int x = 0; x < p.sky_parse.cols; ++x) {
+            ++counts[std::min<std::size_t>(row[x], counts.size() - 1)];
+        }
+    }
+    const auto total = static_cast<float>(p.sky_parse.total());
+    for (std::size_t c = 0; c < counts.size(); ++c) {
+        p.sky_fractions[c] = total > 0.0F ? static_cast<float>(counts[c]) / total : 0.0F;
+    }
+}
+
 }  // namespace
 
-std::vector<hal::Tensor> make_inputs(const cv::Mat& picture, const ModelCard& card, const GeometryInputs& geometry)
+std::vector<hal::Tensor> make_inputs(const cv::Mat& picture, const ModelCard& card, const GeometryInputs& geometry,
+                                     cv::Mat* input_rgb)
 {
     const int h = card.input.height;
     const int w = card.input.width;
@@ -109,6 +181,9 @@ std::vector<hal::Tensor> make_inputs(const cv::Mat& picture, const ModelCard& ca
     }
     if (rgb.depth() != CV_8U) {
         rgb.convertTo(rgb, CV_8U);
+    }
+    if (input_rgb != nullptr) {
+        *input_rgb = rgb;
     }
     hal::Tensor image{.name = std::string(kInputNames[0]), .shape = {1, 3, h, w}, .data = {}};
     image.data.resize(static_cast<std::size_t>(3) * static_cast<std::size_t>(h) * static_cast<std::size_t>(w));
@@ -179,7 +254,7 @@ std::optional<CbhEstimate> cbh_estimate(const std::vector<float>& probs, const M
 }
 
 Expected<Prediction> decode_outputs(const std::vector<hal::Tensor>& outputs, const ModelCard& card,
-                                    const cv::Mat* picture)
+                                    const cv::Mat* picture, const cv::Mat* input_rgb, const GeometryInputs* geometry)
 {
     Prediction p;
     p.model_name = card.model_name;
@@ -239,6 +314,10 @@ Expected<Prediction> decode_outputs(const std::vector<hal::Tensor>& outputs, con
         return fail(layer.error());
     }
     decode_masks(**sky, **layer, dh, dw, dense, p);
+    if (input_rgb != nullptr && !input_rgb->empty() && input_rgb->type() == CV_8UC3 &&
+        input_rgb->rows == card.input.height && input_rgb->cols == card.input.width) {
+        refine_masks(**sky, **layer, dh, dw, *input_rgb, geometry, card, p);
+    }
     const auto cbh = need(kOutputNames[5], static_cast<std::size_t>(card.cbh_bins()) + 1);
     if (!cbh) {
         return fail(cbh.error());
@@ -580,7 +659,8 @@ Expected<Prediction> InferenceService::run_locked_engine(const cv::Mat& picture,
         provider = status_.provider;
     }
     const auto started = std::chrono::steady_clock::now();
-    const std::vector<hal::Tensor> inputs = make_inputs(picture, *card, geometry);
+    cv::Mat input_rgb;
+    const std::vector<hal::Tensor> inputs = make_inputs(picture, *card, geometry, &input_rgb);
     const double preprocess_ms = now_ms(started);
     const auto run_started = std::chrono::steady_clock::now();
     auto outputs = engine->run(inputs);  // the engine serialises its own runs
@@ -588,7 +668,7 @@ Expected<Prediction> InferenceService::run_locked_engine(const cv::Mat& picture,
         return fail(outputs.error());
     }
     const double run_ms = now_ms(run_started);
-    auto prediction = decode_outputs(*outputs, *card, &picture);
+    auto prediction = decode_outputs(*outputs, *card, &picture, &input_rgb, &geometry);
     if (!prediction) {
         return fail(prediction.error());
     }

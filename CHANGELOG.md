@@ -4,6 +4,9 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### Mask refinement and glare rule — follow-up to P068 (2026-11-05)
+- `core/ai/mask_refine`: the sky-parse and layer masks are upsampled to the model's input size and refined with a guided filter on the picture (edges follow the clouds, not the 128 × 128 grid); with the geometry known, the Sun is found on the ring of its zenith angle and saturated cloud pixels within 25° of it are shown as Sun glare (the learned glare class never fired on the B0268). `Prediction` carries `masks_refined`, `sun_pixel` and `glare_rule_pixels`; the logged fractions are those of the refined mask. Unit tests in `tests/unit/test_mask_refine.cpp`; manual section "How the masks are drawn".
+
 ### P072 — Gate F — AI pipeline (2026-10-21)
 - Gate F (`docs/reviews/gate_F.md`): end-to-end on replayed B0268 frames and on the live camera with the exported STRATIA model; decision GO.
 

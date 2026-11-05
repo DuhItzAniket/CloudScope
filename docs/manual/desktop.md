@@ -63,6 +63,13 @@ The STRATIA panel (View > Panels > STRATIA) runs the cloud model on the live fra
   cover in oktas with the expected percentage, the cloud-base height with its 80 % and 95 % intervals, and the
   reliability. On the live view, the masks (cloud white, Sun glare orange, invalid dark; cloud layers in colour
   with *Cloud layers* on) are drawn over the picture, with a badge giving the headline result.
+- **How the masks are drawn.** The model answers at a quarter of its 512 px input (128 × 128); the application
+  upsamples each class probability to 512 × 512 and refines it with a guided filter that uses the picture itself
+  as the guide, so that the drawn edges follow the clouds rather than the grid. With the geometry known (a
+  calibration, the site and the pointing) a *glare rule* also runs: the Sun is located as the brightest plateau on
+  the ring of its zenith angle, and cloud pixels within 25° of it that are saturated are shown as Sun glare, not
+  cloud — the learned glare class does not fire on every camera. Both are presentation steps in the application;
+  the logged fractions are those of the refined mask, and STRATIA's own reported numbers are unchanged.
 - **Uncertain results.** When the model's reliability score is above the card's threshold, or the frame is a
   night frame, the result is marked **UNCERTAIN**: the badge says so and the masks are hidden unless *Show masks
   of uncertain results too* is on. An uncertain result is still logged, flagged.

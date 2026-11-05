@@ -19,6 +19,7 @@ add_library(cloudscope_core STATIC
   include/cloudscope/ai/contract.hpp
   include/cloudscope/ai/geometry_inputs.hpp
   include/cloudscope/ai/inference_service.hpp
+  include/cloudscope/ai/mask_refine.hpp
   include/cloudscope/ai/model_card.hpp
   include/cloudscope/ai/model_store.hpp
   include/cloudscope/ai/onnx_engine.hpp
@@ -73,6 +74,7 @@ add_library(cloudscope_core STATIC
   src/ai/contract.cpp
   src/ai/geometry_inputs.cpp
   src/ai/inference_service.cpp
+  src/ai/mask_refine.cpp
   src/ai/model_card.cpp
   src/ai/model_store.cpp
   src/ai/onnx_engine.cpp

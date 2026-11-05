@@ -83,6 +83,7 @@ cloudscope_add_tests(cloudscope_unit_tests
     unit/test_intrinsics.cpp
     unit/test_json_schema.cpp
     unit/test_log.cpp
+    unit/test_mask_refine.cpp
     unit/test_model_card.cpp
     unit/test_onnx_engine.cpp
     unit/test_motion_profile.cpp
