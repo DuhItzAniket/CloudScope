@@ -34,33 +34,52 @@ float zenith_deg(const cv::Vec3f& direction)
 
 }  // namespace
 
+// The guide's own statistics (mean and variance over the window), shared by every map filtered with it.
+struct GuideStats {
+    cv::Mat mean;
+    cv::Mat var_eps;  // variance + eps
+    int radius = 0;
+};
+
+GuideStats guide_stats(const cv::Mat& guide, int radius, float eps)
+{
+    GuideStats stats;
+    stats.radius = radius;
+    stats.mean = box(guide, radius);
+    stats.var_eps = box(guide.mul(guide), radius) - stats.mean.mul(stats.mean) + static_cast<double>(eps);
+    return stats;
+}
+
+cv::Mat guided(const GuideStats& stats, const cv::Mat& guide, const cv::Mat& src)
+{
+    const cv::Mat mean_p = box(src, stats.radius);
+    const cv::Mat corr_ip = box(guide.mul(src), stats.radius);
+    const cv::Mat cov_ip = corr_ip - stats.mean.mul(mean_p);
+    cv::Mat a;
+    cv::divide(cov_ip, stats.var_eps, a);
+    const cv::Mat b = mean_p - a.mul(stats.mean);
+    cv::Mat out = box(a, stats.radius).mul(guide) + box(b, stats.radius);
+    return out;
+}
+
 cv::Mat guided_filter(const cv::Mat& guide, const cv::Mat& src, int radius, float eps)
 {
     CV_Assert(guide.type() == CV_32FC1 && src.type() == CV_32FC1 && guide.size() == src.size());
-    const cv::Mat mean_i = box(guide, radius);
-    const cv::Mat mean_p = box(src, radius);
-    const cv::Mat corr_i = box(guide.mul(guide), radius);
-    const cv::Mat corr_ip = box(guide.mul(src), radius);
-    const cv::Mat var_i = corr_i - mean_i.mul(mean_i);
-    const cv::Mat cov_ip = corr_ip - mean_i.mul(mean_p);
-    cv::Mat a;
-    cv::divide(cov_ip, var_i + static_cast<double>(eps), a);
-    const cv::Mat b = mean_p - a.mul(mean_i);
-    cv::Mat out = box(a, radius).mul(guide) + box(b, radius);
-    return out;
+    return guided(guide_stats(guide, radius, eps), guide, src);
 }
 
 cv::Mat refine_classes(const std::vector<cv::Mat>& probabilities, const cv::Mat& guide,
                        const MaskRefineSettings& settings)
 {
     CV_Assert(!probabilities.empty() && guide.type() == CV_32FC1);
+    const GuideStats stats = guide_stats(guide, settings.guide_radius_px, settings.guide_eps);
     std::vector<cv::Mat> refined;
     refined.reserve(probabilities.size());
     for (const cv::Mat& p : probabilities) {
         cv::Mat up;
         cv::resize(p, up, guide.size(), 0.0, 0.0, cv::INTER_LINEAR);
         for (int pass = 0; pass < std::max(settings.guide_passes, 1); ++pass) {
-            up = guided_filter(guide, up, settings.guide_radius_px, settings.guide_eps);
+            up = guided(stats, guide, up);
         }
         refined.push_back(up);
     }

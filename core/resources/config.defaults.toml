@@ -50,6 +50,8 @@ provider = "auto"
 rate_hz = 2.0
 # Threads of the CPU provider. 0: the runtime's default.
 threads = 0
+# Refine the drawn sky-parse and layer masks by the picture (guided filter) and apply the Sun-glare rule.
+refine_masks = true
 
 [desktop]
 # Theme of the desktop application: "dark", or "night" for the red night-vision theme.

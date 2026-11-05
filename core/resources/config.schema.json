@@ -124,6 +124,7 @@
         "model_dir",
         "provider",
         "rate_hz",
+        "refine_masks",
         "threads"
       ],
       "properties": {
@@ -149,6 +150,10 @@
           "type": "number",
           "minimum": 0.01,
           "maximum": 120
+        },
+        "refine_masks": {
+          "description": "Refine the drawn masks by the picture (guided filter) and apply the Sun-glare rule.",
+          "type": "boolean"
         },
         "threads": {
           "description": "Threads of the CPU provider; 0 for the runtime's default.",

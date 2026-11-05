@@ -52,6 +52,7 @@ The complete list of settings with their defaults is [`core/resources/config.def
 | `ai.provider` | `"auto"` | Execution provider: `auto` (CUDA, then DirectML, then CPU), `cuda`, `directml` or `cpu` |
 | `ai.rate_hz` | `2.0` | At most this many inferences per second; faster frames are dropped, never queued |
 | `ai.threads` | `0` | Threads of the CPU provider; 0 for the runtime's default |
+| `ai.refine_masks` | `true` | Refine the drawn sky-parse and layer masks by the picture (guided filter) and apply the Sun-glare rule; off shows the model's 128 × 128 masks as they are |
 | `desktop.theme` | `"dark"` | Theme of the desktop application: `dark`, or `night` for the red night-vision theme |
 | `desktop.renderer` | `"auto"` | Live-view renderer: `auto` (OpenGL when available), `opengl` or `raster` (software) |
 | `desktop.session_root` | `""` | Folder for sessions and the frame catalogue; empty means the Pictures folder, subfolder `CloudScope` |

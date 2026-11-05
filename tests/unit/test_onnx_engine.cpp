@@ -308,6 +308,9 @@ TEST_CASE("the service runs the dummy model on the best engine and never queues 
     AiSettings settings;
     settings.provider = "cpu";
     settings.rate_hz = 50.0;
+    std::mutex mutex;  // declared before the service so that the worker's last callback cannot outlive them
+    std::condition_variable ready;
+    std::vector<std::uint64_t> sequences;
     InferenceService service;
     CHECK_FALSE(service.status().loaded);
 
@@ -323,9 +326,6 @@ TEST_CASE("the service runs the dummy model on the best engine and never queues 
     CHECK(status.engine_id == "onnx:inference:cpu");
     REQUIRE(service.card().has_value());
 
-    std::mutex mutex;
-    std::condition_variable ready;
-    std::vector<std::uint64_t> sequences;
     service.set_callback([&](const std::shared_ptr<const Prediction>& p) {
         const std::lock_guard lock(mutex);
         sequences.push_back(p->frame.sequence);
@@ -377,10 +377,11 @@ TEST_CASE("the rate limit spaces inferences out", "[ai][service]")
     if (!onnx_runtime_available()) {
         SKIP("this build has no ONNX Runtime");
     }
+    std::mutex mutex;  // declared before the service so that the worker's last callback cannot outlive them
+    std::vector<std::chrono::steady_clock::time_point> times;
     InferenceService service;
     REQUIRE(outcome(service.load(dummy_package(), cpu_engine(), 5.0)) == "ok");  // at most one run per 200 ms
-    std::mutex mutex;
-    std::vector<std::chrono::steady_clock::time_point> times;
+    service.set_refine_masks(false);  // this test times the rate limit, not the mask refinement
     service.set_callback([&](const std::shared_ptr<const Prediction>&) {
         const std::lock_guard lock(mutex);
         times.push_back(std::chrono::steady_clock::now());
@@ -412,6 +413,7 @@ TEST_CASE("the [ai] configuration section is read and the engines are configured
     CHECK(settings->provider == "auto");
     CHECK_THAT(settings->rate_hz, WithinAbs(2.0, 1e-9));
     CHECK(settings->threads == 0);
+    CHECK(settings->refine_masks);
     CHECK(outcome(ai_settings(nlohmann::json::object())) == "InvalidArgument");
 
     hal::DeviceRegistry registry;

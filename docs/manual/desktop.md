@@ -68,8 +68,9 @@ The STRATIA panel (View > Panels > STRATIA) runs the cloud model on the live fra
   as the guide, so that the drawn edges follow the clouds rather than the grid. With the geometry known (a
   calibration, the site and the pointing) a *glare rule* also runs: the Sun is located as the brightest plateau on
   the ring of its zenith angle, and cloud pixels within 25° of it that are saturated are shown as Sun glare, not
-  cloud — the learned glare class does not fire on every camera. Both are presentation steps in the application;
-  the logged fractions are those of the refined mask, and STRATIA's own reported numbers are unchanged.
+  cloud — the learned glare class does not fire on every camera. Both are presentation steps in the application
+  (`ai.refine_masks = false` turns them off and shows the model's 128 × 128 masks as they are); the logged
+  fractions are those of the refined mask, and STRATIA's own reported numbers are unchanged.
 - **Uncertain results.** When the model's reliability score is above the card's threshold, or the frame is a
   night frame, the result is marked **UNCERTAIN**: the badge says so and the masks are hidden unless *Show masks
   of uncertain results too* is on. An uncertain result is still logged, flagged.

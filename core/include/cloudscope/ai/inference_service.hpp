@@ -148,6 +148,7 @@ public:
 
     void set_callback(Callback callback);  // called on the worker thread for every completed run
     void set_rate(double rate_hz);
+    void set_refine_masks(bool on);  // refine the masks by the picture and run the glare rule (default on)
 
     // Hands over the newest frame. Never blocks. Returns false when nothing is loaded.
     bool submit(std::shared_ptr<const cv::Mat> picture, const FrameInfo& info, GeometryInputs geometry);
@@ -178,6 +179,7 @@ private:
     std::chrono::steady_clock::duration min_interval_{};
     std::shared_ptr<const Prediction> latest_;
     std::atomic<bool> stopping_{false};
+    std::atomic<bool> refine_masks_{true};
     std::unique_ptr<ThreadPool> worker_;  // one thread; last member so it is joined first
 };
 

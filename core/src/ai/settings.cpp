@@ -28,6 +28,7 @@ Expected<AiSettings> ai_settings(const nlohmann::json& effective)
         settings.provider = ai.at("provider").get<std::string>();
         settings.rate_hz = ai.at("rate_hz").get<double>();
         settings.threads = ai.at("threads").get<int>();
+        settings.refine_masks = ai.at("refine_masks").get<bool>();
     } catch (const nlohmann::json::exception& error) {
         // The schema guarantees the keys; reaching this means the schema and this reader disagree.
         return fail(ErrorCode::Internal, fmt::format("ai settings: {}", error.what()));

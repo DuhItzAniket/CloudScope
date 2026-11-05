@@ -383,6 +383,7 @@ Expected<void> InferenceService::load(const std::filesystem::path& package_path,
         status_ = status_with_message(package.error().to_string());
         return fail(package.error());
     }
+    refine_masks_.store(settings.refine_masks);
     const std::vector<std::string> candidates = engine_candidates(registry, settings.provider);
     if (candidates.empty()) {
         const std::lock_guard lock(mutex_);
@@ -659,8 +660,9 @@ Expected<Prediction> InferenceService::run_locked_engine(const cv::Mat& picture,
         provider = status_.provider;
     }
     const auto started = std::chrono::steady_clock::now();
+    const bool refine = refine_masks_.load();
     cv::Mat input_rgb;
-    const std::vector<hal::Tensor> inputs = make_inputs(picture, *card, geometry, &input_rgb);
+    const std::vector<hal::Tensor> inputs = make_inputs(picture, *card, geometry, refine ? &input_rgb : nullptr);
     const double preprocess_ms = now_ms(started);
     const auto run_started = std::chrono::steady_clock::now();
     auto outputs = engine->run(inputs);  // the engine serialises its own runs
@@ -668,7 +670,7 @@ Expected<Prediction> InferenceService::run_locked_engine(const cv::Mat& picture,
         return fail(outputs.error());
     }
     const double run_ms = now_ms(run_started);
-    auto prediction = decode_outputs(*outputs, *card, &picture, &input_rgb, &geometry);
+    auto prediction = decode_outputs(*outputs, *card, &picture, refine ? &input_rgb : nullptr, &geometry);
     if (!prediction) {
         return fail(prediction.error());
     }
@@ -685,6 +687,11 @@ Expected<Prediction> InferenceService::run_now(const cv::Mat& picture, const Fra
                                                const GeometryInputs& geometry)
 {
     return run_locked_engine(picture, info, geometry);
+}
+
+void InferenceService::set_refine_masks(bool on)
+{
+    refine_masks_.store(on);
 }
 
 }  // namespace cloudscope::ai

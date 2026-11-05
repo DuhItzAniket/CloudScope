@@ -17,6 +17,7 @@ struct AiSettings {
     std::string provider = "auto";    // "auto" (CUDA, then DirectML, then CPU), "cuda", "directml" or "cpu"
     double rate_hz = 2.0;             // at most this many inferences per second (FR-AI-03)
     int threads = 0;                  // threads of the CPU provider; 0: the runtime's default
+    bool refine_masks = true;         // refine the drawn masks by the picture, glare rule (mask_refine.hpp)
 };
 
 [[nodiscard]] Expected<AiSettings> ai_settings(const nlohmann::json& effective);
