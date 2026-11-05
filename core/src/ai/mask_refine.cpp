@@ -32,8 +32,6 @@ float zenith_deg(const cv::Vec3f& direction)
     return std::acos(std::clamp(direction[2], -1.0F, 1.0F)) * kDegrees;
 }
 
-}  // namespace
-
 // The guide's own statistics (mean and variance over the window), shared by every map filtered with it.
 struct GuideStats {
     cv::Mat mean;
@@ -61,6 +59,8 @@ cv::Mat guided(const GuideStats& stats, const cv::Mat& guide, const cv::Mat& src
     cv::Mat out = box(a, stats.radius).mul(guide) + box(b, stats.radius);
     return out;
 }
+
+}  // namespace
 
 cv::Mat guided_filter(const cv::Mat& guide, const cv::Mat& src, int radius, float eps)
 {
@@ -124,10 +124,10 @@ RayField ray_field(const GeometryInputs& geometry, int grid_h, int grid_w, cv::S
     field.directions = cv::Mat(size, CV_32FC3, cv::Scalar(0.0, 0.0, 0.0));
     field.valid = cv::Mat(size, CV_8UC1, cv::Scalar(0));
     for (int y = 0; y < size.height; ++y) {
-        const float* px = planes[0].ptr<float>(y);
-        const float* py = planes[1].ptr<float>(y);
-        const float* pz = planes[2].ptr<float>(y);
-        const float* pv = planes[3].ptr<float>(y);
+        const auto* px = planes[0].ptr<float>(y);
+        const auto* py = planes[1].ptr<float>(y);
+        const auto* pz = planes[2].ptr<float>(y);
+        const auto* pv = planes[3].ptr<float>(y);
         auto* d = field.directions.ptr<cv::Vec3f>(y);
         auto* v = field.valid.ptr<std::uint8_t>(y);
         for (int x = 0; x < size.width; ++x) {
@@ -171,7 +171,7 @@ std::optional<cv::Point> find_sun(const cv::Mat& luminance, const RayField& rays
     float best = -1.0F;
     cv::Point best_at(-1, -1);
     for (int y = 0; y < blurred.rows; ++y) {
-        const float* b = blurred.ptr<float>(y);
+        const auto* b = blurred.ptr<float>(y);
         const auto* d = rays.directions.ptr<cv::Vec3f>(y);
         const auto* v = rays.valid.ptr<std::uint8_t>(y);
         for (int x = 0; x < blurred.cols; ++x) {
@@ -198,12 +198,12 @@ int apply_glare_rule(cv::Mat& sky_parse, const cv::Mat& luminance, const RayFiel
         sun.y >= sky_parse.rows) {
         return 0;
     }
-    const cv::Vec3f s = rays.directions.at<cv::Vec3f>(sun);
+    const auto s = rays.directions.at<cv::Vec3f>(sun);
     const float cos_limit = std::cos(settings.glare_radius_deg / kDegrees);
     int changed = 0;
     for (int y = 0; y < sky_parse.rows; ++y) {
         auto* row = sky_parse.ptr<std::uint8_t>(y);
-        const float* lum = luminance.ptr<float>(y);
+        const auto* lum = luminance.ptr<float>(y);
         const auto* d = rays.directions.ptr<cv::Vec3f>(y);
         const auto* v = rays.valid.ptr<std::uint8_t>(y);
         for (int x = 0; x < sky_parse.cols; ++x) {
