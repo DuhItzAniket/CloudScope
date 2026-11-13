@@ -4,6 +4,11 @@ All notable changes, grouped by phase. Versions follow [Semantic Versioning](htt
 
 ## [Unreleased]
 
+### Result card and presentation mode (2026-11-13)
+- The headline badge on the live view is now a result card: the cloud types by name (every genus at or above one half, at most three), the layers, the cover with an okta dial, the cloud base with its 80 % range, a reliable / uncertain chip with the model and its run time, and a key to the mask colours. It sits below the frame-rate strip (the two overlapped) and scales with the view. An uncertain result shows only why it is uncertain.
+- The cloud mask is a pale-blue tint with a white outline (amber for Sun glare) on refined masks, so it reads on white cloud as well as on blue sky.
+- Presentation mode (View menu, F11, `--presentation`): full screen with only the live view; leaving it restores the panels, bars and the frame-rate strip.
+
 ### Mask refinement and glare rule — follow-up to P068 (2026-11-05)
 - `core/ai/mask_refine`: the sky-parse and layer masks are upsampled to the model's input size and refined with a guided filter on the picture (edges follow the clouds, not the 128 × 128 grid); with the geometry known, the Sun is found on the ring of its zenith angle and saturated cloud pixels within 25° of it are shown as Sun glare (the learned glare class never fired on the B0268). `Prediction` carries `masks_refined`, `sun_pixel` and `glare_rule_pixels`; the logged fractions are those of the refined mask; `ai.refine_masks` (default `true`) switches both off. Unit tests in `tests/unit/test_mask_refine.cpp`; manual section "How the masks are drawn". The two service tests now declare their callback state before the service (its last callback could outlive them under the sanitizers).
 

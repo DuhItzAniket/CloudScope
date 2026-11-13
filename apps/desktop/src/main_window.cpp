@@ -259,6 +259,10 @@ void MainWindow::build_actions()
          .text = tr("Frame-rate &indicators"),
          .shortcut = QKeySequence(Qt::Key_I),
          .status_tip = tr("Show the camera and display rates, lost and dropped frames")},
+        {.id = QStringLiteral("view.presentation"),
+         .text = tr("&Presentation mode"),
+         .shortcut = QKeySequence(Qt::Key_F11),
+         .status_tip = tr("Full screen with only the live view and the result card; F11 again to leave")},
         {.id = QStringLiteral("view.theme_dark"),
          .text = tr("&Dark theme"),
          .shortcut = QKeySequence(Qt::CTRL | Qt::Key_D),
@@ -347,8 +351,9 @@ void MainWindow::build_actions()
     if (auto applied = shortcuts_->apply_overrides(context_.settings().shortcuts); !applied) {
         notifications_->notify(LogLevel::Warn, QString::fromStdString(applied.error().message));
     }
-    for (const char* id : {"view.indicators", "overlay.reticle", "overlay.grid", "overlay.altitude", "overlay.compass",
-                           "overlay.sun", "overlay.keep_out", "view.theme_dark", "view.theme_night"}) {
+    for (const char* id :
+         {"view.indicators", "overlay.reticle", "overlay.grid", "overlay.altitude", "overlay.compass", "overlay.sun",
+          "overlay.keep_out", "view.theme_dark", "view.theme_night", "view.presentation"}) {
         shortcuts_->action(QString::fromLatin1(id))->setCheckable(true);
     }
     shortcuts_->action(QStringLiteral("view.indicators"))->setChecked(true);
@@ -370,6 +375,7 @@ void MainWindow::build_menus()
     view->addAction(shortcuts_->action(QStringLiteral("view.zoom_in")));
     view->addAction(shortcuts_->action(QStringLiteral("view.zoom_out")));
     view->addAction(shortcuts_->action(QStringLiteral("view.indicators")));
+    view->addAction(shortcuts_->action(QStringLiteral("view.presentation")));
     view->addSeparator();
     panels_menu_ = view->addMenu(tr("&Panels"));
     for (const auto& [id, dock] : docks_) {
@@ -433,6 +439,7 @@ void MainWindow::connect_parts()
     connect(act("view.zoom_in"), &QAction::triggered, live_view_, &LiveView::zoom_in);
     connect(act("view.zoom_out"), &QAction::triggered, live_view_, &LiveView::zoom_out);
     connect(act("view.indicators"), &QAction::toggled, live_view_, &LiveView::set_show_indicators);
+    connect(act("view.presentation"), &QAction::toggled, this, &MainWindow::set_presentation);
     connect(act("view.theme_dark"), &QAction::triggered, this, [this] { set_theme(Theme::Dark); });
     connect(act("view.theme_night"), &QAction::triggered, this, [this] { set_theme(Theme::Night); });
     connect(act("view.save_perspective"), &QAction::triggered, this, [this] {
@@ -798,6 +805,44 @@ std::filesystem::path MainWindow::state_file() const
     return context_.state_file();
 }
 
+void MainWindow::set_presentation(bool on)
+{
+    if (on == presentation_) {
+        return;
+    }
+    presentation_ = on;
+    QAction* indicators = shortcuts_->action(QStringLiteral("view.indicators"));
+    if (on) {
+        presentation_docks_ = dock_manager_->saveState(kLayoutVersion);
+        presentation_was_maximized_ = isMaximized();
+        presentation_indicators_ = indicators->isChecked();
+        for (const auto& [id, dock] : docks_) {
+            if (id != QStringLiteral("live_view")) {
+                dock->toggleView(false);
+            }
+        }
+        indicators->setChecked(false);
+        menuBar()->hide();
+        statusBar()->hide();
+        showFullScreen();
+    } else {
+        menuBar()->show();
+        statusBar()->show();
+        if (presentation_was_maximized_) {
+            showMaximized();
+        } else {
+            showNormal();
+        }
+        dock_manager_->restoreState(presentation_docks_, kLayoutVersion);
+        indicators->setChecked(presentation_indicators_);
+    }
+    QAction* action = shortcuts_->action(QStringLiteral("view.presentation"));
+    if (action->isChecked() != on) {
+        action->setChecked(on);
+    }
+    live_view_->fit();
+}
+
 void MainWindow::save_layout() const
 {
     std::error_code error;
@@ -1011,6 +1056,7 @@ void MainWindow::show_models_dialog(bool benchmark)
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+    set_presentation(false);  // the saved layout is the working one, not the presentation's
     save_layout();
     capture_panel_->stop();
     preview_->stop();

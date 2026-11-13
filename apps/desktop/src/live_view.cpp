@@ -141,7 +141,10 @@ void paint_live_view(QPainter& painter, const LiveViewScene& scene)
         paint_overlays(painter, scene.viewport, scene.overlays, overlay_scene);
     }
     if (frame != nullptr && scene.prediction && scene.ai_overlay.badge) {
-        paint_ai_badge(painter, whole, *scene.prediction, scene.text_colour, scene.warning_colour);
+        const double below_indicators =
+            scene.show_indicators ? painter.fontMetrics().height() + 16.0 : 0.0;  // the frame-rate strip
+        paint_ai_badge(painter, whole, *scene.prediction, scene.text_colour, scene.warning_colour, below_indicators,
+                       scene.ai_overlay.masks && !scene.ai_image.isNull());
     }
     if (scene.roi.has_value() && frame != nullptr) {
         painter.save();

@@ -6,6 +6,7 @@
 //   cloudscope-desktop --renderer auto|opengl|raster
 //   cloudscope-desktop --theme dark|night
 //   cloudscope-desktop --reset-layout               start from the default panel layout
+//   cloudscope-desktop --presentation               start in presentation mode (full screen, live view only; F11)
 //   cloudscope-desktop --exit-after SECONDS         quit after SECONDS and print the preview report (benchmarks)
 //
 // Exit codes: 0 success, 1 the configuration is invalid or the application could not start, 2 wrong usage,
@@ -79,8 +80,12 @@ int run(int argc, char** argv)
         QStringLiteral("exit-after"), QStringLiteral("Quit after this many seconds and print the preview report."),
         QStringLiteral("seconds"));
     const QCommandLineOption no_gamepad_option(QStringLiteral("no-gamepad"), QStringLiteral("Do not open a gamepad."));
-    for (const QCommandLineOption& option : {config_option, camera_option, mode_option, start_option, renderer_option,
-                                             theme_option, reset_layout_option, exit_after_option, no_gamepad_option}) {
+    const QCommandLineOption presentation_option(
+        QStringLiteral("presentation"),
+        QStringLiteral("Start in presentation mode: full screen with only the live view (F11 leaves it)."));
+    for (const QCommandLineOption& option :
+         {config_option, camera_option, mode_option, start_option, renderer_option, theme_option, reset_layout_option,
+          exit_after_option, no_gamepad_option, presentation_option}) {
         parser.addOption(option);
     }
     // parse(), not process(): process() shows errors in a message box and waits (see cpp_style.md).
@@ -156,6 +161,9 @@ int run(int argc, char** argv)
     const std::string camera =
         parser.isSet(camera_option) ? parser.value(camera_option).toStdString() : (*context)->settings().default_camera;
     window.open_camera_at_start(camera, mode, parser.isSet(start_option));
+    if (parser.isSet(presentation_option)) {
+        window.set_presentation(true);
+    }
     if (exit_after_s > 0) {
         QTimer::singleShot(exit_after_s * 1000, &window, [&window] {
             write(stdout, window.preview_report().toStdString() + "\n");

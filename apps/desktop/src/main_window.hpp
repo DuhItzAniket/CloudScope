@@ -93,6 +93,11 @@ public:
     // Layout persistence (QSettings INI next to config.toml): the dock state, the window geometry and the
     // perspectives. save_layout() is also what closing the window does.
     void save_layout() const;
+
+    // Presentation mode (F11): full screen, only the live view with the result card; leaving restores the
+    // panels, the menu and status bars and the frame-rate strip as they were.
+    void set_presentation(bool on);
+    [[nodiscard]] bool presentation() const { return presentation_; }
     [[nodiscard]] bool restore_layout();
     [[nodiscard]] QByteArray dock_state() const;
     [[nodiscard]] std::filesystem::path state_file() const;
@@ -140,6 +145,10 @@ private:
     AiController* ai_ = nullptr;
     ads::CDockManager* dock_manager_ = nullptr;
     std::map<QString, ads::CDockWidget*> docks_;
+    bool presentation_ = false;
+    bool presentation_was_maximized_ = false;
+    bool presentation_indicators_ = true;
+    QByteArray presentation_docks_;
     LiveView* live_view_ = nullptr;
     CameraPanel* camera_panel_ = nullptr;
     HistogramPanel* histogram_panel_ = nullptr;

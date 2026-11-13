@@ -111,6 +111,31 @@ TEST_CASE("the overlay picture tints cloud and glare, and hides masks of uncerta
     CHECK(height_text(850.0) == QStringLiteral("850 m"));
 }
 
+TEST_CASE("the result card names the cloud types and layers in words", "[desktop][ai][overlay]")
+{
+    auto p = sample_prediction(false);
+    p->genus_probs.fill(0.1F);
+    p->genus_probs[8] = 0.8F;  // Cu
+    p->genus_probs[0] = 0.6F;  // Ci
+    p->genus_top = 8;
+    p->etage_probs = {0.9F, 0.1F, 0.7F};
+    CHECK(ai_genus_headline(*p) == QStringLiteral("Cumulus + Cirrus"));
+    CHECK(ai_layers_text(*p).contains(QStringLiteral("low")));
+    CHECK(ai_layers_text(*p).contains(QStringLiteral("high")));
+    CHECK_FALSE(ai_layers_text(*p).contains(QStringLiteral("mid")));
+    p->genus_probs.fill(0.1F);
+    p->genus_probs[3] = 0.3F;  // nothing reaches one half: the most likely type alone
+    p->genus_top = 3;
+    CHECK(ai_genus_headline(*p) == QStringLiteral("Altocumulus"));
+    CHECK(genus_long_name(99) == QStringLiteral("?"));
+
+    // A fine (refined) mask gets an outline along the cloud border; the coarse grid does not.
+    p->sky_parse = cv::Mat(512, 512, CV_8UC1, cv::Scalar(1));
+    p->sky_parse(cv::Rect(0, 256, 512, 256)).setTo(2);
+    const QImage fine = ai_overlay_image(*p, AiOverlaySettings{});
+    CHECK(qAlpha(fine.pixel(200, 256)) > qAlpha(fine.pixel(200, 400)));  // border row is stronger than the fill
+}
+
 TEST_CASE("the live view paints the overlay over the picture and the badge in the corner", "[desktop][ai][overlay]")
 {
     auto frame = std::make_shared<PreviewFrame>();
@@ -144,9 +169,11 @@ TEST_CASE("the live view paints the overlay over the picture and the badge in th
         QPainter painter(&rendered);
         paint_live_view(painter, scene);
     }
-    bool badge_drawn = false;
-    for (int x = 10; x < 120 && !badge_drawn; ++x) {
-        badge_drawn = qGray(rendered.pixel(x, 18)) > 100;
+    bool badge_drawn = false;  // the result card: bright text somewhere in the top-left corner
+    for (int y = 10; y < 70 && !badge_drawn; ++y) {
+        for (int x = 10; x < 160 && !badge_drawn; ++x) {
+            badge_drawn = qGray(rendered.pixel(x, y)) > 100;
+        }
     }
     CHECK(badge_drawn);
 }

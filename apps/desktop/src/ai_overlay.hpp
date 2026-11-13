@@ -27,7 +27,8 @@ struct AiOverlaySettings {
 };
 
 struct AiOverlayColours {
-    QColor cloud{255, 255, 255};
+    QColor cloud{170, 220, 255};
+    QColor outline{255, 255, 255};
     QColor glare{255, 150, 0};
     QColor invalid{30, 30, 30};
     QColor low{90, 200, 255};
@@ -39,6 +40,15 @@ struct AiOverlayColours {
 [[nodiscard]] QString etage_name(int index);       // "low"
 [[nodiscard]] QString height_text(double metres);  // "1.2 km", "850 m"
 
+[[nodiscard]] QString genus_long_name(int index);  // "Cumulus"; "?" outside the contract's list
+
+// The cloud types the result card names: every genus at or above one half, most likely first, at most three;
+// the most likely one when none reaches one half.
+[[nodiscard]] QString ai_genus_headline(const ai::Prediction& prediction);
+
+// The layers at or above one half ("low · high"), or the most likely one.
+[[nodiscard]] QString ai_layers_text(const ai::Prediction& prediction);
+
 // The headline: "Uncertain (OOD 2.1)" or "Cu 82 % · 3 okta · base 1.2 km".
 [[nodiscard]] QString ai_badge_text(const ai::Prediction& prediction);
 
@@ -49,8 +59,12 @@ struct AiOverlayColours {
 // Draws `overlay` stretched over the picture of `image_size` through the viewport.
 void paint_ai_overlay(QPainter& painter, const Viewport& viewport, const QImage& overlay, QSize image_size);
 
-// Draws the badge in the top-left corner of the widget.
+// Draws the result card in the top-left corner of the widget, `top_offset` pixels down (room for the frame-rate
+// strip): cloud types by name, layers, cover with an okta dial, cloud base with its 80 % range and a
+// reliable / uncertain chip with the model and its run time, and with `mask_legend` a key to the mask colours.
+// An uncertain result shows only why it is uncertain (FR-AI-06). The text scales
+// with the widget so the card reads from a distance.
 void paint_ai_badge(QPainter& painter, const QRectF& widget, const ai::Prediction& prediction, QColor text,
-                    QColor warning);
+                    QColor warning, double top_offset = 0.0, bool mask_legend = false);
 
 }  // namespace cloudscope::desktop
