@@ -131,7 +131,9 @@ void paint_live_view(QPainter& painter, const LiveViewScene& scene)
         paint_ai_overlay(painter, scene.viewport, scene.ai_image, frame->image.size());
     } else {
         painter.setPen(scene.text_colour);
-        painter.drawText(whole, Qt::AlignCenter, scene.message);
+        painter.drawText(whole, Qt::AlignCenter,
+                         scene.hint.isEmpty() ? scene.message
+                                              : scene.message + QString(2, QChar::LineFeed) + scene.hint);
     }
     if (frame != nullptr) {
         const OverlayScene overlay_scene{.projection = scene.projection.get(),
@@ -207,6 +209,12 @@ void LiveView::set_frame(std::shared_ptr<const PreviewFrame> frame)
         Q_EMIT zoomChanged(scene_.viewport.scale());
     }
     scene_.frame = std::move(frame);
+    repaint_canvas();
+}
+
+void LiveView::set_hint(const QString& hint)
+{
+    scene_.hint = hint;
     repaint_canvas();
 }
 

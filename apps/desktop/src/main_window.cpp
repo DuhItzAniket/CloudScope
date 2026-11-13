@@ -825,6 +825,7 @@ void MainWindow::set_presentation(bool on)
         }
         indicators->setChecked(false);
         reticle->setChecked(false);
+        live_view_->set_hint(tr("Presentation mode: press F11 for the camera panel and the menus"));
         menuBar()->hide();
         statusBar()->hide();
         showFullScreen();
@@ -837,6 +838,7 @@ void MainWindow::set_presentation(bool on)
             showNormal();
         }
         dock_manager_->restoreState(presentation_docks_, kLayoutVersion);
+        live_view_->set_hint(QString());
         indicators->setChecked(presentation_indicators_);
         reticle->setChecked(presentation_reticle_);
     }

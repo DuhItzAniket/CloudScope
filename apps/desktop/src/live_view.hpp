@@ -48,6 +48,7 @@ struct LiveViewScene {
     LiveViewIndicators indicators;
     bool show_indicators = true;
     QString message;  // shown centred when there is no picture ("No camera open")
+    QString hint;     // a second line under the message (presentation mode: how to get the panels back)
     QColor overlay_colour{255, 200, 0};
     QColor sun_colour{255, 80, 0};
     QColor text_colour{230, 230, 230};
@@ -75,6 +76,7 @@ public:
 
     void set_frame(std::shared_ptr<const PreviewFrame> frame);
     void set_message(const QString& message);
+    void set_hint(const QString& hint);
     void set_overlay_settings(const OverlaySettings& settings);
     void set_projection(std::shared_ptr<const SkyProjection> projection);
     void set_sun(std::optional<SunPosition> sun);
