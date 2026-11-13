@@ -95,7 +95,7 @@ public:
     void save_layout() const;
 
     // Presentation mode (F11): full screen, only the live view with the result card; leaving restores the
-    // panels, the menu and status bars and the frame-rate strip as they were.
+    // panels, the menu and status bars, the frame-rate strip and the reticle as they were.
     void set_presentation(bool on);
     [[nodiscard]] bool presentation() const { return presentation_; }
     [[nodiscard]] bool restore_layout();
@@ -148,6 +148,7 @@ private:
     bool presentation_ = false;
     bool presentation_was_maximized_ = false;
     bool presentation_indicators_ = true;
+    bool presentation_reticle_ = true;
     QByteArray presentation_docks_;
     LiveView* live_view_ = nullptr;
     CameraPanel* camera_panel_ = nullptr;

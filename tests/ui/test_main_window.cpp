@@ -114,6 +114,30 @@ ImageDifference compare(const QImage& a, const QImage& b)
 
 }  // namespace
 
+TEST_CASE("presentation mode shows only the live view and gives the layout back", "[desktop][main_window][layout]")
+{
+    DesktopFixture fixture;
+    MainWindow window(*fixture.context, test_options());
+    window.show();
+    window.docks().at(QStringLiteral("console"))->toggleView(false);  // a panel the operator had closed
+    QAction* indicators = window.shortcuts().action(QStringLiteral("view.indicators"));
+    REQUIRE(indicators->isChecked());
+    window.set_presentation(true);
+    CHECK(window.presentation());
+    CHECK(window.docks().at(QStringLiteral("camera"))->isClosed());
+    CHECK(window.docks().at(QStringLiteral("ai"))->isClosed());
+    CHECK_FALSE(window.docks().at(QStringLiteral("live_view"))->isClosed());
+    CHECK_FALSE(indicators->isChecked());
+    CHECK(window.shortcuts().action(QStringLiteral("view.presentation"))->isChecked());
+    window.set_presentation(false);
+    CHECK_FALSE(window.presentation());
+    CHECK_FALSE(window.docks().at(QStringLiteral("camera"))->isClosed());
+    CHECK_FALSE(window.docks().at(QStringLiteral("ai"))->isClosed());
+    CHECK(window.docks().at(QStringLiteral("console"))->isClosed());  // still closed: the layout came back as it was
+    CHECK(indicators->isChecked());
+    CHECK_FALSE(window.shortcuts().action(QStringLiteral("view.presentation"))->isChecked());
+}
+
 TEST_CASE("the panel layout and the saved perspectives persist across restarts", "[desktop][main_window][layout]")
 {
     DesktopFixture fixture;

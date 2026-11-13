@@ -34,6 +34,10 @@ the window size and the named layouts are saved when the window closes and resto
 | Sessions | The frame catalogue: pictures with thumbnails, time (UTC and local), session, format, size, exposure, gain, mean, clipped share, Sun position and whether the data is simulated. Filters by session, time, format and simulated data. *Compare two* shows two selected pictures side by side; *Export…* copies a selection with its sidecars and writes `export.json` with the catalogue's SHA-256 of every picture. Rows load in pages as you scroll, so a catalogue of 100,000 pictures opens at once. |
 | Console | Every log message of the program with level and text filters, following new messages as they arrive. |
 
+**Presentation mode** (*View > Presentation mode*, `F11`, or `--presentation` on the command line) shows only the
+live view in full screen, with the STRATIA result card and without the panels, the menu and status bars, the
+frame-rate strip and the reticle. `F11` again brings everything back as it was.
+
 The status bar shows the camera, the mount, the sensors, the AI, remote clients and the free disk space of the
 session folder; what is not there says so (`Mount: none`, `AI: not available`). The last notification is on the
 left; the number is the count of unread notifications, and clicking it opens the list.
@@ -61,8 +65,11 @@ The STRATIA panel (View > Panels > STRATIA) runs the cloud model on the live fra
   busy replaces the one waiting and is counted as dropped, never queued, so the preview never stalls.
 - **What is shown.** The panel gives the cloud genus with its probability (top three), the étages present, the
   cover in oktas with the expected percentage, the cloud-base height with its 80 % and 95 % intervals, and the
-  reliability. On the live view, the masks (cloud white, Sun glare orange, invalid dark; cloud layers in colour
-  with *Cloud layers* on) are drawn over the picture, with a badge giving the headline result.
+  reliability. On the live view, the masks (cloud pale blue with a white outline, Sun glare orange, invalid dark;
+  cloud layers in colour with *Cloud layers* on) are drawn over the picture, with a result card in the corner:
+  the cloud types by name (every genus at or above one half, at most three), the layers, the cover with an okta
+  dial, the cloud base with its 80 % range, a *reliable* or *uncertain* chip with the model and its run time,
+  and a key to the mask colours. An uncertain result shows only why it is uncertain.
 - **How the masks are drawn.** The model answers at a quarter of its 512 px input (128 × 128); the application
   upsamples each class probability to 512 × 512 and refines it with a guided filter that uses the picture itself
   as the guide, so that the drawn edges follow the clouds rather than the grid. With the geometry known (a

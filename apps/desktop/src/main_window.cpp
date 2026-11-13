@@ -812,16 +812,19 @@ void MainWindow::set_presentation(bool on)
     }
     presentation_ = on;
     QAction* indicators = shortcuts_->action(QStringLiteral("view.indicators"));
+    QAction* reticle = shortcuts_->action(QStringLiteral("overlay.reticle"));
     if (on) {
         presentation_docks_ = dock_manager_->saveState(kLayoutVersion);
         presentation_was_maximized_ = isMaximized();
         presentation_indicators_ = indicators->isChecked();
+        presentation_reticle_ = reticle->isChecked();
         for (const auto& [id, dock] : docks_) {
             if (id != QStringLiteral("live_view")) {
                 dock->toggleView(false);
             }
         }
         indicators->setChecked(false);
+        reticle->setChecked(false);
         menuBar()->hide();
         statusBar()->hide();
         showFullScreen();
@@ -835,6 +838,7 @@ void MainWindow::set_presentation(bool on)
         }
         dock_manager_->restoreState(presentation_docks_, kLayoutVersion);
         indicators->setChecked(presentation_indicators_);
+        reticle->setChecked(presentation_reticle_);
     }
     QAction* action = shortcuts_->action(QStringLiteral("view.presentation"));
     if (action->isChecked() != on) {
